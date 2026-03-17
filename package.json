@@ -1,0 +1,12 @@
+{
+  "name": "staff-attendance-system",
+  "version": "1.0.0",
+  "description": "Smart Staff Attendance System Root",
+  "scripts": {
+    "install:all": "powershell -Command \"pip install -r backend/requirements.txt; cd admin-dashboard; npm install --legacy-peer-deps; cd ../staff-portal; npm install\"",
+    "dev:backend": "powershell -Command \".\\venv\\Scripts\\python.exe -m backend.main\"",
+    "dev:dashboard": "powershell -Command \"cd admin-dashboard; npm run dev\"",
+    "dev:staff": "powershell -Command \"cd staff-portal; npm run dev\"",
+    "dev": "npm run dev:dashboard"
+  }
+}
