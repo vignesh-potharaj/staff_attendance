@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Clock, MapPin, Search } from 'lucide-react';
 import api from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 
 interface AttendanceRecord {
   id: number;
