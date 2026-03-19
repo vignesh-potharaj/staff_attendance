@@ -1,0 +1,44 @@
+# Node.js
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+sql_app.db
+*.db
+*.sqlite3
+
+# Application Data
+backend/static/images/*
+!backend/static/images/.gitkeep
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vite / React
+staff-portal/node_modules/
+staff-portal/dist/
+admin-dashboard/node_modules/
+admin-dashboard/dist/
