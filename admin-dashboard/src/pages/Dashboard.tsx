@@ -11,7 +11,7 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
-import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import { Line, Doughnut } from 'react-chartjs-2';
 import { Users, CheckCircle, Clock } from 'lucide-react';
 import api from '../services/api';
 
@@ -41,8 +41,8 @@ const Dashboard: React.FC = () => {
         ]);
         setSummary(summaryRes.data);
         setTrends(trendsRes.data);
-      } catch (error) {
-        console.error("Failed to fetch analytics", error);
+      } catch {
+        console.error("Failed to fetch analytics");
       } finally {
         setLoading(false);
       }

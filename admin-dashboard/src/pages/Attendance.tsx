@@ -18,8 +18,8 @@ const Attendance: React.FC = () => {
 
       const res = await api.get(`/attendance/records?${params.toString()}`);
       setRecords(res.data);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.error("Failed to fetch records");
     } finally {
       setLoading(false);
     }
@@ -52,13 +52,12 @@ const Attendance: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert('Failed to export records');
     }
   };
 
-  const API_BASE = 'http://localhost:8000';
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   return (
     <div className="space-y-6">

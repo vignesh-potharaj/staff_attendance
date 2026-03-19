@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import api from '../services/api';
 
 const Users: React.FC = () => {
@@ -53,8 +53,8 @@ const Users: React.FC = () => {
       setShowModal(false);
       setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', shift_id: '', password: '' });
       fetchUsersAndShifts();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to create user');
+    } catch {
+      alert('Failed to create user');
     }
   };
 
