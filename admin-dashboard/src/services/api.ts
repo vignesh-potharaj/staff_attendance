@@ -9,6 +9,8 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Add this to bypass ngrok browser warning page
+  config.headers['ngrok-skip-browser-warning'] = 'true';
   return config;
 });
 
