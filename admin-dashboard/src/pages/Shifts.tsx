@@ -2,8 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import api from '../services/api';
 
+interface Shift {
+  id: number;
+  shift_name: string;
+  start_time: string;
+  end_time: string;
+  grace_period_minutes: number;
+}
+
 const Shifts: React.FC = () => {
-  const [shifts, setShifts] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   
@@ -29,7 +37,7 @@ const Shifts: React.FC = () => {
     try {
       await api.delete(`/shifts/${id}`);
       fetchShifts();
-    } catch (err) {
+    } catch {
       alert('Failed to delete shift. Make sure no users are assigned to it first.');
     }
   };
@@ -42,14 +50,15 @@ const Shifts: React.FC = () => {
         shift_name: formData.shift_name,
         start_time: `${formData.start_time}:00`,
         end_time: `${formData.end_time}:00`,
-        grace_period_minutes: parseInt(formData.grace_period_minutes as any)
+        grace_period_minutes: Number(formData.grace_period_minutes)
       };
       await api.post('/shifts/', payload);
       setShowModal(false);
       setFormData({ shift_name: '', start_time: '09:00', end_time: '17:00', grace_period_minutes: 15 });
       fetchShifts();
-    } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to create shift');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      alert(error.response?.data?.detail || 'Failed to create shift');
     }
   };
 

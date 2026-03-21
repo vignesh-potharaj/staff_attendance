@@ -31,8 +31,9 @@ const Login: React.FC = () => {
       // Allow STAFF and ADMIN for testing, but typically just STAFF
       login(access_token, user);
       navigate('/');
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number } };
+      if (error.response?.status === 401) {
         setError('Invalid credentials');
       } else {
         setError('An error occurred during login. Is the server running?');

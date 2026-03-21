@@ -27,9 +27,21 @@ ChartJS.register(
   Legend
 );
 
+interface SummaryData {
+  total_staff: number;
+  present_today: number;
+  late_today: number;
+  absent_today: number;
+}
+
+interface TrendData {
+  dates: string[];
+  counts: number[];
+}
+
 const Dashboard: React.FC = () => {
-  const [summary, setSummary] = useState<any>(null);
-  const [trends, setTrends] = useState<any>(null);
+  const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [trends, setTrends] = useState<TrendData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

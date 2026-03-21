@@ -1,0 +1,17 @@
+﻿
+> admin-dashboard@0.0.0 lint
+> eslint .
+
+
+C:\projects\staff_attendance\admin-dashboard\src\contexts\AuthContext.tsx
+  27:16  error  'e' is defined but never used                                                                                                   @typescript-eslint/no-unused-vars
+  53:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\projects\staff_attendance\admin-dashboard\src\pages\Login.tsx
+  39:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\projects\staff_attendance\admin-dashboard\src\pages\Shifts.tsx
+  60:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Γ£û 4 problems (4 errors, 0 warnings)
+

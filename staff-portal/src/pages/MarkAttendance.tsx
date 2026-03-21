@@ -42,11 +42,12 @@ const MarkAttendance: React.FC = () => {
   };
 
   const dataURLtoFile = (dataurl: string, filename: string) => {
-    let arr = dataurl.split(','),
-        mime = arr[0].match(/:(.*?);/)![1],
-        bstr = atob(arr[1]), 
-        n = bstr.length, 
-        u8arr = new Uint8Array(n);
+    const arr = dataurl.split(',');
+    const match = arr[0].match(/:(.*?);/);
+    const mime = match ? match[1] : 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
     while(n--){
         u8arr[n] = bstr.charCodeAt(n);
     }
@@ -75,8 +76,9 @@ const MarkAttendance: React.FC = () => {
       });
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to record attendance');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Failed to record attendance');
     } finally {
       setLoading(false);
     }

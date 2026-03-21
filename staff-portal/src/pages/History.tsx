@@ -23,7 +23,7 @@ const History: React.FC = () => {
       try {
         const response = await api.get('/attendance/history');
         setRecords(response.data);
-      } catch (err) {
+      } catch {
         console.error('Failed to fetch history');
       } finally {
         setLoading(false);

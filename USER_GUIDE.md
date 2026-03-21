@@ -69,8 +69,25 @@ If setup, staff can also use the mobile app:
 
 ---
 
-## 🛠️ Common Fixes
-- **Backend error reading bcrypt**: Resolved. Ensure you ran `npm run install:all`.
-- **Dashboard Tailwind error**: Resolved. Ensure all dependencies are installed.
-- **Connection Error**: Ensure the backend terminal shows it is running on port 8000.
-- **Port already in use**: If Vite starts on a different port (e.g., 5175, 5176), check your terminal output for the correct URL.
+---
+
+## 🔒 Fix: Connecting Mobile/APK to Backend
+
+If you see "Is the server running?" on your phone, it's because the app is trying to connect to `localhost`. You need to point it to your computer's address.
+
+### Option A: Using ngrok (Recommended & Easiest)
+1. Install [ngrok](https://ngrok.com/).
+2. Run your backend locally (`npm run dev:backend`).
+3. In a new terminal, run: `ngrok http 8000`.
+4. Copy the "Forwarding" URL (e.g., `https://random-id.ngrok-free.app`).
+5. Update **Vercel Dashboard**: Set `VITE_API_URL` to this ngrok URL.
+6. Done! Your phone can now talk to your computer from anywhere.
+
+### Option B: Using local IP (Wi-Fi Only)
+1. Connect your phone and computer to the **same Wi-Fi**.
+2. Find your computer's IP: Run `ipconfig` and look for `IPv4 Address` (e.g., `192.168.0.100`).
+3. Update **Vercel Dashboard**: Set `VITE_API_URL` to `http://192.168.0.100:8000`.
+4. **Note**: This only works while you are at home/office on that specific Wi-Fi.
+
+> [!IMPORTANT]
+> Always push your changes to GitHub and wait for Vercel to redeploy after updating environment variables!

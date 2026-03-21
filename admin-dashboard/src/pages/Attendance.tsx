@@ -2,15 +2,30 @@ import React, { useEffect, useState } from 'react';
 import { Download, Search, MapPin, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
 
+interface AttendanceRecord {
+  id: number;
+  user?: {
+    name: string;
+    employee_id: string;
+  };
+  date: string;
+  check_in_time: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  photo_url: string;
+  device_info: string;
+}
+
 const Attendance: React.FC = () => {
-  const [records, setRecords] = useState<any[]>([]);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Filters
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
   const [empIdFilter, setEmpIdFilter] = useState('');
 
-  const fetchRecords = async () => {
+  const fetchRecords = React.useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (dateFilter) params.append('date', dateFilter);
@@ -23,12 +38,12 @@ const Attendance: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, empIdFilter]);
 
   // Re-fetch when date changes
   useEffect(() => {
     fetchRecords();
-  }, [dateFilter]);
+  }, [fetchRecords]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

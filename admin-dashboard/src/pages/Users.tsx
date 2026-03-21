@@ -2,9 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import api from '../services/api';
 
+interface Shift {
+  id: number;
+  shift_name: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  employee_id: string;
+  phone: string;
+  role: string;
+  shift?: Shift;
+}
+
 const Users: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [shifts, setShifts] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Form State
@@ -37,7 +51,7 @@ const Users: React.FC = () => {
     try {
       await api.delete(`/users/${id}`);
       fetchUsersAndShifts();
-    } catch (err) {
+    } catch {
       alert('Failed to delete user');
     }
   };
