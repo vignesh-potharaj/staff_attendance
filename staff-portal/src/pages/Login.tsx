@@ -30,9 +30,9 @@ const Login: React.FC = () => {
       
       login(access_token, user);
       
-      // If the user is an admin, redirect them to the Admin Portal
+      // If the user is an admin, redirect them to the Admin Portal (now at root)
       if (user.role === 'admin' || user.role === 'ADMIN') {
-        window.location.href = '/admin';
+        window.location.href = '/';
       } else {
         navigate('/');
       }
@@ -111,7 +111,7 @@ const Login: React.FC = () => {
 
           <div className="mt-6 text-center">
             <a 
-              href="/admin" 
+              href="/" 
               className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
             >
               Go to Admin Portal →

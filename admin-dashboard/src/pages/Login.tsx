@@ -111,7 +111,7 @@ const Login: React.FC = () => {
 
           <div className="mt-6 text-center border-t border-gray-100 pt-6">
             <a 
-              href="/" 
+              href="/staff" 
               className="text-sm font-medium text-blue-600 hover:text-blue-500"
             >
               ← Go to Staff Portal
