@@ -2,7 +2,12 @@
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/staff/assets/:path*", "destination": "/staff-portal/dist/assets/:path*" },
+    { "source": "/staff/manifest.json", "destination": "/staff-portal/dist/manifest.json" },
+    { "source": "/staff/sw.js", "destination": "/staff-portal/dist/sw.js" },
+    { "source": "/staff/favicon.svg", "destination": "/staff-portal/dist/favicon.svg" },
+    { "source": "/staff/icons/:path*", "destination": "/staff-portal/dist/icons/:path*" },
     { "source": "/staff/:path*", "destination": "/staff-portal/dist/index.html" },
+    { "source": "/staff", "destination": "/staff-portal/dist/index.html" },
     { "source": "/assets/:path*", "destination": "/admin-dashboard/dist/assets/:path*" },
     { "source": "/favicon.svg", "destination": "/admin-dashboard/dist/favicon.svg" },
     { "source": "/manifest.json", "destination": "/admin-dashboard/dist/manifest.json" },
