@@ -28,9 +28,14 @@ const Login: React.FC = () => {
       
       const { access_token, user } = response.data;
       
-      // Allow STAFF and ADMIN for testing, but typically just STAFF
       login(access_token, user);
-      navigate('/');
+      
+      // If the user is an admin, redirect them to the Admin Portal
+      if (user.role === 'admin' || user.role === 'ADMIN') {
+        window.location.href = '/admin';
+      } else {
+        navigate('/');
+      }
     } catch (err: unknown) {
       const error = err as { response?: { status?: number } };
       if (error.response?.status === 401) {
@@ -103,6 +108,15 @@ const Login: React.FC = () => {
               {loading ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <a 
+              href="/admin" 
+              className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              Go to Admin Portal →
+            </a>
+          </div>
         </div>
       </div>
     </div>
