@@ -20,7 +20,7 @@
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable any"
     }
   ],
   "screenshots": [
@@ -28,7 +28,15 @@
       "src": "/screenshots/login.png",
       "sizes": "1000x1000",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Staff Login"
+    },
+    {
+      "src": "/screenshots/login_mobile.png",
+      "sizes": "375x812",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Staff Mobile Portal"
     }
   ],
   "shortcuts": [
