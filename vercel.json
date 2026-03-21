@@ -1,4 +1,5 @@
 {
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/admin/assets/:path*", "destination": "/admin-dashboard/dist/assets/:path*" },
     { "source": "/assets/:path*", "destination": "/staff-portal/dist/assets/:path*" },
