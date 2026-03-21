@@ -2,6 +2,7 @@ services:
   - type: web
     name: staff-attendance-api
     env: python
+    runtime: python-3.12.0
     buildCommand: pip install -r backend/requirements.txt
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app
     envVars:
