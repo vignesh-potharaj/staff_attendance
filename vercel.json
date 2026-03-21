@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/staff-portal/dist/$1" }
+    { "source": "/admin/assets/:path*", "destination": "/admin-dashboard/dist/assets/:path*" },
+    { "source": "/admin/:path*", "destination": "/admin-dashboard/dist/index.html" },
+    { "source": "/assets/:path*", "destination": "/staff-portal/dist/assets/:path*" },
+    { "source": "/favicon.svg", "destination": "/staff-portal/dist/favicon.svg" },
+    { "source": "/manifest.json", "destination": "/staff-portal/dist/manifest.json" },
+    { "source": "/sw.js", "destination": "/staff-portal/dist/sw.js" },
+    { "source": "/icons/:path*", "destination": "/staff-portal/dist/icons/:path*" },
+    { "source": "/:path*", "destination": "/staff-portal/dist/index.html" }
   ]
 }
