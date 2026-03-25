@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LayoutDashboard, Users, Clock, FileText, LogOut, Calendar, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, Calendar, Menu, X } from 'lucide-react';
 
 const Layout: React.FC = () => {
   const { logout, user } = useAuth();
@@ -16,7 +16,7 @@ const Layout: React.FC = () => {
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/users', icon: Users, label: 'User Management' },
-    { to: '/shifts', icon: Clock, label: 'Shift Management' },
+    { to: '/roaster', icon: Calendar, label: "Today's Roaster" },
     { to: '/attendance', icon: FileText, label: 'Attendance Records' },
   ];
 

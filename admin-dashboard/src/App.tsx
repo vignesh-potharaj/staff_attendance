@@ -6,7 +6,7 @@ import Login from './pages/Login';
 
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
-import Shifts from './pages/Shifts';
+import TodayRoaster from './pages/TodayRoaster';
 import Attendance from './pages/Attendance';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -31,7 +31,7 @@ const App: React.FC = () => {
           >
             <Route index element={<Dashboard />} />
             <Route path="users" element={<Users />} />
-            <Route path="shifts" element={<Shifts />} />
+            <Route path="roaster" element={<TodayRoaster />} />
             <Route path="attendance" element={<Attendance />} />
           </Route>
         </Routes>
