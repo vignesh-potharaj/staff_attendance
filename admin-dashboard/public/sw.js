@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
-        return caches.match(event.request);
+        return caches.match('/index.html') || caches.match(event.request);
       })
     );
     return;
@@ -38,7 +38,10 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+      return response || fetch(event.request).catch(() => {
+        // Return a basic offline response if fetch fails
+        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+      });
     })
   );
 });
