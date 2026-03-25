@@ -17,27 +17,31 @@ interface User {
   shift?: Shift;
 }
 
+interface ScheduleInput {
+  isLeave: boolean;
+  startTime: string;
+  endTime: string;
+}
+
 const TodayRoaster: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
-  const [schedules, setSchedules] = useState<Record<number, string>>({});
+  const [schedules, setSchedules] = useState<Record<number, ScheduleInput>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     try {
-      const [uRes, sRes] = await Promise.all([
-        api.get('/users/'),
-        api.get('/shifts/')
-      ]);
+      const uRes = await api.get('/users/');
       
       const staffOnly = uRes.data.filter((u: User) => u.role === 'STAFF');
       setUsers(staffOnly);
-      setShifts(sRes.data);
 
-      // Initialize schedules with default shifts from user profiles
-      const initialSchedules: Record<number, string> = {};
+      const initialSchedules: Record<number, ScheduleInput> = {};
       staffOnly.forEach((u: User) => {
-        initialSchedules[u.id] = u.shift?.id.toString() || '';
+        initialSchedules[u.id] = {
+           isLeave: false,
+           startTime: u.shift ? u.shift.start_time.substring(0, 5) : '10:00',
+           endTime: u.shift ? u.shift.end_time.substring(0, 5) : '18:30'
+        };
       });
       setSchedules(initialSchedules);
     } catch (err) {
@@ -51,8 +55,28 @@ const TodayRoaster: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleShiftChange = (userId: number, value: string) => {
-    setSchedules(prev => ({ ...prev, [userId]: value }));
+  const handleTimeChange = (userId: number, field: 'startTime' | 'endTime', value: string) => {
+    setSchedules(prev => ({ 
+      ...prev, 
+      [userId]: { ...prev[userId], [field]: value } 
+    }));
+  };
+
+  const handleLeaveToggle = (userId: number, isLeave: boolean) => {
+    setSchedules(prev => ({ 
+      ...prev, 
+      [userId]: { ...prev[userId], isLeave } 
+    }));
+  };
+
+  const formatTime12h = (time: string) => {
+    if (!time) return '';
+    const [h, m] = time.split(':');
+    let hours = parseInt(h, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    return `${hours}:${m} ${ampm}`;
   };
 
   const generateWhatsAppMessage = () => {
@@ -66,18 +90,13 @@ const TodayRoaster: React.FC = () => {
     message += `------------------------------------------\n\n`;
 
     users.forEach((user, index) => {
-      const selectedValue = schedules[user.id];
+      const schedule = schedules[user.id];
       let statusText = '';
 
-      if (selectedValue === 'leave') {
+      if (schedule && schedule.isLeave) {
         statusText = '🔴 *ON LEAVE*';
-      } else if (selectedValue) {
-        const shift = shifts.find(s => s.id.toString() === selectedValue);
-        if (shift) {
-          statusText = `🔵 ${shift.shift_name} (${shift.start_time.substring(0, 5)} - ${shift.end_time.substring(0, 5)})`;
-        } else {
-          statusText = '⚪ Not Assigned';
-        }
+      } else if (schedule && schedule.startTime && schedule.endTime) {
+        statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
       } else {
         statusText = '⚪ Not Assigned';
       }
@@ -108,7 +127,7 @@ const TodayRoaster: React.FC = () => {
             <CalendarIcon className="text-blue-600" />
             Today's Roaster
           </h2>
-          <p className="text-gray-500 mt-1">Assign shifts and share the daily schedule</p>
+          <p className="text-gray-500 mt-1">Assign custom shift timings and share the schedule</p>
         </div>
         <button
           onClick={generateWhatsAppMessage}
@@ -124,17 +143,16 @@ const TodayRoaster: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff member</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Shift</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Timing & Status</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Summary</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {users.map((user) => {
-              const selectedValue = schedules[user.id];
-              const isLeave = selectedValue === 'leave';
+              const schedule = schedules[user.id];
               
               return (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${schedule?.isLeave ? 'bg-red-50/30' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
@@ -147,32 +165,48 @@ const TodayRoaster: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={selectedValue}
-                      onChange={(e) => handleShiftChange(user.id, e.target.value)}
-                      className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border ${
-                        isLeave ? 'bg-red-50 text-red-700 border-red-200' : 'bg-white'
-                      }`}
-                    >
-                      <option value="">Select Shift...</option>
-                      {shifts.map((shift) => (
-                        <option key={shift.id} value={shift.id.toString()}>
-                          {shift.shift_name} ({shift.start_time.substring(0, 5)} - {shift.end_time.substring(0, 5)})
-                        </option>
-                      ))}
-                      <option value="leave" className="text-red-600 font-semibold">📍 ON LEAVE</option>
-                    </select>
+                    <div className="flex items-center space-x-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={schedule?.isLeave || false}
+                          onChange={(e) => handleLeaveToggle(user.id, e.target.checked)}
+                          className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">On Leave</span>
+                      </label>
+                      
+                      {!schedule?.isLeave && (
+                        <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded-md border border-gray-200">
+                          <input 
+                            type="time" 
+                            title="Start Time"
+                            value={schedule?.startTime || ''}
+                            onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
+                            className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-1.5 border bg-white"
+                          />
+                          <span className="text-gray-500 text-sm font-medium px-1">to</span>
+                          <input 
+                            type="time" 
+                            title="End Time"
+                            value={schedule?.endTime || ''}
+                            onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
+                            className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-1.5 border bg-white"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {isLeave ? (
+                    {schedule?.isLeave ? (
                       <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                         LEAVE
                       </span>
-                    ) : selectedValue ? (
+                    ) : (schedule?.startTime && schedule?.endTime) ? (
                       <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 items-center gap-1">
                          <Clock className="w-3 h-3" />
-                         SCHEDULED
+                         {formatTime12h(schedule.startTime)} - {formatTime12h(schedule.endTime)}
                       </span>
                     ) : (
                       <span className="px-3 py-1 inline-flex text-xs leading-5 font-medium rounded-full bg-gray-100 text-gray-800">

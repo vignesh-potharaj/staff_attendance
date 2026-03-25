@@ -73,7 +73,7 @@ const Users: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const payload: any = {
+      const payload: Record<string, string | number | null> = {
         ...formData,
         shift_id: formData.shift_id ? parseInt(formData.shift_id) : null
       };
