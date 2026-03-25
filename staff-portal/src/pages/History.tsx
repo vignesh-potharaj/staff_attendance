@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, MapPin, Search } from 'lucide-react';
+import { ChevronLeft, Calendar, Clock, MapPin, Search, LogOut } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AttendanceRecord {
   id: number;
@@ -14,6 +15,7 @@ interface AttendanceRecord {
 }
 
 const History: React.FC = () => {
+  const { logout } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -34,11 +36,18 @@ const History: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-10">
-      <header className="bg-white border-b px-4 py-4 flex items-center sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-500">
+      <header className="bg-white border-b px-4 py-4 flex items-center justify-between sticky top-0 z-10">
+        <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-500 hover:text-blue-600 transition-colors">
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <h1 className="flex-1 text-center font-bold text-gray-900 mr-8">Attendance History</h1>
+        <h1 className="flex-1 text-center font-bold text-gray-900">Attendance History</h1>
+        <button 
+          onClick={logout}
+          className="px-3 py-1.5 flex items-center gap-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
       </header>
 
       <main className="px-6 py-6 max-w-md mx-auto w-full space-y-4">

@@ -124,9 +124,10 @@ const MarkAttendance: React.FC = () => {
           </button>
           <button 
             onClick={logout}
-            className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+            className="px-3 py-1.5 flex items-center gap-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
           >
-            <LogOut className="w-6 h-6" />
+            <LogOut className="w-5 h-5" />
+            Logout
           </button>
         </div>
       </header>

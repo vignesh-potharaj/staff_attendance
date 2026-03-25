@@ -25,6 +25,20 @@ class ShiftResponse(ShiftBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+class DailyRoasterBase(BaseModel):
+    user_id: int
+    date: str
+    start_time: Optional[time] = None
+    end_time: Optional[time] = None
+    is_leave: bool = False
+
+class DailyRoasterCreate(DailyRoasterBase):
+    pass
+
+class DailyRoasterResponse(DailyRoasterBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
 class UserBase(BaseModel):
     name: str
     employee_id: str

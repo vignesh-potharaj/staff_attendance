@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, Shift
+from backend.models.models import Attendance, User, AttendanceStatus, Shift, DailyRoaster
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 
@@ -52,17 +52,24 @@ def mark_attendance(
         
     photo_url = f"/static/images/{filename}"
 
-    # Determine LATE or PRESENT based on shift
+    # Determine LATE or PRESENT based on DailyRoaster
     status = AttendanceStatus.PRESENT
-    if current_user.shift_id:
-        shift = db.query(Shift).filter(Shift.id == current_user.shift_id).first()
-        if shift:
+    roaster = db.query(DailyRoaster).filter(
+        DailyRoaster.user_id == current_user.id,
+        DailyRoaster.date == today_str
+    ).first()
+
+    if roaster:
+        if roaster.is_leave:
+            raise HTTPException(status_code=400, detail="You are marked as ON LEAVE for today.")
+        
+        if roaster.start_time:
             now_time = datetime.now(timezone.utc).time()
-            # Calculate shift start + grace period
-            # Python datetime.time arithmetic requires datetime conversion
-            shift_start_dt = datetime.combine(datetime.today(), shift.start_time)
-            grace_td = timedelta(minutes=shift.grace_period_minutes)
+            # Calculate shift start + grace period (default 15 mins since Shift model is deprecated)
+            shift_start_dt = datetime.combine(datetime.today(), roaster.start_time)
+            grace_td = timedelta(minutes=15)
             allowed_time = (shift_start_dt + grace_td).time()
+            
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
                 

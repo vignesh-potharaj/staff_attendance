@@ -30,18 +30,37 @@ const TodayRoaster: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const uRes = await api.get('/users/');
+      const todayDate = new Date().toLocaleDateString('en-CA'); // strict YYYY-MM-DD from local date
+      const [uRes, rRes] = await Promise.all([
+        api.get('/users/'),
+        api.get(`/roaster/?date=${todayDate}`)
+      ]);
       
       const staffOnly = uRes.data.filter((u: User) => u.role === 'STAFF');
       setUsers(staffOnly);
 
+      const existingRoasters = rRes.data || [];
+      const roasterMap: Record<number, any> = {};
+      existingRoasters.forEach((r: any) => {
+        roasterMap[r.user_id] = r;
+      });
+
       const initialSchedules: Record<number, ScheduleInput> = {};
       staffOnly.forEach((u: User) => {
-        initialSchedules[u.id] = {
-           isLeave: false,
-           startTime: u.shift ? u.shift.start_time.substring(0, 5) : '10:00',
-           endTime: u.shift ? u.shift.end_time.substring(0, 5) : '18:30'
-        };
+        if (roasterMap[u.id]) {
+          const r = roasterMap[u.id];
+          initialSchedules[u.id] = {
+             isLeave: r.is_leave,
+             startTime: r.start_time ? r.start_time.substring(0, 5) : '',
+             endTime: r.end_time ? r.end_time.substring(0, 5) : ''
+          };
+        } else {
+          initialSchedules[u.id] = {
+             isLeave: false,
+             startTime: u.shift ? u.shift.start_time.substring(0, 5) : '10:00',
+             endTime: u.shift ? u.shift.end_time.substring(0, 5) : '18:30'
+          };
+        }
       });
       setSchedules(initialSchedules);
     } catch (err) {
@@ -79,36 +98,54 @@ const TodayRoaster: React.FC = () => {
     return `${hours}:${m} ${ampm}`;
   };
 
-  const generateWhatsAppMessage = () => {
-    const today = new Date().toLocaleDateString('en-GB', { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
-    });
+  const handleSaveAndShare = async () => {
+    try {
+      const todayDate = new Date().toLocaleDateString('en-CA');
+      
+      // Build bulk payload
+      const payload = users.map(u => ({
+        user_id: u.id,
+        date: todayDate,
+        start_time: schedules[u.id]?.isLeave ? null : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : null),
+        end_time: schedules[u.id]?.isLeave ? null : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : null),
+        is_leave: schedules[u.id]?.isLeave || false
+      }));
 
-    let message = `📅 *Staff Duty Roaster - ${today}*\n`;
-    message += `------------------------------------------\n\n`;
+      await api.post(`/roaster/bulk?date=${todayDate}`, payload);
+      
+      const todayFormatted = new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
 
-    users.forEach((user, index) => {
-      const schedule = schedules[user.id];
-      let statusText = '';
+      let message = `📅 *Staff Duty Roaster - ${todayFormatted}*\n`;
+      message += `------------------------------------------\n\n`;
 
-      if (schedule && schedule.isLeave) {
-        statusText = '🔴 *ON LEAVE*';
-      } else if (schedule && schedule.startTime && schedule.endTime) {
-        statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
-      } else {
-        statusText = '⚪ Not Assigned';
-      }
+      users.forEach((user, index) => {
+        const schedule = schedules[user.id];
+        let statusText = '';
 
-      message += `${index + 1}. *${user.name}*: ${statusText}\n`;
-    });
+        if (schedule && schedule.isLeave) {
+          statusText = '🔴 *ON LEAVE*';
+        } else if (schedule && schedule.startTime && schedule.endTime) {
+          statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
+        } else {
+          statusText = '⚪ Not Assigned';
+        }
 
-    message += `\n------------------------------------------\n`;
-    message += `_Please be on time. Have a great day!_`;
+        message += `${index + 1}. *${user.name}*: ${statusText}\n`;
+      });
 
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+      message += `\n------------------------------------------\n`;
+      message += `_Please be on time. Have a great day!_`;
+
+      const encodedMessage = encodeURIComponent(message);
+      window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    } catch (err) {
+      console.error('Failed to save roaster', err);
+      alert('Failed to save roaster. Please ensure backend is running.');
+    }
   };
 
   if (loading) {
@@ -130,11 +167,11 @@ const TodayRoaster: React.FC = () => {
           <p className="text-gray-500 mt-1">Assign custom shift timings and share the schedule</p>
         </div>
         <button
-          onClick={generateWhatsAppMessage}
+          onClick={handleSaveAndShare}
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-shadow"
         >
           <Share2 className="w-5 h-5" />
-          <span>Share on WhatsApp</span>
+          <span>Save & Share on WhatsApp</span>
         </button>
       </div>
 

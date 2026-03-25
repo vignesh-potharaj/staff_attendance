@@ -23,6 +23,19 @@ class Shift(Base):
 
     users = relationship("User", back_populates="shift")
 
+class DailyRoaster(Base):
+    __tablename__ = "daily_roasters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    date = Column(String, index=True) # YYYY-MM-DD
+    start_time = Column(Time, nullable=True)
+    end_time = Column(Time, nullable=True)
+    is_leave = Column(Integer, default=0) # SQLite doesn't have strict boolean, but Integer 0/1 works, or Boolean works in SQLAlchemy via Integer maps
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+
 class User(Base):
     __tablename__ = "users"
 
