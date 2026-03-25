@@ -1,6 +1,6 @@
 {
     "liveServer.settings.port": 5501,
-    "python.defaultInterpreterPath": "${workspaceFolder}/venv/Scripts/python.exe",
+    "python.defaultInterpreterPath": "C:\\projects\\staff_attendance\\venv\\Scripts\\python.exe",
     "python.analysis.extraPaths": [
         "${workspaceFolder}",
         "${workspaceFolder}/backend"
