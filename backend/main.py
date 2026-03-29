@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
-from backend.routers import auth, users, shifts, attendance, analytics, roaster
+from backend.routers import auth, users, attendance, analytics, roaster
 from backend.auth.security import get_password_hash
 
 # Create tables if not existed
@@ -42,7 +42,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(shifts.router)
 app.include_router(attendance.router)
 app.include_router(analytics.router)
 app.include_router(roaster.router)

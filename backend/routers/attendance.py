@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, Shift, DailyRoaster
+from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 
@@ -31,7 +31,7 @@ def mark_attendance(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
     
     # Check if already marked
     existing = db.query(Attendance).filter(
@@ -43,7 +43,7 @@ def mark_attendance(
         raise HTTPException(status_code=400, detail="Attendance already recorded")
 
     # Save photo
-    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+    timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
     filename = f"{current_user.employee_id}_{timestamp_str}_{photo.filename}"
     file_path = os.path.join(UPLOAD_DIR, filename)
 
@@ -64,14 +64,21 @@ def mark_attendance(
             raise HTTPException(status_code=400, detail="You are marked as ON LEAVE for today.")
         
         if roaster.start_time:
-            now_time = datetime.now(timezone.utc).time()
-            # Calculate shift start + grace period (default 15 mins since Shift model is deprecated)
+            now_time = datetime.now(IST).time()
+            # Calculate shift start + grace period (15 mins)
             shift_start_dt = datetime.combine(datetime.today(), roaster.start_time)
             grace_td = timedelta(minutes=15)
             allowed_time = (shift_start_dt + grace_td).time()
             
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
+    else:
+        # Default behavior if no roaster entry exists: assume 10:00 AM start
+        now_time = datetime.now(IST).time()
+        default_start = datetime.combine(datetime.today(), datetime.strptime("10:00", "%H:%M").time())
+        allowed_time = (default_start + timedelta(minutes=15)).time()
+        if now_time > allowed_time:
+            status = AttendanceStatus.LATE
                 
     new_attendance = Attendance(
         user_id=current_user.id,
@@ -97,7 +104,6 @@ def get_attendance_history(skip: int = 0, limit: int = 100, db: Session = Depend
 def get_attendance_records(
     date: Optional[str] = None,
     employee_id: Optional[str] = None,
-    shift_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db)
@@ -108,8 +114,6 @@ def get_attendance_records(
         query = query.filter(Attendance.date == date)
     if employee_id:
         query = query.filter(User.employee_id == employee_id)
-    if shift_id:
-        query = query.filter(User.shift_id == shift_id)
         
     return query.order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -117,7 +121,6 @@ def get_attendance_records(
 def export_attendance_csv(
     date: Optional[str] = None,
     employee_id: Optional[str] = None,
-    shift_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(Attendance).join(User)
@@ -126,8 +129,6 @@ def export_attendance_csv(
         query = query.filter(Attendance.date == date)
     if employee_id:
         query = query.filter(User.employee_id == employee_id)
-    if shift_id:
-        query = query.filter(User.shift_id == shift_id)
         
     records = query.order_by(Attendance.created_at.desc()).all()
 

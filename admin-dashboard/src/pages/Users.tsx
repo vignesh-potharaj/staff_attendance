@@ -2,40 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import api from '../services/api';
 
-interface Shift {
-  id: number;
-  shift_name: string;
-}
-
 interface User {
   id: number;
   name: string;
   employee_id: string;
   phone: string;
   role: string;
-  shift?: Shift;
 }
 
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   // Form State
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', employee_id: '', phone: '', role: 'STAFF', shift_id: '', password: ''
+    name: '', employee_id: '', phone: '', role: 'STAFF', password: ''
   });
 
-  const fetchUsersAndShifts = async () => {
+  const fetchUsers = async () => {
     try {
-      const [uRes, sRes] = await Promise.all([
-        api.get('/users/'),
-        api.get('/shifts/')
-      ]);
-      setUsers(uRes.data);
-      setShifts(sRes.data);
+      const res = await api.get('/users/');
+      setUsers(res.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -44,7 +33,7 @@ const Users: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchUsersAndShifts();
+    fetchUsers();
   }, []);
 
   const handleEdit = (user: User) => {
@@ -54,7 +43,6 @@ const Users: React.FC = () => {
       employee_id: user.employee_id,
       phone: user.phone,
       role: user.role,
-      shift_id: user.shift?.id.toString() || '',
       password: ''
     });
     setShowModal(true);
@@ -64,7 +52,7 @@ const Users: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
       await api.delete(`/users/${id}`);
-      fetchUsersAndShifts();
+      fetchUsers();
     } catch {
       alert('Failed to delete user');
     }
@@ -74,8 +62,7 @@ const Users: React.FC = () => {
     e.preventDefault();
     try {
       const payload: Record<string, string | number | null> = {
-        ...formData,
-        shift_id: formData.shift_id ? parseInt(formData.shift_id) : null
+        ...formData
       };
 
       if (editingUser) {
@@ -87,8 +74,8 @@ const Users: React.FC = () => {
 
       setShowModal(false);
       setEditingUser(null);
-      setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', shift_id: '', password: '' });
-      fetchUsersAndShifts();
+      setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '' });
+      fetchUsers();
     } catch {
       alert(editingUser ? 'Failed to update user' : 'Failed to create user');
     }
@@ -101,7 +88,7 @@ const Users: React.FC = () => {
         <button
           onClick={() => {
             setEditingUser(null);
-            setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', shift_id: '', password: '' });
+            setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '' });
             setShowModal(true);
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
@@ -118,7 +105,6 @@ const Users: React.FC = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shift</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -144,9 +130,6 @@ const Users: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {user.phone}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.shift ? user.shift.shift_name : <span className="text-gray-400 italic">None</span>}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end space-x-2">
                     <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-900">
@@ -162,7 +145,7 @@ const Users: React.FC = () => {
               </tr>
             ))}
             {users.length === 0 && !loading && (
-               <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">No users found.</td></tr>
+               <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500">No users found.</td></tr>
             )}
           </tbody>
         </table>
@@ -208,20 +191,9 @@ const Users: React.FC = () => {
                   <option value="ADMIN">ADMIN</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Phone</label>
-                  <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Shift</label>
-                  <select className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3" value={formData.shift_id} onChange={e => setFormData({...formData, shift_id: e.target.value})}>
-                    <option value="">No Shift</option>
-                    {shifts.map(s => (
-                      <option key={s.id} value={s.id}>{s.shift_name}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
               </div>
               
               <div className="mt-6 flex justify-end space-x-3">

@@ -12,18 +12,7 @@ class TokenData(BaseModel):
     employee_id: str | None = None
     role: str | None = None
 
-class ShiftBase(BaseModel):
-    shift_name: str
-    start_time: time
-    end_time: time
-    grace_period_minutes: int
-
-class ShiftCreate(ShiftBase):
-    pass
-
-class ShiftResponse(ShiftBase):
-    id: int
-    model_config = ConfigDict(from_attributes=True)
+# Shift schemas are removed as per requirements.
 
 class DailyRoasterBase(BaseModel):
     user_id: int
@@ -44,7 +33,6 @@ class UserBase(BaseModel):
     employee_id: str
     phone: str
     role: RoleEnum
-    shift_id: Optional[int] = None
 
 class UserCreate(UserBase):
     password: str
@@ -53,13 +41,11 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[RoleEnum] = None
-    shift_id: Optional[int] = None
     password: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int
     created_at: datetime
-    shift: Optional[ShiftResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AttendanceBase(BaseModel):

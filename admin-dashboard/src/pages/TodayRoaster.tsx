@@ -57,8 +57,8 @@ const TodayRoaster: React.FC = () => {
         } else {
           initialSchedules[u.id] = {
              isLeave: false,
-             startTime: u.shift ? u.shift.start_time.substring(0, 5) : '10:00',
-             endTime: u.shift ? u.shift.end_time.substring(0, 5) : '18:30'
+             startTime: '10:00',
+             endTime: '18:30'
           };
         }
       });
