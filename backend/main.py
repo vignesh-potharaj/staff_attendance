@@ -19,8 +19,10 @@ try:
     with engine.begin() as conn:
         if engine.dialect.name == "sqlite":
             conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
+            conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
         else:
             conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time TIMESTAMP NULL;"))
+            conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
 except Exception as e:
     print(f"Migration warning: {e}")
 

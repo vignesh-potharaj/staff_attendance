@@ -20,6 +20,7 @@ class DailyRoasterBase(BaseModel):
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     is_leave: bool = False
+    is_week_off: bool = False
 
 class DailyRoasterCreate(DailyRoasterBase):
     pass

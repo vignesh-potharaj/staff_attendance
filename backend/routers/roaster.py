@@ -47,6 +47,7 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
             record.start_time = schedule.start_time
             record.end_time = schedule.end_time
             record.is_leave = 1 if schedule.is_leave else 0
+            record.is_week_off = 1 if schedule.is_week_off else 0
         else:
             # Create new
             new_record = DailyRoaster(
@@ -54,7 +55,8 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                 date=schedule.date,
                 start_time=schedule.start_time,
                 end_time=schedule.end_time,
-                is_leave=1 if schedule.is_leave else 0
+                is_leave=1 if schedule.is_leave else 0,
+                is_week_off=1 if schedule.is_week_off else 0
             )
             db.add(new_record)
     

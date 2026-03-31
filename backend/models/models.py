@@ -26,6 +26,7 @@ class DailyRoaster(Base):
     start_time = Column(Time, nullable=True)
     end_time = Column(Time, nullable=True)
     is_leave = Column(Integer, default=0) # SQLite doesn't have strict boolean, but Integer 0/1 works
+    is_week_off = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship("User")
