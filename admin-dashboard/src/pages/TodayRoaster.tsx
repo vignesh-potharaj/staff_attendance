@@ -39,6 +39,13 @@ const TodayRoaster: React.FC = () => {
     try {
       setError(null);
       const todayDate = new Date().toLocaleDateString('en-CA');
+      
+      // Debug: Check if token exists
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+      
       const [uRes, rRes] = await Promise.all([
         api.get('/users/'),
         api.get(`/roaster/?date=${todayDate}`)
@@ -74,7 +81,19 @@ const TodayRoaster: React.FC = () => {
       });
       setSchedules(initialSchedules);
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch roaster data';
+      let errorMsg = 'Failed to fetch roaster data';
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (typeof err === 'object' && err !== null && 'response' in err) {
+        const axiosErr = err as any;
+        if (axiosErr.response?.status === 401) {
+          errorMsg = 'Authentication failed. Please log in again.';
+        } else if (axiosErr.response?.status === 403) {
+          errorMsg = 'You do not have permission to access this resource.';
+        } else if (axiosErr.response?.data?.detail) {
+          errorMsg = axiosErr.response.data.detail;
+        }
+      }
       setError(errorMsg);
       console.error('Failed to fetch data', err);
     } finally {

@@ -9,6 +9,6 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
-        generateValue: true
+        value: "staff-attendance-secure-key-2026-production-admin-api"
       - key: PYTHONPATH
         value: .

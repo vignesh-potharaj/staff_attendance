@@ -6,6 +6,19 @@ const ASSETS = [
   '/favicon.svg',
 ];
 
+// Patterns for API calls that should NOT be cached
+const API_PATTERNS = [
+  '/attendance/',
+  '/auth/',
+  '/users/',
+  '/roaster/',
+  '/analytics/'
+];
+
+const isApiCall = (url) => {
+  return API_PATTERNS.some(pattern => url.includes(pattern));
+};
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -26,35 +39,40 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Use a Network-First strategy for the main page to avoid caching old index.html
-  if (event.request.mode === 'navigate') {
+  const { request } = event;
+  const url = request.url;
+
+  // For navigate requests (page navigation), use network-first
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/index.html') || caches.match(event.request);
+      fetch(request).catch(() => {
+        return caches.match('/index.html') || caches.match(request);
       })
     );
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).catch((err) => {
-        // Only return an offline indicator if this is a navigate request or static asset
-        // Don't return 503 for API calls as it hides real CORS/Error issues
-        const isApi = event.request.url.includes('/attendance/') || 
-                      event.request.url.includes('/auth/') || 
-                      event.request.url.includes('/users/') || 
-                      event.request.url.includes('/roaster/') || 
-                      event.request.url.includes('/analytics/');
-        
-        if (isApi) {
-            throw err; // Let the real error reach the application
-        }
+  // For API calls, use network-first strategy (always try network first)
+  if (isApiCall(url)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => response)
+        .catch((error) => {
+          console.error('[SW] Fetch failed for API:', url, error);
+          throw error; // Re-throw to let the app handle it
+        })
+    );
+    return;
+  }
 
-        console.error('Fetch failed for non-API:', err);
-        return new Response('Offline', { 
-            status: 503, 
-            statusText: 'Service Unavailable' 
+  // For static assets, use cache-first strategy
+  event.respondWith(
+    caches.match(request).then((response) => {
+      return response || fetch(request).catch((err) => {
+        console.error('[SW] Fetch failed for asset:', url, err);
+        return new Response('Offline', {
+          status: 503,
+          statusText: 'Service Unavailable'
         });
       });
     })

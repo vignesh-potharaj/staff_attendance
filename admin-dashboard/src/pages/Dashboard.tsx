@@ -43,18 +43,30 @@ const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [trends, setTrends] = useState<TrendData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
+        setError(null);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token. Please log in again.');
+        }
+        
         const [summaryRes, trendsRes] = await Promise.all([
           api.get('/analytics/'),
           api.get('/analytics/trends')
         ]);
         setSummary(summaryRes.data);
         setTrends(trendsRes.data);
-      } catch {
-        console.error("Failed to fetch analytics");
+      } catch (err: unknown) {
+        let errorMsg = 'Failed to fetch analytics';
+        if (err instanceof Error) {
+          errorMsg = err.message;
+        }
+        setError(errorMsg);
+        console.error("Failed to fetch analytics", err);
       } finally {
         setLoading(false);
       }
@@ -63,6 +75,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   if (loading) return <div>Loading dashboard...</div>;
+  if (error) return <div className="text-red-600">Error: {error}</div>;
   if (!summary || !trends) return <div>Failed to load data.</div>;
 
   const donutData = {
