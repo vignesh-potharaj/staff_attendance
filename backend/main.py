@@ -10,38 +10,58 @@ from backend.routers import auth, users, attendance, analytics, roaster
 from backend.auth.security import get_password_hash
 
 from sqlalchemy import text
+from contextlib import asynccontextmanager
 
-# Create tables if not existed
-Base.metadata.create_all(bind=engine)
+# Indian Standard Time (IST)
+from backend.models.models import IST
 
-# Auto-migrate: Add check_out_time if it doesn't exist yet
-try:
-    with engine.begin() as conn:
-        if engine.dialect.name == "sqlite":
-            conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
-            conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
-        else:
-            conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time TIMESTAMP NULL;"))
-            conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
-except Exception as e:
-    print(f"Migration warning: {e}")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create tables if not existed
+    Base.metadata.create_all(bind=engine)
 
-# Ensure one default admin
-db = SessionLocal()
-admin_exists = db.query(models.User).filter(models.User.employee_id == "admin").first()
-if not admin_exists:
-    admin_user = models.User(
-        name="System Admin",
-        employee_id="admin",
-        password_hash=get_password_hash("admin123"), # Default password, to be changed in production
-        role=models.RoleEnum.ADMIN,
-        phone="0000000000"
-    )
-    db.add(admin_user)
-    db.commit()
-db.close()
+    # Auto-migrate: Add columns if they are missing
+    try:
+        with engine.begin() as conn:
+            # 1. check_out_time in attendance
+            try:
+                if engine.dialect.name == "sqlite":
+                    conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
+                else:
+                    conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time TIMESTAMP NULL;"))
+            except Exception:
+                pass # Already exists or table missing
+            
+            # 2. is_week_off in daily_roasters
+            try:
+                conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
+            except Exception:
+                pass # Already exists or table missing
+    except Exception as e:
+        print(f"Migration warning: {e}")
 
-app = FastAPI(title="Smart Staff Attendance API", version="1.0.0")
+    # Ensure one default admin
+    db = SessionLocal()
+    try:
+        admin_exists = db.query(models.User).filter(models.User.employee_id == "admin").first()
+        if not admin_exists:
+            admin_user = models.User(
+                name="System Admin",
+                employee_id="admin",
+                password_hash=get_password_hash("admin123"),
+                role=models.RoleEnum.ADMIN,
+                phone="0000000000"
+            )
+            db.add(admin_user)
+            db.commit()
+    except Exception as e:
+        print(f"Admin creation error: {e}")
+    finally:
+        db.close()
+    
+    yield
+
+app = FastAPI(title="Smart Staff Attendance API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
