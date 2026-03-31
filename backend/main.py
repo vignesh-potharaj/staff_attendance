@@ -17,9 +17,12 @@ Base.metadata.create_all(bind=engine)
 # Auto-migrate: Add check_out_time if it doesn't exist yet
 try:
     with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
-except Exception:
-    pass # Ignore error if column already exists
+        if engine.dialect.name == "sqlite":
+            conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
+        else:
+            conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time TIMESTAMP NULL;"))
+except Exception as e:
+    print(f"Migration warning: {e}")
 
 # Ensure one default admin
 db = SessionLocal()
