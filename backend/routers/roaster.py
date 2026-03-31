@@ -27,12 +27,24 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
         # Convert records to dict for clean JSON serialization
         result = []
         for record in records:
+            try:
+                start_str = record.start_time.isoformat() if record.start_time is not None else None
+            except Exception as e:
+                logger.warning(f"Error converting start_time: {e}")
+                start_str = str(record.start_time) if record.start_time is not None else None
+                
+            try:
+                end_str = record.end_time.isoformat() if record.end_time is not None else None
+            except Exception as e:
+                logger.warning(f"Error converting end_time: {e}")
+                end_str = str(record.end_time) if record.end_time is not None else None
+            
             result.append({
                 "id": record.id,
                 "user_id": record.user_id,
                 "date": record.date,
-                "start_time": record.start_time.isoformat() if record.start_time else None,
-                "end_time": record.end_time.isoformat() if record.end_time else None,
+                "start_time": start_str,
+                "end_time": end_str,
                 "is_leave": bool(record.is_leave),
                 "is_week_off": bool(record.is_week_off),
             })
