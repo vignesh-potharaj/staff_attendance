@@ -31,7 +31,12 @@ app = FastAPI(title="Smart Staff Attendance API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For production, restrict this.
+    allow_origins=[
+        "https://staff-attendance-eight.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
