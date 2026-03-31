@@ -66,7 +66,9 @@ def mark_attendance(
         if roaster.start_time:
             now_time = datetime.now(IST).time()
             # Calculate shift start + grace period (15 mins)
-            shift_start_dt = datetime.combine(datetime.today(), roaster.start_time)
+            # Use current IST date for combination
+            current_date = datetime.now(IST).date()
+            shift_start_dt = datetime.combine(current_date, roaster.start_time)
             grace_td = timedelta(minutes=15)
             allowed_time = (shift_start_dt + grace_td).time()
             
@@ -75,7 +77,8 @@ def mark_attendance(
     else:
         # Default behavior if no roaster entry exists: assume 10:00 AM start
         now_time = datetime.now(IST).time()
-        default_start = datetime.combine(datetime.today(), datetime.strptime("10:00", "%H:%M").time())
+        current_date = datetime.now(IST).date()
+        default_start = datetime.combine(current_date, datetime.strptime("10:00", "%H:%M").time())
         allowed_time = (default_start + timedelta(minutes=15)).time()
         if now_time > allowed_time:
             status = AttendanceStatus.LATE
