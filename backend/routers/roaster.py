@@ -20,6 +20,7 @@ router = APIRouter(
 def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
     """
     Get the roaster schedules for a specific date (YYYY-MM-DD).
+    Returns empty list if no records found for that date.
     """
     try:
         records = db.query(DailyRoaster).filter(DailyRoaster.date == date).all()
@@ -28,15 +29,19 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
         result = []
         for record in records:
             try:
-                start_str = record.start_time.isoformat() if record.start_time is not None else None
+                # Handle time serialization
+                if record.start_time is not None:
+                    start_str = record.start_time.isoformat() if hasattr(record.start_time, 'isoformat') else str(record.start_time)
+                else:
+                    start_str = None
+                    
+                if record.end_time is not None:
+                    end_str = record.end_time.isoformat() if hasattr(record.end_time, 'isoformat') else str(record.end_time)
+                else:
+                    end_str = None
             except Exception as e:
-                logger.warning(f"Error converting start_time: {e}")
+                logger.warning(f"Error converting time fields: {e}, using string representation")
                 start_str = str(record.start_time) if record.start_time is not None else None
-                
-            try:
-                end_str = record.end_time.isoformat() if record.end_time is not None else None
-            except Exception as e:
-                logger.warning(f"Error converting end_time: {e}")
                 end_str = str(record.end_time) if record.end_time is not None else None
             
             result.append({
@@ -45,10 +50,11 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
                 "date": record.date,
                 "start_time": start_str,
                 "end_time": end_str,
-                "is_leave": bool(record.is_leave),
-                "is_week_off": bool(record.is_week_off),
+                "is_leave": bool(record.is_leave) if record.is_leave is not None else False,
+                "is_week_off": bool(record.is_week_off) if record.is_week_off is not None else False,
             })
         
+        logger.info(f"Returned {len(result)} roaster records for date {date}")
         return result
     except Exception as e:
         logger.error(f"Error fetching roaster for date {date}: {str(e)}", exc_info=True)
