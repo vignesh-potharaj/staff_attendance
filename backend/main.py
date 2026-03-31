@@ -1,10 +1,10 @@
 import os
 import uvicorn
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
 
 from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
@@ -13,6 +13,10 @@ from backend.auth.security import get_password_hash
 
 from sqlalchemy import text
 from contextlib import asynccontextmanager
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Indian Standard Time (IST)
 from backend.models.models import IST
@@ -91,10 +95,11 @@ app.include_router(roaster.router)
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
-    """Catch all exceptions and ensure CORS headers are included"""
+    """Catch unexpected exceptions and log them"""
+    logger.error(f"Unhandled exception: {type(exc).__name__}: {str(exc)}", exc_info=exc)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
+        content={"detail": str(exc) if str(exc) else "Internal server error"},
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",

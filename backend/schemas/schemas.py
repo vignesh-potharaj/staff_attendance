@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
-from datetime import datetime, time
+from datetime import datetime
 from backend.models.models import RoleEnum, AttendanceStatus
 
 class Token(BaseModel):
@@ -17,8 +17,8 @@ class TokenData(BaseModel):
 class DailyRoasterBase(BaseModel):
     user_id: int
     date: str
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
+    start_time: Optional[str] = None  # Changed from time to str for SQLite compatibility
+    end_time: Optional[str] = None    # Changed from time to str for SQLite compatibility
     is_leave: bool = False
     is_week_off: bool = False
 
