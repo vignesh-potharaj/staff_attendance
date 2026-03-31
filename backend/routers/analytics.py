@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, RoleEnum
+from backend.models.models import Attendance, User, AttendanceStatus, RoleEnum, IST
 from backend.auth.dependencies import get_current_admin
 from backend.schemas.schemas import AnalyticsSummary
 
@@ -16,7 +16,7 @@ router = APIRouter(
 
 @router.get("/", response_model=AnalyticsSummary)
 def get_analytics(db: Session = Depends(get_db)):
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
     
     # 1. Total staff
     total_staff = db.query(User).filter(User.role == RoleEnum.STAFF).count()

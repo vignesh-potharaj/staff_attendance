@@ -45,6 +45,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://staff-attendance-eight.vercel.app",
+        "https://staff-attendance-admin.vercel.app",
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:3000"
