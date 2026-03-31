@@ -10,6 +10,10 @@ load_dotenv()
 # However, for production it should be PostgreSQL.
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 
+# Fix for SQLAlchemy 2.0+ which requires 'postgresql://' instead of 'postgres://'
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # For SQLite, we need connect_args={"check_same_thread": False}. For Postgres, we don't.
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     engine = create_engine(

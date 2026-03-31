@@ -38,9 +38,24 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request).catch(() => {
-        // Return a basic offline response if fetch fails
-        return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+      return response || fetch(event.request).catch((err) => {
+        // Only return an offline indicator if this is a navigate request or static asset
+        // Don't return 503 for API calls as it hides real CORS/Error issues
+        const isApi = event.request.url.includes('/attendance/') || 
+                      event.request.url.includes('/auth/') || 
+                      event.request.url.includes('/users/') || 
+                      event.request.url.includes('/roaster/') || 
+                      event.request.url.includes('/analytics/');
+        
+        if (isApi) {
+            throw err; // Let the real error reach the application
+        }
+
+        console.error('Fetch failed for non-API:', err);
+        return new Response('Offline', { 
+            status: 503, 
+            statusText: 'Service Unavailable' 
+        });
       });
     })
   );
