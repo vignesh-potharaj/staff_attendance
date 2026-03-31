@@ -96,6 +96,35 @@ def mark_attendance(
     
     return new_attendance
 
+@router.post("/check-out", response_model=AttendanceResponse)
+def check_out_attendance(
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    device_info: str = Form(...),
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    today_str = datetime.now(IST).strftime("%Y-%m-%d")
+    
+    # Check if already marked for today
+    existing = db.query(Attendance).filter(
+        Attendance.user_id == current_user.id,
+        Attendance.date == today_str
+    ).first()
+    
+    if not existing:
+        raise HTTPException(status_code=400, detail="You must check in first before checking out.")
+
+    if existing.check_out_time:
+        raise HTTPException(status_code=400, detail="You have already checked out for today.")
+
+    existing.check_out_time = datetime.now(IST)
+    db.commit()
+    db.refresh(existing)
+    
+    return existing
+
 @router.get("/history", response_model=List[AttendanceResponse])
 def get_attendance_history(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Attendance).filter(Attendance.user_id == current_user.id).order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
@@ -134,14 +163,16 @@ def export_attendance_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Employee Name", "Employee ID", "Date", "Time", "Status", "Latitude", "Longitude", "Device"])
+    writer.writerow(["Employee Name", "Employee ID", "Date", "Check In Time", "Check Out Time", "Status", "Latitude", "Longitude", "Device"])
 
     for r in records:
+        check_out_str = r.check_out_time.strftime("%H:%M:%S") if r.check_out_time else "N/A"
         writer.writerow([
             r.user.name,
             r.user.employee_id,
             r.date,
             r.check_in_time.strftime("%H:%M:%S"),
+            check_out_str,
             r.status,
             r.latitude,
             r.longitude,

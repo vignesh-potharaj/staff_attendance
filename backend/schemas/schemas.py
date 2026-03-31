@@ -67,6 +67,7 @@ class AttendanceResponse(AttendanceBase):
     id: int
     user_id: int
     user: Optional[UserBase] = None
+    check_out_time: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AnalyticsSummary(BaseModel):

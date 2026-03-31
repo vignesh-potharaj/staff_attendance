@@ -54,7 +54,7 @@ const MarkAttendance: React.FC = () => {
     return new File([u8arr], filename, {type:mime});
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (action: 'check-in' | 'check-out') => {
     if (!imgSrc || !location) {
       setError('Please capture a photo and allow location access');
       return;
@@ -71,14 +71,15 @@ const MarkAttendance: React.FC = () => {
       formData.append('device_info', 'Web Staff Portal');
       formData.append('photo', file);
 
-      await api.post('/attendance/mark', formData, {
+      const endpoint = action === 'check-in' ? '/attendance/mark' : '/attendance/check-out';
+      await api.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setSuccess(true);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Failed to record attendance');
+      setError(error.response?.data?.detail || `Failed to ${action === 'check-in' ? 'check in' : 'check out'}`);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ const MarkAttendance: React.FC = () => {
           <CheckCircle2 className="w-16 h-16 text-green-600" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Success!</h1>
-        <p className="text-gray-600 mb-8">Your attendance has been recorded for today.</p>
+        <p className="text-gray-600 mb-8">Your action has been recorded successfully.</p>
         <button
           onClick={() => navigate('/history')}
           className="w-full max-w-xs bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all"
@@ -201,21 +202,31 @@ const MarkAttendance: React.FC = () => {
           </div>
         )}
 
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !imgSrc || !location}
-          className={`w-full py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2 transition-all ${
-            loading || !imgSrc || !location 
-            ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-            : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-1'
-          }`}
-        >
-          {loading ? (
-            <RefreshCw className="w-6 h-6 animate-spin" />
-          ) : (
-            <>Submit Attendance</>
-          )}
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => handleSubmit('check-in')}
+            disabled={loading || !imgSrc || !location}
+            className={`flex-1 py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2 transition-all ${
+              loading || !imgSrc || !location 
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+              : 'bg-green-600 text-white hover:bg-green-700 hover:-translate-y-1'
+            }`}
+          >
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Check In</>}
+          </button>
+          
+          <button
+            onClick={() => handleSubmit('check-out')}
+            disabled={loading || !imgSrc || !location}
+            className={`flex-1 py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2 transition-all ${
+              loading || !imgSrc || !location 
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+              : 'bg-red-600 text-white hover:bg-red-700 hover:-translate-y-1'
+            }`}
+          >
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Check Out</>}
+          </button>
+        </div>
       </main>
     </div>
   );

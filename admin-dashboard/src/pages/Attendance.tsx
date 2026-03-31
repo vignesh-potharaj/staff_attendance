@@ -10,6 +10,7 @@ interface AttendanceRecord {
   };
   date: string;
   check_in_time: string;
+  check_out_time?: string | null;
   status: string;
   latitude: number;
   longitude: number;
@@ -137,7 +138,12 @@ const Attendance: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">{record.date}</div>
-                  <div className="text-sm text-gray-500">{new Date(record.check_in_time).toLocaleTimeString()}</div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    <span className="font-medium text-green-600">In:</span> {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium text-red-600">Out:</span> {record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending'}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${

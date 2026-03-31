@@ -55,6 +55,7 @@ class Attendance(Base):
     longitude = Column(Float)
     status = Column(SQLEnum(AttendanceStatus))
     device_info = Column(String)
+    check_out_time = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship("User", back_populates="attendance_records")
