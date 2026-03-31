@@ -9,8 +9,17 @@ from backend.models import models
 from backend.routers import auth, users, attendance, analytics, roaster
 from backend.auth.security import get_password_hash
 
+from sqlalchemy import text
+
 # Create tables if not existed
 Base.metadata.create_all(bind=engine)
+
+# Auto-migrate: Add check_out_time if it doesn't exist yet
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
+except Exception:
+    pass # Ignore error if column already exists
 
 # Ensure one default admin
 db = SessionLocal()
