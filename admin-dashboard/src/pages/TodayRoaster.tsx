@@ -28,6 +28,7 @@ const TodayRoaster: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [schedules, setSchedules] = useState<Record<number, ScheduleInput>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // History State
   const [historyDate, setHistoryDate] = useState(new Date().toLocaleDateString('en-CA'));
@@ -36,6 +37,7 @@ const TodayRoaster: React.FC = () => {
 
   const fetchData = async () => {
     try {
+      setError(null);
       const todayDate = new Date().toLocaleDateString('en-CA');
       const [uRes, rRes] = await Promise.all([
         api.get('/users/'),
@@ -71,7 +73,9 @@ const TodayRoaster: React.FC = () => {
         }
       });
       setSchedules(initialSchedules);
-    } catch (err) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch roaster data';
+      setError(errorMsg);
       console.error('Failed to fetch data', err);
     } finally {
       setLoading(false);
@@ -181,6 +185,27 @@ const TodayRoaster: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-800">
+          <h3 className="font-semibold text-lg mb-2">Error Loading Roaster</h3>
+          <p className="text-sm mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              fetchData();
+            }}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
