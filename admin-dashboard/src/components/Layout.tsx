@@ -17,7 +17,6 @@ const Layout: React.FC = () => {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/users', icon: Users, label: 'User Management' },
     { to: '/roaster', icon: Calendar, label: "Today's Roaster" },
-    { to: '/roaster-view', icon: FileText, label: 'View Roaster' },
     { to: '/attendance', icon: FileText, label: 'Attendance Records' },
   ];
 
