@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Plus, AlertCircle, RefreshCw, Clock, User, CheckCircle2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, AlertCircle, RefreshCw, User, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -26,32 +26,27 @@ interface RoasterData {
 /* Skeleton Loader Component */
 const RoasterSkeleton: React.FC<{ count?: number }> = ({ count = 6 }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-2xl border border-slate-200 backdrop-blur-sm bg-white/50 overflow-hidden"
+          className="relative rounded-xl border border-slate-200 backdrop-blur-sm bg-white/50 overflow-hidden h-20 sm:h-24 animate-pulse"
         >
-          <div className="p-4 sm:p-5 md:p-6 space-y-4 animate-pulse">
-            {/* Header skeleton */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-slate-200 to-slate-100" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-slate-200 rounded-lg w-32" />
-                  <div className="h-3 bg-slate-100 rounded w-24" />
-                </div>
-              </div>
-              <div className="h-6 bg-slate-200 rounded-full w-20 flex-shrink-0" />
+          {/* Timeline left border skeleton */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-indigo-600 opacity-40" />
+          
+          <div className="p-4 sm:p-5 flex items-center gap-4 h-full">
+            {/* Avatar skeleton */}
+            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-slate-200 to-slate-100" />
+            
+            {/* Content skeleton */}
+            <div className="flex-1 space-y-2">
+              <div className="h-3 bg-slate-200 rounded w-32 sm:w-40" />
+              <div className="h-2 bg-slate-100 rounded w-24" />
             </div>
-
-            {/* Time section skeleton */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div className="h-4 bg-slate-200 rounded w-40" />
-            </div>
-
-            {/* Footer skeleton */}
-            <div className="h-3 bg-slate-100 rounded w-28" />
+            
+            {/* Status badge skeleton */}
+            <div className="h-6 bg-slate-200 rounded-full w-16 flex-shrink-0" />
           </div>
         </div>
       ))}
@@ -59,7 +54,7 @@ const RoasterSkeleton: React.FC<{ count?: number }> = ({ count = 6 }) => {
   );
 };
 
-/* Roaster Card Component */
+/* Roaster Card Component - Vertical Layout */
 interface RoasterCardProps {
   id: number;
   userName: string;
@@ -71,9 +66,7 @@ interface RoasterCardProps {
 }
 
 const RoasterCard: React.FC<RoasterCardProps> = ({
-  id,
   userName,
-  date,
   startTime,
   endTime,
   isLeave,
@@ -82,23 +75,23 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
   const getStatusBadge = () => {
     if (isWeekOff) {
       return (
-        <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-full">
-          <Calendar className="w-4 h-4 text-slate-600" />
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-full">
+          <Calendar className="w-3.5 h-3.5 text-slate-600" />
           <span className="text-xs font-medium text-slate-700">Rest Day</span>
         </div>
       );
     }
     if (isLeave) {
       return (
-        <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full">
-          <AlertCircle className="w-4 h-4 text-amber-600" />
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
           <span className="text-xs font-medium text-amber-700">Leave</span>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-full">
-        <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-full">
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
         <span className="text-xs font-medium text-emerald-700">Scheduled</span>
       </div>
     );
@@ -106,73 +99,57 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
 
   const getTimeDisplay = () => {
     if (isWeekOff || isLeave) {
-      return <span className="text-sm text-slate-500">Not Applicable</span>;
+      return <span className="text-sm sm:text-base font-medium text-slate-500">Not Applicable</span>;
     }
     if (startTime && endTime) {
       return (
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-indigo-500" />
-          <span className="text-sm font-medium text-slate-800">
-            {startTime} - {endTime}
-          </span>
-        </div>
+        <span className="text-sm sm:text-base font-semibold text-slate-900">
+          {startTime} — {endTime}
+        </span>
       );
     }
     return <span className="text-sm text-slate-400">No time set</span>;
   };
 
   const backgroundClass = isWeekOff
-    ? 'bg-gradient-to-br from-slate-50 to-slate-100 border-slate-200 opacity-75'
-    : 'bg-gradient-to-br from-white to-slate-50 border-slate-200 hover:border-indigo-300 hover:shadow-lg';
+    ? 'bg-gradient-to-r from-slate-50 to-slate-100 border-slate-200 opacity-80'
+    : 'bg-gradient-to-br from-white to-slate-50 border-slate-200 hover:border-indigo-300 hover:shadow-md';
+
+  const timelineBg = isWeekOff
+    ? 'from-slate-300 to-slate-400'
+    : isLeave
+    ? 'from-amber-400 to-orange-500'
+    : 'from-indigo-400 to-blue-600';
 
   return (
     <div
-      className={`relative rounded-2xl border backdrop-blur-sm transition-all duration-300 overflow-hidden ${backgroundClass}`}
+      className={`relative rounded-xl border backdrop-blur-sm transition-all duration-300 overflow-hidden ${backgroundClass}`}
     >
-      {/* Striped pattern for week off */}
-      {isWeekOff && (
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-slate-300 to-transparent"
-            style={{
-              backgroundImage:
-                'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(51,65,85,0.1) 10px, rgba(51,65,85,0.1) 20px)',
-            }}
-          />
-        </div>
-      )}
+      {/* Timeline left border */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${timelineBg}`} />
 
-      <div className="relative p-4 sm:p-5 md:p-6">
-        {/* Header with name and status */}
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
-              <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base font-semibold text-slate-900 truncate">
-                {userName}
-              </h3>
-              <p className="text-xs text-slate-500">ID: {id}</p>
-            </div>
+      {/* Main content */}
+      <div className="relative pl-4 pr-4 py-4 sm:pl-5 sm:pr-5 sm:py-4 flex items-center justify-between gap-4">
+        
+        {/* Left: Avatar, Name, ID */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md border-2 border-white">
+            <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
+          
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900 truncate">
+              {userName}
+            </h3>
+            <p className="text-xs text-slate-500 leading-none">
+              {getTimeDisplay()}
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Status badge */}
+        <div className="flex-shrink-0">
           {getStatusBadge()}
-        </div>
-
-        {/* Time section */}
-        <div className="flex items-center justify-between mb-4 p-3 bg-slate-50/60 rounded-xl border border-slate-100">
-          <div className="flex-1">
-            {getTimeDisplay()}
-          </div>
-          {!isWeekOff && !isLeave && (
-            <div className="w-5 h-5 text-amber-500 ml-3 flex-shrink-0 flex items-center justify-center">⚡</div>
-          )}
-        </div>
-
-        {/* Date footer */}
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Calendar className="w-3.5 h-3.5" />
-          <span>{new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
         </div>
       </div>
     </div>
@@ -380,9 +357,9 @@ export const RoasterDisplay: React.FC = () => {
       {/* Loading state */}
       {loading && <RoasterSkeleton count={6} />}
 
-      {/* Roaster cards grid */}
+      {/* Roaster cards - Vertical stack */}
       {!loading && roasterData.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="space-y-3">
           {roasterData.map((record) => (
             <RoasterCard
               key={record.id}
