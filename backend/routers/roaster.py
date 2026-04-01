@@ -83,45 +83,50 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
 
         for schedule in schedules:
             if schedule.user_id in existing_map:
-                # Update existing
+                # Update existing record
                 record = existing_map[schedule.user_id]
+                
                 # Parse string times to time objects if needed
-                if isinstance(schedule.start_time, str):
+                if isinstance(schedule.start_time, str) and schedule.start_time:
                     from datetime import time as time_obj
                     parts = schedule.start_time.split(':')
-                    record.start_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0) if schedule.start_time else None
+                    start_time_val = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+                    setattr(record, 'start_time', start_time_val)
+                elif schedule.start_time is not None:
+                    setattr(record, 'start_time', schedule.start_time)
                 else:
-                    record.start_time = schedule.start_time
+                    setattr(record, 'start_time', None)
                     
-                if isinstance(schedule.end_time, str):
+                if isinstance(schedule.end_time, str) and schedule.end_time:
                     from datetime import time as time_obj
                     parts = schedule.end_time.split(':')
-                    record.end_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0) if schedule.end_time else None
+                    end_time_val = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+                    setattr(record, 'end_time', end_time_val)
+                elif schedule.end_time is not None:
+                    setattr(record, 'end_time', schedule.end_time)
                 else:
-                    record.end_time = schedule.end_time
+                    setattr(record, 'end_time', None)
                     
-                record.is_leave = 1 if schedule.is_leave else 0
-                record.is_week_off = 1 if schedule.is_week_off else 0
+                setattr(record, 'is_leave', 1 if schedule.is_leave else 0)
+                setattr(record, 'is_week_off', 1 if schedule.is_week_off else 0)
             else:
-                # Create new
+                # Create new record
                 start_time = None
                 end_time = None
                 
-                if schedule.start_time:
-                    if isinstance(schedule.start_time, str):
-                        from datetime import time as time_obj
-                        parts = schedule.start_time.split(':')
-                        start_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
-                    else:
-                        start_time = schedule.start_time
-                        
-                if schedule.end_time:
-                    if isinstance(schedule.end_time, str):
-                        from datetime import time as time_obj
-                        parts = schedule.end_time.split(':')
-                        end_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
-                    else:
-                        end_time = schedule.end_time
+                if isinstance(schedule.start_time, str) and schedule.start_time:
+                    from datetime import time as time_obj
+                    parts = schedule.start_time.split(':')
+                    start_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+                elif schedule.start_time is not None:
+                    start_time = schedule.start_time
+                    
+                if isinstance(schedule.end_time, str) and schedule.end_time:
+                    from datetime import time as time_obj
+                    parts = schedule.end_time.split(':')
+                    end_time = time_obj(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+                elif schedule.end_time is not None:
+                    end_time = schedule.end_time
                 
                 new_record = DailyRoaster(
                     user_id=schedule.user_id,
