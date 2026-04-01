@@ -68,6 +68,7 @@ const TodayRoaster: React.FC = () => {
           initialSchedules[u.id] = {
              isLeave: !!r.is_leave,
              isWeekOff: !!r.is_week_off,
+             isPresent: !r.is_leave && !r.is_week_off,
              startTime: r.start_time ? r.start_time.substring(0, 5) : '',
              endTime: r.end_time ? r.end_time.substring(0, 5) : ''
           };
@@ -75,6 +76,7 @@ const TodayRoaster: React.FC = () => {
           initialSchedules[u.id] = {
              isLeave: false,
              isWeekOff: false,
+             isPresent: true,
              startTime: '10:00',
              endTime: '18:30'
           };
