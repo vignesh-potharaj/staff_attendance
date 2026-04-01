@@ -61,11 +61,24 @@ const Users: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Validate required fields
+      if (!formData.name || !formData.employee_id || !formData.phone) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      // For new users, password is required
+      if (!editingUser && !formData.password) {
+        alert('Password is required for new users');
+        return;
+      }
+
       const payload: Record<string, string | number | null> = {
         ...formData
       };
 
       if (editingUser) {
+        // For existing users, only delete password if not provided
         if (!payload.password) delete payload.password;
         await api.put(`/users/${editingUser.id}`, payload);
       } else {
