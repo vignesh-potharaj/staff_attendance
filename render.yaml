@@ -1,8 +1,7 @@
 services:
   - type: web
     name: staff-attendance-api
-    env: python
-    runtime: python-3.12.0
+    runtime: python
     buildCommand: pip install -r backend/requirements.txt
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app
     envVars:
@@ -11,4 +10,4 @@ services:
       - key: SECRET_KEY
         value: "staff-attendance-secure-key-2026-production-admin-api"
       - key: PYTHONPATH
-        value: .
+        value: "."
