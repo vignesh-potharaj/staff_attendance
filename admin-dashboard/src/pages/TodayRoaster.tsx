@@ -20,6 +20,7 @@ interface User {
 interface ScheduleInput {
   isLeave: boolean;
   isWeekOff: boolean;
+  isPresent: boolean;
   startTime: string;
   endTime: string;
 }
@@ -125,13 +126,23 @@ const TodayRoaster: React.FC = () => {
     }));
   };
 
-  const handleToggle = (userId: number, field: 'isLeave' | 'isWeekOff', value: boolean) => {
+  const handleToggle = (userId: number, field: 'isLeave' | 'isWeekOff' | 'isPresent', value: boolean) => {
     setSchedules(prev => {
       const updated = { ...prev[userId], [field]: value };
-      // If one is enabled, ensure the other is disabled
+      // Make these mutually exclusive
       if (value) {
-        if (field === 'isLeave') updated.isWeekOff = false;
-        if (field === 'isWeekOff') updated.isLeave = false;
+        if (field === 'isLeave') {
+          updated.isWeekOff = false;
+          updated.isPresent = false;
+        }
+        if (field === 'isWeekOff') {
+          updated.isLeave = false;
+          updated.isPresent = false;
+        }
+        if (field === 'isPresent') {
+          updated.isLeave = false;
+          updated.isWeekOff = false;
+        }
       }
       return { ...prev, [userId]: updated };
     });
@@ -291,64 +302,75 @@ const TodayRoaster: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Status Options: Present, Week Off, Leave */}
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center cursor-pointer gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={schedule?.isPresent || false}
+                        onChange={(e) => handleToggle(user.id, 'isPresent', e.target.checked)}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Present</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={schedule?.isWeekOff || false}
+                        onChange={(e) => handleToggle(user.id, 'isWeekOff', e.target.checked)}
+                        className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Week Off</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={schedule?.isLeave || false}
+                        onChange={(e) => handleToggle(user.id, 'isLeave', e.target.checked)}
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Leave</span>
+                    </label>
+                  </div>
+
                   {/* Time Display */}
                   <div className="bg-white/60 backdrop-blur rounded-lg p-3 border border-white/80">
                     <p className="text-xs text-slate-600 font-medium mb-1 uppercase tracking-wide">Shift Time</p>
                     <p className="text-lg sm:text-xl font-bold text-slate-900">
-                      {schedule?.isLeave || schedule?.isWeekOff 
-                        ? '—' 
-                        : schedule?.startTime && schedule?.endTime 
-                        ? `${schedule.startTime} → ${schedule.endTime}` 
-                        : 'Not set'}
+                      {schedule?.isLeave
+                        ? 'On Leave'
+                        : schedule?.isWeekOff
+                        ? 'Week Off'
+                        : schedule?.isPresent && schedule?.startTime && schedule?.endTime
+                        ? `${schedule.startTime} → ${schedule.endTime}`
+                        : 'Not set'
+                      }
                     </p>
                   </div>
 
-                  {/* Controls: Time Inputs + Checkboxes */}
-                  <div className="space-y-2">
-                    {(!schedule?.isLeave && !schedule?.isWeekOff) && (
-                      <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                        <span className="text-xs font-medium text-gray-600 min-w-fit">Time:</span>
-                        <input 
-                          type="time" 
-                          title="Start Time"
-                          value={schedule?.startTime || ''}
-                          onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
-                          className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
-                        />
-                        <span className="text-gray-400 text-xs px-1">to</span>
-                        <input 
-                          type="time" 
-                          title="End Time"
-                          value={schedule?.endTime || ''}
-                          onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
-                          className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
-                        />
-                      </div>
-                    )}
-
-                    {/* Leave and Off checkboxes */}
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center cursor-pointer gap-2">
-                        <input 
-                          type="checkbox" 
-                          checked={schedule?.isLeave || false}
-                          onChange={(e) => handleToggle(user.id, 'isLeave', e.target.checked)}
-                          className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
-                        />
-                        <span className="text-sm font-medium text-gray-700">Leave</span>
-                      </label>
-
-                      <label className="flex items-center cursor-pointer gap-2">
-                        <input 
-                          type="checkbox" 
-                          checked={schedule?.isWeekOff || false}
-                          onChange={(e) => handleToggle(user.id, 'isWeekOff', e.target.checked)}
-                          className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
-                        />
-                        <span className="text-sm font-medium text-gray-700">Off</span>
-                      </label>
+                  {/* Time Inputs - Only show when Present is selected */}
+                  {schedule?.isPresent && (
+                    <div className="flex items-center gap-2 bg-green-50 p-3 rounded-lg border border-green-200">
+                      <span className="text-xs font-medium text-green-700 min-w-fit">Time:</span>
+                      <input 
+                        type="time" 
+                        title="Start Time"
+                        value={schedule?.startTime || ''}
+                        onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
+                        className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
+                      />
+                      <span className="text-gray-400 text-xs px-1">to</span>
+                      <input 
+                        type="time" 
+                        title="End Time"
+                        value={schedule?.endTime || ''}
+                        onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
+                        className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
+                      />
                     </div>
-                  </div>
+                  )}
 
                   {/* Status Badge */}
                   <div className="flex justify-end pt-2 border-t border-slate-200">
@@ -361,7 +383,7 @@ const TodayRoaster: React.FC = () => {
                       <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-amber-100 text-amber-800">
                         Week Off
                       </span>
-                    ) : (schedule?.startTime && schedule?.endTime) ? (
+                    ) : schedule?.isPresent && (schedule?.startTime && schedule?.endTime) ? (
                       <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-green-100 text-green-800 items-center gap-1">
                          <Clock className="w-3 h-3" />
                          On Duty
