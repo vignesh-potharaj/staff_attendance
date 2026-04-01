@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 import logging
 
@@ -79,7 +79,7 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
 
         # Find existing records for this date
         existing_records = db.query(DailyRoaster).filter(DailyRoaster.date == date).all()
-        existing_map = {r.user_id: r for r in existing_records}
+        existing_map: Dict[int, DailyRoaster] = {r.user_id: r for r in existing_records}  # type: ignore
 
         for schedule in schedules:
             if schedule.user_id in existing_map:
