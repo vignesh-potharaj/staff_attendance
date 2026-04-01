@@ -249,101 +249,118 @@ const TodayRoaster: React.FC = () => {
           </button>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff member</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Timing & Status</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Summary</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => {
-                const schedule = schedules[user.id];
-                
-                return (
-                  <tr key={user.id} className={`hover:bg-gray-50 transition-colors ${schedule?.isLeave ? 'bg-red-50/30' : schedule?.isWeekOff ? 'bg-amber-50/30' : ''}`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                          <UserIcon className="w-5 h-5" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-semibold text-gray-900">{user.name}</div>
-                          <div className="text-xs text-gray-500">ID: {user.employee_id}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-4">
-                        <label className="flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={schedule?.isLeave || false}
-                            onChange={(e) => handleToggle(user.id, 'isLeave', e.target.checked)}
-                            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
-                          />
-                          <span className="ml-2 text-sm font-medium text-gray-700">Leave</span>
-                        </label>
+        <div className="space-y-3">
+          {users.map((user) => {
+            const schedule = schedules[user.id];
+            
+            return (
+              <div 
+                key={user.id}
+                className={`relative rounded-lg border backdrop-blur-sm transition-all duration-300 overflow-hidden h-24 sm:h-28 ${
+                  schedule?.isWeekOff
+                    ? 'bg-slate-50 border-slate-200'
+                    : schedule?.isLeave
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-md'
+                }`}
+              >
+                {/* Timeline left border */}
+                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${
+                  schedule?.isWeekOff
+                    ? 'from-slate-300 to-slate-400'
+                    : schedule?.isLeave
+                    ? 'from-amber-400 to-orange-500'
+                    : 'from-indigo-400 to-blue-600'
+                }`} />
 
-                        <label className="flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            checked={schedule?.isWeekOff || false}
-                            onChange={(e) => handleToggle(user.id, 'isWeekOff', e.target.checked)}
-                            className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
-                          />
-                          <span className="ml-2 text-sm font-medium text-gray-700">Week Off</span>
-                        </label>
-                        
-                        {(!schedule?.isLeave && !schedule?.isWeekOff) && (
-                          <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded-md border border-gray-200">
-                            <input 
-                              type="time" 
-                              title="Start Time"
-                              value={schedule?.startTime || ''}
-                              onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
-                              className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-1.5 border bg-white"
-                            />
-                            <span className="text-gray-500 text-sm font-medium px-1">to</span>
-                            <input 
-                              type="time" 
-                              title="End Time"
-                              value={schedule?.endTime || ''}
-                              onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
-                              className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-1.5 border bg-white"
-                            />
-                          </div>
-                        )}
+                {/* Content: horizontal layout */}
+                <div className="relative pl-4 pr-4 py-3 sm:py-4 h-full flex items-center justify-between gap-3 sm:gap-4">
+                  
+                  {/* Left: Avatar + Name + ID */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
+                      <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                        {user.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 truncate">
+                        {schedule?.isLeave || schedule?.isWeekOff ? '—' : schedule?.startTime && schedule?.endTime ? `${schedule.startTime} → ${schedule.endTime}` : 'No time set'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Middle: Checkboxes & Time Inputs */}
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={schedule?.isLeave || false}
+                        onChange={(e) => handleToggle(user.id, 'isLeave', e.target.checked)}
+                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                      />
+                      <span className="ml-1 text-xs sm:text-sm font-medium text-gray-700">Leave</span>
+                    </label>
+
+                    <label className="flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={schedule?.isWeekOff || false}
+                        onChange={(e) => handleToggle(user.id, 'isWeekOff', e.target.checked)}
+                        className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span className="ml-1 text-xs sm:text-sm font-medium text-gray-700">Off</span>
+                    </label>
+                    
+                    {(!schedule?.isLeave && !schedule?.isWeekOff) && (
+                      <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-md border border-gray-200 ml-1">
+                        <input 
+                          type="time" 
+                          title="Start Time"
+                          value={schedule?.startTime || ''}
+                          onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
+                          className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1 border bg-white w-16 sm:w-20"
+                        />
+                        <span className="text-gray-500 text-xs px-0.5">→</span>
+                        <input 
+                          type="time" 
+                          title="End Time"
+                          value={schedule?.endTime || ''}
+                          onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
+                          className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs sm:text-sm p-1 border bg-white w-16 sm:w-20"
+                        />
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {schedule?.isLeave ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                          LEAVE
-                        </span>
-                      ) : schedule?.isWeekOff ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-amber-100 text-amber-800 items-center gap-1">
-                          WEEK OFF
-                        </span>
-                      ) : (schedule?.startTime && schedule?.endTime) ? (
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 items-center gap-1">
-                           <Clock className="w-3 h-3" />
-                           {formatTime12h(schedule.startTime)} - {formatTime12h(schedule.endTime)}
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-medium rounded-full bg-gray-100 text-gray-800">
-                          PENDING
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    )}
+                  </div>
+
+                  {/* Right: Status Badge */}
+                  <div className="flex-shrink-0">
+                    {schedule?.isLeave ? (
+                      <span className="px-2.5 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-red-100 text-red-800 items-center gap-1 whitespace-nowrap">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        Leave
+                      </span>
+                    ) : schedule?.isWeekOff ? (
+                      <span className="px-2.5 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-amber-100 text-amber-800 whitespace-nowrap">
+                        Off
+                      </span>
+                    ) : (schedule?.startTime && schedule?.endTime) ? (
+                      <span className="px-2.5 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-green-100 text-green-800 items-center gap-1 whitespace-nowrap">
+                         <Clock className="w-3 h-3" />
+                         On Duty
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1.5 inline-flex text-xs leading-5 font-medium rounded-lg bg-gray-100 text-gray-800 whitespace-nowrap">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
