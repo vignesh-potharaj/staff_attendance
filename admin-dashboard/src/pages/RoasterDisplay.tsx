@@ -75,7 +75,7 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
   const getStatusBadge = () => {
     if (isWeekOff) {
       return (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg whitespace-nowrap">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg">
           <Calendar className="w-3.5 h-3.5 text-slate-600" />
           <span className="text-xs font-medium text-slate-700">Rest</span>
         </div>
@@ -83,14 +83,14 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
     }
     if (isLeave) {
       return (
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 border border-amber-200 rounded-lg whitespace-nowrap">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 border border-amber-200 rounded-lg">
           <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
           <span className="text-xs font-medium text-amber-700">Leave</span>
         </div>
       );
     }
     return (
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-200 rounded-lg whitespace-nowrap">
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-200 rounded-lg">
         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
         <span className="text-xs font-medium text-emerald-700">On Duty</span>
       </div>
@@ -99,58 +99,65 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
 
   const getTimeDisplay = () => {
     if (isWeekOff || isLeave) {
-      return <span className="text-sm font-semibold text-slate-400">—</span>;
+      return <span className="text-xl sm:text-2xl font-bold text-slate-300">—</span>;
     }
     if (startTime && endTime) {
       return (
-        <span className="text-sm font-bold text-slate-900">
-          {startTime.substring(0, 5)} → {endTime.substring(0, 5)}
-        </span>
+        <div className="text-center">
+          <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+            {startTime.substring(0, 5)}
+          </span>
+          <span className="text-lg sm:text-xl text-slate-400 mx-2">→</span>
+          <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+            {endTime.substring(0, 5)}
+          </span>
+        </div>
       );
     }
-    return <span className="text-xs text-slate-400">No time set</span>;
+    return <span className="text-sm text-slate-400">No time set</span>;
   };
 
-  const timelineBg = isWeekOff
-    ? 'from-slate-300 to-slate-400'
+  const bgColor = isWeekOff
+    ? 'bg-slate-50 border-slate-200'
     : isLeave
-    ? 'from-amber-400 to-orange-500'
-    : 'from-indigo-400 to-blue-600';
+    ? 'bg-amber-50 border-amber-200'
+    : 'bg-white border-indigo-200 hover:shadow-lg';
 
   return (
     <div
-      className={`relative rounded-lg border backdrop-blur-sm transition-all duration-300 overflow-hidden h-20 sm:h-24 ${
-        isWeekOff
-          ? 'bg-slate-50 border-slate-200'
-          : isLeave
-          ? 'bg-amber-50 border-amber-200'
-          : 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-md'
-      }`}
+      className={`relative rounded-xl border backdrop-blur-sm transition-all duration-300 overflow-hidden ${bgColor}`}
     >
-      {/* Timeline left border */}
-      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${timelineBg}`} />
+      {/* Top border indicator */}
+      <div className={`h-1 w-full bg-gradient-to-r ${
+        isWeekOff
+          ? 'from-slate-300 to-slate-400'
+          : isLeave
+          ? 'from-amber-400 to-orange-500'
+          : 'from-indigo-400 to-blue-600'
+      }`} />
 
-      {/* Content: horizontal layout */}
-      <div className="relative pl-4 pr-4 py-3 sm:py-4 h-full flex items-center justify-between gap-3 sm:gap-4">
-        
-        {/* Left: Avatar + Name + ID */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
-            <User className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-          </div>
-          
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
-              {userName}
-            </h3>
-            <p className="text-xs text-slate-500 truncate">
-              {getTimeDisplay()}
-            </p>
+      <div className="p-4 sm:p-5 space-y-3 sm:space-y-4 text-center">
+        {/* Avatar */}
+        <div className="flex justify-center">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
+            <User className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
           </div>
         </div>
 
-        {/* Right: Status badge */}
-        <div className="flex-shrink-0">
+        {/* Name */}
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900">
+            {userName}
+          </h3>
+        </div>
+
+        {/* Time Display - Prominent */}
+        <div className="py-2">
+          {getTimeDisplay()}
+        </div>
+
+        {/* Status Badge */}
+        <div className="flex justify-center">
           {getStatusBadge()}
         </div>
       </div>
@@ -359,9 +366,9 @@ export const RoasterDisplay: React.FC = () => {
       {/* Loading state */}
       {loading && <RoasterSkeleton count={6} />}
 
-      {/* Roaster cards - Vertical stack */}
+      {/* Roaster cards - Grid of vertical cards */}
       {!loading && roasterData.length > 0 && (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6">
           {roasterData.map((record) => (
             <RoasterCard
               key={record.id}
