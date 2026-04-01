@@ -75,22 +75,22 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
   const getStatusBadge = () => {
     if (isWeekOff) {
       return (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-slate-100 to-slate-50 border border-slate-200 rounded-full">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-lg whitespace-nowrap">
           <Calendar className="w-3.5 h-3.5 text-slate-600" />
-          <span className="text-xs font-medium text-slate-700">Rest Day</span>
+          <span className="text-xs font-medium text-slate-700">Rest</span>
         </div>
       );
     }
     if (isLeave) {
       return (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 border border-amber-200 rounded-lg whitespace-nowrap">
           <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
           <span className="text-xs font-medium text-amber-700">Leave</span>
         </div>
       );
     }
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-full">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-200 rounded-lg whitespace-nowrap">
         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
         <span className="text-xs font-medium text-emerald-700">On Duty</span>
       </div>
@@ -99,53 +99,59 @@ const RoasterCard: React.FC<RoasterCardProps> = ({
 
   const getTimeDisplay = () => {
     if (isWeekOff || isLeave) {
-      return <span className="text-2xl font-bold text-slate-300">—</span>;
+      return <span className="text-sm font-semibold text-slate-400">—</span>;
     }
     if (startTime && endTime) {
       return (
-        <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+        <span className="text-sm font-bold text-slate-900">
           {startTime.substring(0, 5)} → {endTime.substring(0, 5)}
         </span>
       );
     }
-    return <span className="text-lg text-slate-400">No time set</span>;
+    return <span className="text-xs text-slate-400">No time set</span>;
   };
 
-  const backgroundClass = isWeekOff
-    ? 'from-slate-50 to-slate-100 border-slate-200'
+  const timelineBg = isWeekOff
+    ? 'from-slate-300 to-slate-400'
     : isLeave
-    ? 'from-amber-50 to-orange-50 border-amber-200'
-    : 'from-white to-indigo-50 border-indigo-200 hover:border-indigo-300 hover:shadow-lg';
+    ? 'from-amber-400 to-orange-500'
+    : 'from-indigo-400 to-blue-600';
 
   return (
     <div
-      className={`relative rounded-2xl border backdrop-blur-sm transition-all duration-300 overflow-hidden bg-gradient-to-br ${backgroundClass}`}
+      className={`relative rounded-lg border backdrop-blur-sm transition-all duration-300 overflow-hidden h-20 sm:h-24 ${
+        isWeekOff
+          ? 'bg-slate-50 border-slate-200'
+          : isLeave
+          ? 'bg-amber-50 border-amber-200'
+          : 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-md'
+      }`}
     >
-      <div className="p-5 sm:p-6 space-y-4">
-        {/* Header: Avatar + Name */}
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md border-3 border-white flex-none">
+      {/* Timeline left border */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${timelineBg}`} />
+
+      {/* Content: horizontal layout */}
+      <div className="relative pl-4 pr-4 py-3 sm:py-4 h-full flex items-center justify-between gap-3 sm:gap-4">
+        
+        {/* Left: Avatar + Name + ID */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
             <User className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
           </div>
           
-          <div className="min-w-0 flex-1 pt-1">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
               {userName}
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Staff ID: {userName.match(/\d+/)?.[0] || '—'}</p>
+            <p className="text-xs text-slate-500 truncate">
+              {getTimeDisplay()}
+            </p>
           </div>
         </div>
 
-        {/* Time Display - Large and prominent */}
-        <div className="px-4 py-3 sm:py-4 bg-white/60 backdrop-blur rounded-xl border border-white/80">
-          {getTimeDisplay()}
-        </div>
-
-        {/* Footer: Status badge + Date */}
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <div>
-            {getStatusBadge()}
-          </div>
+        {/* Right: Status badge */}
+        <div className="flex-shrink-0">
+          {getStatusBadge()}
         </div>
       </div>
     </div>
