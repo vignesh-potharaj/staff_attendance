@@ -10,6 +10,7 @@ from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
 from backend.routers import auth, users, attendance, analytics, roaster, debug
 from backend.auth.security import get_password_hash
+from backend.database.migrations import run_migrations
 
 from sqlalchemy import text
 from contextlib import asynccontextmanager
@@ -25,26 +26,10 @@ from backend.models.models import IST
 async def lifespan(app: FastAPI):
     # Create tables if not existed
     Base.metadata.create_all(bind=engine)
-
-    # Auto-migrate: Add columns if they are missing
-    try:
-        with engine.begin() as conn:
-            # 1. check_out_time in attendance
-            try:
-                if engine.dialect.name == "sqlite":
-                    conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time DATETIME NULL;"))
-                else:
-                    conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_time TIMESTAMP NULL;"))
-            except Exception:
-                pass # Already exists or table missing
-            
-            # 2. is_week_off in daily_roasters
-            try:
-                conn.execute(text("ALTER TABLE daily_roasters ADD COLUMN is_week_off INTEGER DEFAULT 0;"))
-            except Exception:
-                pass # Already exists or table missing
-    except Exception as e:
-        print(f"Migration warning: {e}")
+    
+    # Run database migrations
+    logger.info("Running database migrations...")
+    run_migrations()
 
     # Ensure one default admin
     db = SessionLocal()
@@ -61,7 +46,7 @@ async def lifespan(app: FastAPI):
             db.add(admin_user)
             db.commit()
     except Exception as e:
-        print(f"Admin creation error: {e}")
+        logger.error(f"Admin creation error: {e}")
     finally:
         db.close()
     
