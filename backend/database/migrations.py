@@ -43,5 +43,16 @@ def run_migrations():
                     logger.info("✓ check_out_time column added successfully")
                 except Exception as e:
                     logger.error(f"Failed to add check_out_time column: {e}")
+            
+            if 'check_out_photo_url' not in columns:
+                logger.info("Adding check_out_photo_url column to attendance...")
+                try:
+                    if engine.dialect.name == "postgresql":
+                        conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_photo_url VARCHAR NULL;"))
+                    else:
+                        conn.execute(text("ALTER TABLE attendance ADD COLUMN check_out_photo_url TEXT NULL;"))
+                    logger.info("✓ check_out_photo_url column added successfully")
+                except Exception as e:
+                    logger.error(f"Failed to add check_out_photo_url column: {e}")
     
     logger.info("Database migrations completed successfully")

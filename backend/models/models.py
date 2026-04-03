@@ -57,6 +57,7 @@ class Attendance(Base):
     status = Column(SQLEnum(AttendanceStatus))
     device_info = Column(String)
     check_out_time = Column(DateTime, nullable=True)
+    check_out_photo_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship("User", back_populates="attendance_records")
