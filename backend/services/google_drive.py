@@ -226,28 +226,33 @@ class GoogleDriveManager:
                 fields="id, webViewLink"
             ).execute()
             file_id = file.get("id")
-            logger.info(f"File uploaded successfully: {filename} (ID: {file_id})")
+            logger.info(f"✅ File uploaded to Google Drive: {filename} (ID: {file_id})")
+            
             # Make file publicly accessible
             self._make_file_public(file_id)
-            # Return direct view link (better for images)
-            public_link = f"https://drive.google.com/uc?id={file_id}&export=view"
+            
+            # Return direct image link using lh3.googleusercontent.com
+            # This format works better for embedding images in web apps
+            public_link = f"https://lh3.googleusercontent.com/d/{file_id}"
+            logger.info(f"✅ Public image link: {public_link}")
             return public_link
         except Exception as e:
             logger.error(f"Failed to upload file {filename}: {type(e).__name__}: {e}", exc_info=True)
             return None
     
     def _make_file_public(self, file_id: str):
-        """Make a file publicly accessible."""
+        """Make a file publicly accessible on Google Drive."""
         try:
             if self.service is None:
                 raise RuntimeError("Google Drive service is not initialized")
+            # Set file as publicly readable (anyone with link can view)
             self.service.permissions().create(
                 fileId=file_id,
-                body={"kind": "anyone", "role": "reader", "type": "anyone"}
+                body={"role": "reader", "type": "anyone"}
             ).execute()
-            logger.info(f"File {file_id} made public")
+            logger.info(f"✅ File {file_id} made public (shareable link enabled)")
         except Exception as e:
-            logger.error(f"Failed to make file public: {e}")
+            logger.error(f"❌ Failed to make file public: {type(e).__name__}: {e}", exc_info=True)
     
     def delete_file(self, file_id: str) -> bool:
         """Delete a file from Google Drive."""
