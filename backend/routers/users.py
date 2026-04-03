@@ -67,6 +67,12 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Delete related attendance records first
+    from backend.models.models import Attendance, DailyRoaster
+    db.query(Attendance).filter(Attendance.user_id == user_id).delete()
+    db.query(DailyRoaster).filter(DailyRoaster.user_id == user_id).delete()
+    
+    # Then delete the user
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted successfully"}
