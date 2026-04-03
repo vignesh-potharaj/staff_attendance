@@ -69,6 +69,7 @@ class AttendanceResponse(AttendanceBase):
     user_id: int
     user: Optional[UserBase] = None
     check_out_time: Optional[datetime] = None
+    check_out_photo_url: Optional[str] = None  # URL to check-out photo (local or Google Drive)
     model_config = ConfigDict(from_attributes=True)
 
 class AnalyticsSummary(BaseModel):

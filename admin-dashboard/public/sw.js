@@ -42,6 +42,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = request.url;
 
+  // Don't intercept cross-origin requests (e.g. Google Drive image URLs, lh3.googleusercontent.com)
+  // Let the browser handle them natively
+  if (!url.startsWith(self.location.origin)) {
+    return; // Pass through cross-origin requests without intercepting
+  }
+
   // For navigate requests (page navigation), use network-first
   if (request.mode === 'navigate') {
     event.respondWith(

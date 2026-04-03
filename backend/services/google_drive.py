@@ -246,6 +246,12 @@ class GoogleDriveManager:
             # Return direct image link using lh3.googleusercontent.com
             # This format works better for embedding images in web apps
             public_link = f"https://lh3.googleusercontent.com/d/{file_id}"
+            
+            # Validate the URL format before returning
+            if not public_link.startswith("https://"):
+                logger.error(f"❌ Invalid Google Drive URL generated: {public_link}")
+                raise ValueError(f"Invalid Google Drive URL generated: {public_link}")
+            
             logger.info(f"✅ Public image link: {public_link}")
             return public_link
         except Exception as e:

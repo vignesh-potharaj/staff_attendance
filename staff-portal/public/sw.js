@@ -26,6 +26,14 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
+
+  // Don't intercept cross-origin requests (e.g. Google Drive image URLs, lh3.googleusercontent.com)
+  // Let the browser handle them natively
+  if (!url.startsWith(self.location.origin)) {
+    return; // Pass through cross-origin requests without intercepting
+  }
+
   // Use a Network-First strategy for the main page to avoid caching old index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
