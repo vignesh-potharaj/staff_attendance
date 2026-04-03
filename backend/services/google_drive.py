@@ -1,15 +1,17 @@
 """
 Google Drive integration for storing attendance photos.
 Handles uploading images to Google Drive and generating public shareable links.
-Uses Service Account authentication (recommended for server-side apps).
+Uses OAuth2 authentication with token.pickle for credentials persistence.
 """
 
 import os
 import io
-import json
+import pickle
 import logging
 from typing import Optional
-from google.oauth2.service_account import Credentials
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 
@@ -18,45 +20,62 @@ logger = logging.getLogger(__name__)
 # Google Drive API scopes
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
+
 class GoogleDriveManager:
-    def __init__(self, service_account_json: str, folder_id: str):
+    def __init__(self, credentials_json_path: str, token_pickle_path: str, folder_id: str):
         """
-        Initialize Google Drive manager using Service Account credentials.
+        Initialize Google Drive manager using OAuth2 credentials.
         
         Args:
-            service_account_json: Path to service account JSON file or JSON string
+            credentials_json_path: Path to credentials.json from Google Cloud Console
+            token_pickle_path: Path where token.pickle will be stored/loaded
             folder_id: Google Drive folder ID where images will be stored
         """
+        self.credentials_json_path = credentials_json_path
+        self.token_pickle_path = token_pickle_path
         self.folder_id = folder_id
         self.service = None
-        self._initialize_service(service_account_json)
+        self._initialize_service()
 
-    def _initialize_service(self, service_account_json: str):
-        """Initialize Google Drive API service using Service Account."""
+    def _initialize_service(self):
+        """Initialize Google Drive API service using OAuth2."""
         try:
-            # Try to load as file path first
-            if os.path.isfile(service_account_json):
-                credentials = Credentials.from_service_account_file(
-                    service_account_json,
-                    scopes=SCOPES
-                )
-                logger.info("Loaded credentials from file")
-            else:
-                # Try to load as JSON string
-                try:
-                    credentials_dict = json.loads(service_account_json)
-                    credentials = Credentials.from_service_account_info(
-                        credentials_dict,
-                        scopes=SCOPES
-                    )
-                    logger.info("Loaded credentials from JSON string")
-                except json.JSONDecodeError:
-                    raise ValueError(
-                        "GOOGLE_SERVICE_ACCOUNT_JSON must be a valid file path or JSON string"
-                    )
+            creds = None
             
-            self.service = build("drive", "v3", credentials=credentials)
-            logger.info("Google Drive service initialized successfully (Service Account)")
+            # Load existing token if available
+            if os.path.exists(self.token_pickle_path):
+                with open(self.token_pickle_path, "rb") as token:
+                    creds = pickle.load(token)
+                logger.info(f"Loaded existing credentials from {self.token_pickle_path}")
+            
+            # Refresh token if expired
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+                logger.info("Refreshed expired credentials")
+            
+            # If no valid credentials, run OAuth2 flow
+            if not creds or not creds.valid:
+                if not os.path.exists(self.credentials_json_path):
+                    raise FileNotFoundError(
+                        f"credentials.json not found at {self.credentials_json_path}\n"
+                        f"Download it from Google Cloud Console and place it there."
+                    )
+                
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    self.credentials_json_path,
+                    SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+                logger.info("Completed new OAuth2 authentication flow")
+                
+                # Save credentials for future use
+                with open(self.token_pickle_path, "wb") as token:
+                    pickle.dump(creds, token)
+                logger.info(f"Saved credentials to {self.token_pickle_path}")
+            
+            self.service = build("drive", "v3", credentials=creds)
+            logger.info("Google Drive service initialized successfully (OAuth2)")
+            
         except Exception as e:
             logger.error(f"Failed to initialize Google Drive service: {e}")
             raise
@@ -140,15 +159,15 @@ def get_google_drive_manager() -> GoogleDriveManager:
     """
     Get or create Google Drive manager instance.
     Uses environment variables:
-    - GOOGLE_SERVICE_ACCOUNT_JSON: Path to service account JSON or JSON string
-    - GOOGLE_DRIVE_FOLDER_ID: Google Drive folder ID
+    - GOOGLE_CREDENTIALS_JSON: Path to credentials.json from Google Cloud Console
+    - GOOGLE_TOKEN_PICKLE: Path where token.pickle will be stored
+    - GOOGLE_DRIVE_FOLDER_ID: Google Drive folder ID where photos will be stored
     """
-    service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON", "credentials.json")
+    token_pickle = os.getenv("GOOGLE_TOKEN_PICKLE", "token.pickle")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
     
-    if not service_account_json:
-        raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON environment variable not set")
     if not folder_id:
         raise ValueError("GOOGLE_DRIVE_FOLDER_ID environment variable not set")
     
-    return GoogleDriveManager(service_account_json, folder_id)
+    return GoogleDriveManager(credentials_json, token_pickle, folder_id)
