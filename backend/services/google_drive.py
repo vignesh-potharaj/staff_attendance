@@ -120,19 +120,29 @@ class GoogleDriveManager:
                 available = os.listdir(os.path.dirname(self.token_pickle_path))
                 logger.info(f"   Available files: {available}")
             
-            # Step 2: Refresh token if expired (works on headless Render without browser)
-            if creds and hasattr(creds, 'expired') and creds.expired:
-                if hasattr(creds, 'refresh_token') and creds.refresh_token:
+            # Step 2: Refresh token if expired OR invalid (works on headless Render without browser)
+            if creds:
+                has_valid = hasattr(creds, 'valid') and creds.valid
+                is_expired = hasattr(creds, 'expired') and creds.expired
+                has_token = hasattr(creds, 'token') and creds.token
+                has_refresh = hasattr(creds, 'refresh_token') and creds.refresh_token
+                
+                logger.info(f"🔍 Token state: valid={has_valid}, expired={is_expired}, has_token={has_token}, has_refresh={has_refresh}")
+                
+                # Attempt refresh if: (1) token is expired, OR (2) token is not valid but has refresh_token
+                should_refresh = (is_expired or (not has_valid and has_refresh))
+                
+                if should_refresh and has_refresh:
                     try:
-                        logger.info("🔄 Token expired, refreshing...")
+                        logger.info("🔄 Attempting token refresh...")
                         creds.refresh(Request())
                         logger.info("✅ Token refreshed successfully")
                     except Exception as refresh_err:
                         logger.error(f"❌ Token refresh failed: {type(refresh_err).__name__}: {refresh_err}", exc_info=True)
-                        logger.warning("⚠️  Could not refresh token. Trying fresh authorization...")
-                        creds = None
-                else:
-                    logger.warning("⚠️  Token expired but no refresh_token available")
+                        logger.warning("⚠️  Could not refresh token. Google Drive may not work.")
+                        # Don't set creds = None here - if it has a token, it might still work
+                elif is_expired and not has_refresh:
+                    logger.warning("⚠️  Token expired but no refresh_token available - Google Drive unavailable")
                     creds = None
             
             # Step 3: If still no valid credentials, attempt authorization (headless-safe approach)
@@ -170,7 +180,8 @@ class GoogleDriveManager:
                     return
             
             # Step 4: Build and return Google Drive service with valid credentials
-            if creds and (hasattr(creds, 'valid') and creds.valid or hasattr(creds, 'token') and creds.token):
+            if creds and creds.token:
+                logger.info("✅ Valid credentials found, building Drive service...")
                 try:
                     self.service = build("drive", "v3", credentials=creds)
                     logger.info("✅ Google Drive service initialized successfully")
@@ -179,11 +190,12 @@ class GoogleDriveManager:
                     logger.error(f"❌ Failed to build Drive service: {type(build_err).__name__}: {build_err}", exc_info=True)
                     self.service = None
             else:
-                logger.warning("⚠️  No valid credentials available")
+                logger.warning("⚠️  No valid token found - Google Drive upload will be unavailable")
                 self.service = None
                 
         except Exception as e:
             logger.error(f"❌ Unexpected error in _initialize_service: {type(e).__name__}: {str(e)}", exc_info=True)
+            self.service = None
             self.service = None
     
     def upload_file(
