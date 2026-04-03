@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, User as UserIcon } from 'lucide-react';
 import api from '../services/api';
 
 interface User {
@@ -110,60 +110,82 @@ const Users: React.FC = () => {
           <span>Add User</span>
         </button>
       </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+        <div className="space-y-3">
+          {users.map((user) => (
+            <div 
+              key={user.id}
+              className="relative rounded-xl border border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
+            >
+              {/* Timeline top border */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-blue-600" />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                      {user.name.charAt(0)}
+              {/* Card content - vertical layout */}
+              <div className="space-y-3">
+                {/* Header: Avatar + Name + ID + Role */}
+                <div className="flex items-start gap-3 justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md text-white font-bold text-lg">
+                      {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                      <div className="text-sm text-gray-500">ID: {user.employee_id}</div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                        {user.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        ID: {user.employee_id}
+                      </p>
                     </div>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
+
+                  {/* Role Badge */}
+                  <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${
+                    user.role === 'ADMIN' 
+                      ? 'bg-purple-100 text-purple-800' 
+                      : 'bg-green-100 text-green-800'
+                  }`}>
                     {user.role}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.phone}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div className="flex justify-end space-x-2">
-                    <button onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-900">
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    {user.employee_id !== 'admin' && (
-                      <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && !loading && (
-               <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500">No users found.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </div>
 
+                {/* Contact Info */}
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Phone</p>
+                  <p className="text-sm font-semibold text-slate-900">{user.phone}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                  <button 
+                    onClick={() => handleEdit(user)} 
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit
+                  </button>
+                  {user.employee_id !== 'admin' && (
+                    <button 
+                      onClick={() => handleDelete(user.id)} 
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {users.length === 0 && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              <UserIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <p>No users found. Create your first user!</p>
+            </div>
+          )}
+        </div>
+      </div>
       {/* Basic Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
