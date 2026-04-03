@@ -20,22 +20,26 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter(User.employee_id == user.employee_id).first()
-    if db_user:
-        raise HTTPException(status_code=400, detail="Employee ID already registered")
-    
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        name=user.name,
-        employee_id=user.employee_id,
-        phone=user.phone,
-        role=user.role,
-        password_hash=hashed_password
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return db_user
+    try:
+        db_user = db.query(User).filter(User.employee_id == user.employee_id).first()
+        if db_user:
+            raise HTTPException(status_code=400, detail="Employee ID already registered")
+
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            name=user.name,
+            employee_id=user.employee_id,
+            phone=user.phone,
+            role=user.role,
+            password_hash=hashed_password
+        )
+        db.add(db_user)
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    except Exception as e:
+        db.rollback()
+        raise
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
