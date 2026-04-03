@@ -2,6 +2,7 @@ import os
 import shutil
 import io
 import csv
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -13,14 +14,38 @@ from backend.database.database import get_db
 from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
+from backend.services.google_drive import get_google_drive_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/attendance",
     tags=["Attendance"]
 )
 
+# Local fallback directory (in case Google Drive is not available)
 UPLOAD_DIR = "static/images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+def upload_photo_to_drive(
+    file_content: bytes,
+    filename: str
+) -> Optional[str]:
+    """
+    Upload photo to Google Drive and return shareable link.
+    Falls back to local storage if Google Drive is unavailable.
+    """
+    try:
+        drive_manager = get_google_drive_manager()
+        photo_url = drive_manager.upload_file(file_content, filename)
+        if photo_url:
+            logger.info(f"Photo uploaded to Google Drive: {filename}")
+            return photo_url
+    except Exception as e:
+        logger.warning(f"Google Drive upload failed, falling back to local storage: {e}")
+    
+    # Fallback to local storage
+    return None
 
 @router.post("/mark", response_model=AttendanceResponse)
 def mark_attendance(
@@ -45,12 +70,20 @@ def mark_attendance(
     # Save photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
     filename = f"{current_user.employee_id}_{timestamp_str}_{photo.filename}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(photo.file, buffer)
-        
-    photo_url = f"/static/images/{filename}"
+    
+    # Read file content
+    file_content = photo.file.read()
+    
+    # Try to upload to Google Drive first
+    photo_url = upload_photo_to_drive(file_content, filename)
+    
+    # If Google Drive fails, fall back to local storage
+    if not photo_url:
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+        photo_url = f"/static/images/{filename}"
+        logger.info(f"Photo saved to local storage: {photo_url}")
 
     # Determine LATE or PRESENT based on DailyRoaster
     status = AttendanceStatus.PRESENT
@@ -122,7 +155,26 @@ def check_out_attendance(
     if existing.check_out_time:
         raise HTTPException(status_code=400, detail="You have already checked out for today.")
 
+    # Save check-out photo
+    timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
+    filename = f"{current_user.employee_id}_{timestamp_str}_checkout_{photo.filename}"
+    
+    # Read file content
+    file_content = photo.file.read()
+    
+    # Try to upload to Google Drive first
+    check_out_photo_url = upload_photo_to_drive(file_content, filename)
+    
+    # If Google Drive fails, fall back to local storage
+    if not check_out_photo_url:
+        file_path = os.path.join(UPLOAD_DIR, filename)
+        with open(file_path, "wb") as buffer:
+            buffer.write(file_content)
+        check_out_photo_url = f"/static/images/{filename}"
+        logger.info(f"Check-out photo saved to local storage: {check_out_photo_url}")
+
     existing.check_out_time = datetime.now(IST)
+    existing.check_out_photo_url = check_out_photo_url
     db.commit()
     db.refresh(existing)
     
