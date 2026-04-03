@@ -15,6 +15,7 @@ interface AttendanceRecord {
   latitude: number;
   longitude: number;
   photo_url: string;
+  check_out_photo_url?: string | null;
   device_info: string;
 }
 
@@ -169,40 +170,71 @@ const Attendance: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Selfies Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-200 pt-3">
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">Check-In Selfie</p>
-                    {record.photo_url ? (
-                      <a 
-                        href={`${API_BASE}${record.photo_url}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="block w-full rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all"
-                      >
-                        <img 
-                          src={`${API_BASE}${record.photo_url}`}
-                          alt="Check-in selfie"
-                          className="w-full h-40 object-cover"
-                        />
-                      </a>
-                    ) : (
-                      <div className="w-full h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                        <div className="text-center">
-                          <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                          <p className="text-xs text-gray-400">No image</p>
+                {/* Selfies & Location Section */}
+                <div className="border-t border-slate-200 pt-3 space-y-3">
+                  {/* Selfies Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Check-In Selfie */}
+                    <div>
+                      <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Check-In Selfie</p>
+                      {record.photo_url ? (
+                        <a 
+                          href={`${API_BASE}${record.photo_url}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="block w-full rounded-lg overflow-hidden border border-green-200 hover:border-green-500 hover:shadow-md transition-all"
+                        >
+                          <img 
+                            src={`${API_BASE}${record.photo_url}`}
+                            alt="Check-in selfie"
+                            className="w-full h-48 object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                          <div className="text-center">
+                            <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                            <p className="text-xs text-gray-400">No image</p>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    {/* Check-Out Selfie */}
+                    <div>
+                      <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Check-Out Selfie</p>
+                      {record.check_out_photo_url ? (
+                        <a 
+                          href={`${API_BASE}${record.check_out_photo_url}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="block w-full rounded-lg overflow-hidden border border-red-200 hover:border-red-500 hover:shadow-md transition-all"
+                        >
+                          <img 
+                            src={`${API_BASE}${record.check_out_photo_url}`}
+                            alt="Check-out selfie"
+                            className="w-full h-48 object-cover"
+                          />
+                        </a>
+                      ) : (
+                        <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                          <div className="text-center">
+                            <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                            <p className="text-xs text-gray-400">Not checked out</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
+                  {/* Location */}
                   <div>
-                    <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">Location</p>
+                    <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">📍 Location</p>
                     <a 
                       href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`} 
                       target="_blank" 
                       rel="noreferrer"
-                      className="w-full h-40 rounded-lg border border-gray-200 hover:border-blue-500 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all"
+                      className="w-full rounded-lg border border-blue-200 hover:border-blue-500 p-4 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all"
                     >
                       <div className="text-center">
                         <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-1" />
