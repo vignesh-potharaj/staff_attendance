@@ -36,13 +36,18 @@ def upload_photo_to_drive(
     Falls back to local storage if Google Drive is unavailable.
     """
     try:
+        logger.info(f"🔄 Attempting to upload '{filename}' to Google Drive...")
         drive_manager = get_google_drive_manager()
+        logger.info(f"✅ Google Drive manager initialized")
         photo_url = drive_manager.upload_file(file_content, filename)
         if photo_url:
-            logger.info(f"Photo uploaded to Google Drive: {filename}")
+            logger.info(f"✅ Photo uploaded to Google Drive: {filename}")
             return photo_url
+        else:
+            logger.warning(f"⚠️  Google Drive returned no URL for {filename}, falling back to local storage")
     except Exception as e:
-        logger.warning(f"Google Drive upload failed, falling back to local storage: {e}")
+        logger.error(f"❌ Google Drive upload failed for '{filename}': {type(e).__name__}: {str(e)}", exc_info=True)
+        logger.warning(f"⚠️  Falling back to local storage for {filename}")
     
     # Fallback to local storage
     return None

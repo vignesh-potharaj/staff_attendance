@@ -82,41 +82,69 @@ class GoogleDriveManager:
             
             # Load existing token if available
             if os.path.exists(self.token_pickle_path):
-                with open(self.token_pickle_path, "rb") as token:
-                    creds = pickle.load(token)
-                logger.info(f"Loaded existing credentials from {self.token_pickle_path}")
+                logger.info(f"Token file found at {self.token_pickle_path}")
+                try:
+                    with open(self.token_pickle_path, "rb") as token:
+                        creds = pickle.load(token)
+                    logger.info(f"✅ Successfully loaded credentials from {self.token_pickle_path}")
+                    logger.info(f"   - Credential type: {type(creds).__name__}")
+                    logger.info(f"   - Has token: {hasattr(creds, 'token') and bool(creds.token)}")
+                    logger.info(f"   - Has refresh_token: {hasattr(creds, 'refresh_token') and bool(creds.refresh_token)}")
+                    if hasattr(creds, 'valid'):
+                        logger.info(f"   - Valid: {creds.valid}")
+                    if hasattr(creds, 'expired'):
+                        logger.info(f"   - Expired: {creds.expired}")
+                except Exception as pickle_err:
+                    logger.error(f"❌ Failed to load pickle file: {type(pickle_err).__name__}: {pickle_err}", exc_info=True)
+                    creds = None
+            else:
+                logger.warning(f"❌ Token file not found at {self.token_pickle_path}")
+                logger.info(f"   Available files in temp dir: {os.listdir(os.path.dirname(self.token_pickle_path))}")
             
-
             # Refresh token if expired
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-                logger.info("Refreshed expired credentials")
+            if creds and hasattr(creds, 'expired') and creds.expired and hasattr(creds, 'refresh_token') and creds.refresh_token:
+                try:
+                    logger.info("🔄 Token expired, attempting refresh...")
+                    creds.refresh(Request())
+                    logger.info("✅ Token refreshed successfully")
+                except Exception as refresh_err:
+                    logger.error(f"❌ Failed to refresh token: {type(refresh_err).__name__}: {refresh_err}", exc_info=True)
+                    raise
             
             # If no valid credentials, run OAuth2 flow
-            if not creds or not creds.valid:
+            if not creds or (hasattr(creds, 'valid') and not creds.valid):
+                logger.warning("⚠️  No valid credentials found, attempting OAuth2 flow...")
+                
                 if not os.path.exists(self.credentials_json_path):
                     raise FileNotFoundError(
-                        f"credentials.json not found at {self.credentials_json_path}\n"
+                        f"❌ credentials.json not found at {self.credentials_json_path}\n"
                         f"Download it from Google Cloud Console and place it there."
                     )
                 
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_json_path,
-                    SCOPES
-                )
-                creds = flow.run_local_server(port=0)
-                logger.info("Completed new OAuth2 authentication flow")
-                
-                # Save credentials for future use
-                with open(self.token_pickle_path, "wb") as token:
-                    pickle.dump(creds, token)
-                logger.info(f"Saved credentials to {self.token_pickle_path}")
+                try:
+                    logger.info(f"📄 Loading credentials from {self.credentials_json_path}")
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        self.credentials_json_path,
+                        SCOPES
+                    )
+                    logger.info("🌐 Starting OAuth2 flow (requires browser login)...")
+                    creds = flow.run_local_server(port=0)
+                    logger.info("✅ Completed new OAuth2 authentication flow")
+                    
+                    # Save credentials for future use
+                    with open(self.token_pickle_path, "wb") as token:
+                        pickle.dump(creds, token)
+                    logger.info(f"✅ Saved credentials to {self.token_pickle_path}")
+                except Exception as flow_err:
+                    logger.error(f"❌ OAuth2 flow failed: {type(flow_err).__name__}: {flow_err}", exc_info=True)
+                    raise
             
+            logger.info("🔨 Building Google Drive service object...")
             self.service = build("drive", "v3", credentials=creds)
-            logger.info("Google Drive service initialized successfully (OAuth2)")
+            logger.info("✅ Google Drive service initialized successfully (OAuth2)")
             
         except Exception as e:
-            logger.error(f"Failed to initialize Google Drive service: {e}")
+            logger.error(f"❌ Failed to initialize Google Drive service: {type(e).__name__}: {str(e)}", exc_info=True)
             raise
     
     def upload_file(
