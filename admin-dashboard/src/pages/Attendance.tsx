@@ -118,73 +118,124 @@ const Attendance: React.FC = () => {
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Selfie</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {records.map((record) => (
-              <tr key={record.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                   <div className="text-sm font-medium text-gray-900">{record.user?.name}</div>
-                   <div className="text-sm text-gray-500">ID: {record.user?.employee_id}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{record.date}</div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    <span className="font-medium text-green-600">In:</span> {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+        <div className="space-y-4">
+          {records.map((record) => (
+            <div 
+              key={record.id}
+              className="relative rounded-xl border border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
+            >
+              {/* Timeline top border */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-blue-600" />
+
+              {/* Card content - vertical layout */}
+              <div className="space-y-4">
+                {/* Header: Employee Info + Date */}
+                <div className="flex items-start gap-3 justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                      {record.user?.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      ID: {record.user?.employee_id} • {record.date}
+                    </p>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    <span className="font-medium text-red-600">Out:</span> {record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending'}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    record.status === 'PRESENT' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+
+                  {/* Status Badge */}
+                  <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${
+                    record.status === 'PRESENT'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-amber-100 text-amber-800'
                   }`}>
                     {record.status}
                   </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <a 
-                    href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    <MapPin className="w-4 h-4 mr-1" />
-                    View Map
-                  </a>
-                  <div className="text-xs text-gray-400 mt-1 truncate w-32" title={record.device_info}>
-                    {record.device_info}
+                </div>
+
+                {/* Check-in & Check-out Times */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Check In</p>
+                    <p className="text-sm font-bold text-slate-900 mt-1">
+                      {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
                   </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {record.photo_url ? (
-                    <a href={`${API_BASE}${record.photo_url}`} target="_blank" rel="noreferrer" className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 border border-gray-200 hover:bg-gray-200 transition">
-                      <ImageIcon className="w-5 h-5 text-gray-500" />
+                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <p className="text-xs text-red-600 font-medium uppercase tracking-wide">Check Out</p>
+                    <p className="text-sm font-bold text-slate-900 mt-1">
+                      {record.check_out_time 
+                        ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                        : 'Pending'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Selfies Section */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-slate-200 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">Check-In Selfie</p>
+                    {record.photo_url ? (
+                      <a 
+                        href={`${API_BASE}${record.photo_url}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="block w-full rounded-lg overflow-hidden border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all"
+                      >
+                        <img 
+                          src={`${API_BASE}${record.photo_url}`}
+                          alt="Check-in selfie"
+                          className="w-full h-40 object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-full h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                          <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                          <p className="text-xs text-gray-400">No image</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">Location</p>
+                    <a 
+                      href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="w-full h-40 rounded-lg border border-gray-200 hover:border-blue-500 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all"
+                    >
+                      <div className="text-center">
+                        <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                        <p className="text-xs font-medium text-blue-600">View Location</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
+                        </p>
+                      </div>
                     </a>
-                  ) : (
-                    <span className="text-sm text-gray-400">N/A</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {records.length === 0 && !loading && (
-               <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">No attendance records found for this criteria.</td></tr>
-            )}
-            {loading && (
-               <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">Loading records...</td></tr>
-            )}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+
+                {/* Device Info */}
+                <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-600 font-medium">Device: <span className="text-gray-700">{record.device_info}</span></p>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {records.length === 0 && !loading && (
+            <div className="text-center py-8 text-gray-500">
+              <ImageIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <p>No attendance records found for this criteria.</p>
+            </div>
+          )}
+
+          {loading && (
+            <div className="text-center py-8 text-gray-500">
+              <p>Loading records...</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
