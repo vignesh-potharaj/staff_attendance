@@ -1,4 +1,5 @@
 from typing import List
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database.database import get_db
@@ -6,6 +7,8 @@ from backend.models.models import User
 from backend.schemas.schemas import UserCreate, UserResponse, UserUpdate
 from backend.auth.security import get_password_hash
 from backend.auth.dependencies import get_current_admin
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/users",
@@ -36,10 +39,18 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+        
+        # Log success
+        logger.info(f"✅ User created successfully: {user.employee_id}")
+        
         return db_user
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
         db.rollback()
-        raise
+        logger.error(f"❌ Error creating user: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
 
 @router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
