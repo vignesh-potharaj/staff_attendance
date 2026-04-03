@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Search, MapPin, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
+import { resolvePhotoUrl } from '../utils/urlHelper';
 
 interface AttendanceRecord {
   id: number;
@@ -73,8 +74,6 @@ const Attendance: React.FC = () => {
       alert('Failed to export records');
     }
   };
-
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   return (
     <div className="space-y-6">
@@ -179,13 +178,13 @@ const Attendance: React.FC = () => {
                       <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Check-In Selfie</p>
                       {record.photo_url ? (
                         <a 
-                          href={`${API_BASE}${record.photo_url}`} 
+                          href={resolvePhotoUrl(record.photo_url) || '#'} 
                           target="_blank" 
                           rel="noreferrer"
                           className="block w-full rounded-lg overflow-hidden border border-green-200 hover:border-green-500 hover:shadow-md transition-all"
                         >
                           <img 
-                            src={`${API_BASE}${record.photo_url}`}
+                            src={resolvePhotoUrl(record.photo_url) || ''}
                             alt="Check-in selfie"
                             className="w-full h-48 object-cover"
                           />
@@ -205,13 +204,13 @@ const Attendance: React.FC = () => {
                       <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Check-Out Selfie</p>
                       {record.check_out_photo_url ? (
                         <a 
-                          href={`${API_BASE}${record.check_out_photo_url}`} 
+                          href={resolvePhotoUrl(record.check_out_photo_url) || '#'} 
                           target="_blank" 
                           rel="noreferrer"
                           className="block w-full rounded-lg overflow-hidden border border-red-200 hover:border-red-500 hover:shadow-md transition-all"
                         >
                           <img 
-                            src={`${API_BASE}${record.check_out_photo_url}`}
+                            src={resolvePhotoUrl(record.check_out_photo_url) || ''}
                             alt="Check-out selfie"
                             className="w-full h-48 object-cover"
                           />

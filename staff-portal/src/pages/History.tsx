@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar, Clock, MapPin, Search, LogOut } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { resolvePhotoUrl } from '../utils/urlHelper';
 
 interface AttendanceRecord {
   id: number;
@@ -68,7 +69,7 @@ const History: React.FC = () => {
           records.map((record) => (
             <div key={record.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex gap-4">
               <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-                <img src={`http://localhost:8000${record.photo_url}`} className="w-full h-full object-cover" alt="Check-in selfie" />
+                <img src={resolvePhotoUrl(record.photo_url) || ''} className="w-full h-full object-cover" alt="Check-in selfie" />
               </div>
               <div className="flex-1 space-y-1">
                 <div className="flex items-center justify-between">
