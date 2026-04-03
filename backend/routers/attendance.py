@@ -14,7 +14,7 @@ from backend.database.database import get_db
 from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
-from backend.services.google_drive import get_google_drive_manager
+from backend.services.cloudinary_storage import get_cloudinary_manager
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ router = APIRouter(
     tags=["Attendance"]
 )
 
-# Local fallback directory (in case Google Drive is not available)
+# Local fallback directory (in case Cloudinary is not available)
 UPLOAD_DIR = "static/images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -31,21 +31,21 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Format: https://my-app.onrender.com or http://localhost:8000
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
-def upload_photo_to_drive(
+def upload_photo_to_cloudinary(
     file_content: bytes,
     filename: str
 ) -> Optional[str]:
     """
-    Upload photo to Google Drive and return shareable link.
-    Falls back to local storage if Google Drive is unavailable.
+    Upload photo to Cloudinary and return secure URL.
+    Falls back to local storage if Cloudinary is unavailable.
     """
     try:
-        logger.info(f"🔄 Attempting to upload '{filename}' to Google Drive...")
-        drive_manager = get_google_drive_manager()
-        logger.info(f"✅ Google Drive manager initialized")
-        photo_url = drive_manager.upload_file(file_content, filename)
+        logger.info(f"🔄 Attempting to upload '{filename}' to Cloudinary...")
+        cloudinary_manager = get_cloudinary_manager()
+        logger.info(f"✅ Cloudinary manager initialized")
+        photo_url = cloudinary_manager.upload_file(file_content, filename)
         if photo_url:
-            logger.info(f"✅ Photo uploaded to Google Drive: {filename}")
+            logger.info(f"✅ Photo uploaded to Cloudinary: {filename}")
             return photo_url
         else:
             logger.warning(f"⚠️  Google Drive returned no URL for {filename}, falling back to local storage")
@@ -83,10 +83,10 @@ def mark_attendance(
     # Read file content
     file_content = photo.file.read()
     
-    # Try to upload to Google Drive first
-    photo_url = upload_photo_to_drive(file_content, filename)
+    # Try to upload to Cloudinary first
+    photo_url = upload_photo_to_cloudinary(file_content, filename)
     
-    # If Google Drive fails, fall back to local storage
+    # If Cloudinary fails, fall back to local storage
     if not photo_url:
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
@@ -171,10 +171,10 @@ def check_out_attendance(
     # Read file content
     file_content = photo.file.read()
     
-    # Try to upload to Google Drive first
-    check_out_photo_url = upload_photo_to_drive(file_content, filename)
+    # Try to upload to Cloudinary first
+    check_out_photo_url = upload_photo_to_cloudinary(file_content, filename)
     
-    # If Google Drive fails, fall back to local storage
+    # If Cloudinary fails, fall back to local storage
     if not check_out_photo_url:
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
