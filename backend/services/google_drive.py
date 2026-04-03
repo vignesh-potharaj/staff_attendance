@@ -109,17 +109,17 @@ class GoogleDriveManager:
                     logger.info("✅ Token refreshed successfully")
                 except Exception as refresh_err:
                     logger.error(f"❌ Failed to refresh token: {type(refresh_err).__name__}: {refresh_err}", exc_info=True)
-                    raise
+                    creds = None
             
-            # If no valid credentials, run OAuth2 flow
+            # If no valid credentials, try OAuth2 flow (only works with browser)
             if not creds or (hasattr(creds, 'valid') and not creds.valid):
                 logger.warning("⚠️  No valid credentials found, attempting OAuth2 flow...")
                 
                 if not os.path.exists(self.credentials_json_path):
-                    raise FileNotFoundError(
-                        f"❌ credentials.json not found at {self.credentials_json_path}\n"
-                        f"Download it from Google Cloud Console and place it there."
-                    )
+                    logger.error(f"❌ credentials.json not found at {self.credentials_json_path}")
+                    logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+                    self.service = None
+                    return
                 
                 try:
                     logger.info(f"📄 Loading credentials from {self.credentials_json_path}")
@@ -137,15 +137,22 @@ class GoogleDriveManager:
                     logger.info(f"✅ Saved credentials to {self.token_pickle_path}")
                 except Exception as flow_err:
                     logger.error(f"❌ OAuth2 flow failed: {type(flow_err).__name__}: {flow_err}", exc_info=True)
-                    raise
+                    logger.warning("⚠️  OAuth2 flow not available (likely running on Render with no browser).")
+                    logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+                    self.service = None
+                    return
             
-            logger.info("🔨 Building Google Drive service object...")
-            self.service = build("drive", "v3", credentials=creds)
-            logger.info("✅ Google Drive service initialized successfully (OAuth2)")
+            if creds:
+                self.service = build("drive", "v3", credentials=creds)
+                logger.info("✅ Google Drive service initialized successfully (OAuth2)")
+            else:
+                logger.warning("⚠️  No valid credentials available. Google Drive disabled.")
+                self.service = None
             
         except Exception as e:
             logger.error(f"❌ Failed to initialize Google Drive service: {type(e).__name__}: {str(e)}", exc_info=True)
-            raise
+            logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+            self.service = None
     
     def upload_file(
         self,
@@ -166,7 +173,8 @@ class GoogleDriveManager:
         """
         try:
             if self.service is None:
-                raise RuntimeError("Google Drive service is not initialized")
+                logger.warning(f"Google Drive service not initialized, cannot upload {filename}")
+                return None
             # Create file metadata
             file_metadata = {
                 "name": filename,
@@ -193,7 +201,7 @@ class GoogleDriveManager:
             public_link = f"https://drive.google.com/uc?id={file_id}&export=view"
             return public_link
         except Exception as e:
-            logger.error(f"Failed to upload file {filename}: {e}")
+            logger.error(f"Failed to upload file {filename}: {type(e).__name__}: {e}", exc_info=True)
             return None
     
     def _make_file_public(self, file_id: str):
