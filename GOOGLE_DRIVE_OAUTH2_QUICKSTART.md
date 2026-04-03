@@ -3,7 +3,8 @@
 ## ⚡ TL;DR Setup (5 minutes)
 
 1. **Download credentials.json**:
-   - Google Cloud Console → OAuth client ID → Desktop app → Download
+   - Google Cloud Console → OAuth client ID → Desktop app (or Web app) → Download
+   - ⚠️ **Note**: If you chose "Web application" instead of "Desktop", see "Web App Setup" section below
 
 2. **Save in project root**: 
    ```
@@ -46,6 +47,69 @@
 - [ ] Added credentials.json and token.pickle to .gitignore
 - [ ] Started backend (browser login on first run)
 - [ ] Tested photo upload
+
+---
+
+## 🔐 Production Deployment
+
+For **production (Render, Vercel, etc)**, encode credentials as base64:
+
+**Locally, run**:
+```powershell
+# Windows
+$credB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("credentials.json"))
+Write-Output $credB64 | Set-Content "credentials.json.b64"
+
+$tokenB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("token.pickle"))
+Write-Output $tokenB64 | Set-Content "token.pickle.b64"
+```
+
+**On Render**, add environment variables:
+```
+GOOGLE_CREDENTIALS_JSON_B64=<entire contents of credentials.json.b64>
+GOOGLE_TOKEN_PICKLE_B64=<entire contents of token.pickle.b64>
+GOOGLE_DRIVE_FOLDER_ID=your-folder-id
+```
+
+Backend will automatically decode and use them. ✅
+
+---
+
+### When Creating OAuth Credentials:
+
+1. **Application type**: Choose "Web application"
+2. **Authorized JavaScript origins**: Add
+   - `http://localhost:5173` (admin-dashboard)
+   - `http://localhost:5174` (staff-portal)
+   - `http://localhost:8000` (backend)
+
+3. **Authorized redirect URIs**: Add
+   - `http://localhost:8000/auth/callback`
+   - `http://localhost:5173` (frontend, optional)
+
+4. **Download** the JSON file → Save as `credentials.json`
+
+### Backend Will:
+
+- Open browser automatically to `http://localhost:8000/auth/callback`
+- Redirect to Google login
+- Save token to `token.pickle`
+- Return to backend
+
+**That's it!** The rest of the setup is the same.
+
+---
+
+## 🔀 Desktop vs Web Application
+
+| Feature | Desktop | Web |
+|---------|---------|-----|
+| **Flow** | Opens browser automatically | Redirects to auth URL |
+| **Token Save** | `token.pickle` | `token.pickle` |
+| **Redirect URI** | Not needed | http://localhost:8000/auth/callback |
+| **Works?** | ✅ Yes | ✅ Yes (same result) |
+
+Both work the same way! The code handles both automatically.
 
 ---
 

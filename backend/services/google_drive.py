@@ -2,12 +2,19 @@
 Google Drive integration for storing attendance photos.
 Handles uploading images to Google Drive and generating public shareable links.
 Uses OAuth2 authentication with token.pickle for credentials persistence.
+
+Supports both local development and production deployment:
+- Local: credentials.json and token.pickle as files
+- Production: Base64-encoded environment variables for security
 """
 
 import os
 import io
 import pickle
 import logging
+import base64
+import tempfile
+import json
 from typing import Optional
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -21,6 +28,35 @@ logger = logging.getLogger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 
+def decode_base64_env(env_var_name: str, file_path: str) -> str:
+    """
+    Decode base64 environment variable and save to file if needed.
+    Used for production deployment where files can't be committed.
+    
+    Args:
+        env_var_name: Name of environment variable containing base64 data
+        file_path: Path where to save decoded file
+    
+    Returns:
+        Path to the decoded file
+    """
+    base64_data = os.getenv(env_var_name)
+    
+    if base64_data:
+        try:
+            # Decode base64 and save to file
+            decoded_data = base64.b64decode(base64_data)
+            with open(file_path, "wb") as f:
+                f.write(decoded_data)
+            logger.info(f"Decoded {env_var_name} and saved to {file_path}")
+            return file_path
+        except Exception as e:
+            logger.error(f"Failed to decode {env_var_name}: {e}")
+            raise
+    
+    return file_path
+
+
 class GoogleDriveManager:
     def __init__(self, credentials_json_path: str, token_pickle_path: str, folder_id: str):
         """
@@ -28,7 +64,9 @@ class GoogleDriveManager:
         
         Args:
             credentials_json_path: Path to credentials.json from Google Cloud Console
+                                  (or decoded from GOOGLE_CREDENTIALS_JSON_B64 env var)
             token_pickle_path: Path where token.pickle will be stored/loaded
+                              (or decoded from GOOGLE_TOKEN_PICKLE_B64 env var)
             folder_id: Google Drive folder ID where images will be stored
         """
         self.credentials_json_path = credentials_json_path
@@ -48,6 +86,7 @@ class GoogleDriveManager:
                     creds = pickle.load(token)
                 logger.info(f"Loaded existing credentials from {self.token_pickle_path}")
             
+
             # Refresh token if expired
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
@@ -158,16 +197,64 @@ class GoogleDriveManager:
 def get_google_drive_manager() -> GoogleDriveManager:
     """
     Get or create Google Drive manager instance.
-    Uses environment variables:
-    - GOOGLE_CREDENTIALS_JSON: Path to credentials.json from Google Cloud Console
-    - GOOGLE_TOKEN_PICKLE: Path where token.pickle will be stored
-    - GOOGLE_DRIVE_FOLDER_ID: Google Drive folder ID where photos will be stored
+    
+    Supports two deployment modes:
+    
+    1. LOCAL DEVELOPMENT:
+       - GOOGLE_CREDENTIALS_JSON: Path to credentials.json
+       - GOOGLE_TOKEN_PICKLE: Path to token.pickle
+    
+    2. PRODUCTION (Render, etc):
+       - GOOGLE_CREDENTIALS_JSON_B64: Base64-encoded credentials.json
+       - GOOGLE_TOKEN_PICKLE_B64: Base64-encoded token.pickle
+       - GOOGLE_DRIVE_FOLDER_ID: Google Drive folder ID
+    
+    Environment variables checked in order:
+    - Base64 versions (production) - decoded and saved to temp files
+    - File path versions (local dev) - used directly
     """
-    credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON", "credentials.json")
-    token_pickle = os.getenv("GOOGLE_TOKEN_PICKLE", "token.pickle")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
     
     if not folder_id:
         raise ValueError("GOOGLE_DRIVE_FOLDER_ID environment variable not set")
+    
+    # Try to load from base64 environment variables (production mode)
+    credentials_json_b64 = os.getenv("GOOGLE_CREDENTIALS_JSON_B64")
+    token_pickle_b64 = os.getenv("GOOGLE_TOKEN_PICKLE_B64")
+    
+    if credentials_json_b64 or token_pickle_b64:
+        logger.info("Using base64-encoded credentials (production mode)")
+        
+        # Create temp directory for decoded files
+        temp_dir = tempfile.gettempdir()
+        
+        credentials_json = os.path.join(temp_dir, "credentials.json")
+        token_pickle = os.path.join(temp_dir, "token.pickle")
+        
+        # Decode base64 environment variables if present
+        if credentials_json_b64:
+            try:
+                decoded = base64.b64decode(credentials_json_b64)
+                with open(credentials_json, "wb") as f:
+                    f.write(decoded)
+                logger.info(f"Decoded credentials.json to {credentials_json}")
+            except Exception as e:
+                logger.error(f"Failed to decode GOOGLE_CREDENTIALS_JSON_B64: {e}")
+                raise
+        
+        if token_pickle_b64:
+            try:
+                decoded = base64.b64decode(token_pickle_b64)
+                with open(token_pickle, "wb") as f:
+                    f.write(decoded)
+                logger.info(f"Decoded token.pickle to {token_pickle}")
+            except Exception as e:
+                logger.error(f"Failed to decode GOOGLE_TOKEN_PICKLE_B64: {e}")
+                raise
+    else:
+        # Use file paths (local development mode)
+        logger.info("Using file-based credentials (local development mode)")
+        credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON", "credentials.json")
+        token_pickle = os.getenv("GOOGLE_TOKEN_PICKLE", "token.pickle")
     
     return GoogleDriveManager(credentials_json, token_pickle, folder_id)

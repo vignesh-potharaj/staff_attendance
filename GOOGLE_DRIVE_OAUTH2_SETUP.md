@@ -54,10 +54,15 @@ OAuth2 requires you to login via browser once, and then the token is saved in `t
 
 4. Now create the OAuth client ID:
    - Click "Create Credentials" → "OAuth client ID"
-   - Choose application type: **Desktop application**
+   - Choose application type: **Desktop application** (or Web application)
+   - If Web application, add redirect URIs:
+     - `http://localhost:8000/auth/callback`
+     - `http://localhost:5173`
    - Click "Create"
    - Download the JSON file
    - Save it as `credentials.json` in your project root
+
+**Note**: Both Desktop and Web applications work the same way. The code automatically detects which type you're using.
 
 ### 4. Create Google Drive Folder and Get Folder ID
 
@@ -88,13 +93,28 @@ GOOGLE_DRIVE_FOLDER_ID=1A2b3C4d5E6f7G8h9
 
 ### 6. Update .gitignore
 
-Make sure these files are NOT committed:
+Make sure these files are NOT committed to Git:
 
 ```bash
 # .gitignore
+
+# Google Drive OAuth2 credentials (LOCAL ONLY - NEVER COMMIT)
 credentials.json
 token.pickle
+
+# Base64 encoded files (optional local encoding)
+credentials.json.b64
+token.pickle.b64
+
+# Environment files
+.env
+.env.local
 ```
+
+**Why?**
+- `credentials.json` contains sensitive OAuth2 data
+- `token.pickle` contains authenticated session tokens
+- **Never commit these to GitHub** - anyone with access can impersonate your app
 
 ### 7. Test Local Setup
 
@@ -121,33 +141,89 @@ token.pickle
 
 ## Production Deployment (Render)
 
-Since OAuth2 requires browser interaction for first-time auth, production deployment needs special handling:
+Since OAuth2 credentials can't be committed to Git, we need to encode them as environment variables.
 
-### Option A: Pre-generate token.pickle Locally
+### Step 1: Generate Base64-Encoded Credentials (Local Machine)
 
-1. **Locally**: Run the app once to create `token.pickle`
-2. **Encode**: Convert `token.pickle` to base64:
-   ```bash
-   certutil -encode token.pickle token.pickle.b64
-   ```
-3. **Set on Render**:
-   - Add environment variable: `GOOGLE_TOKEN_PICKLE_B64=<base64-content>`
-4. **In code**: Decode on startup (optional - we can add this later if needed)
+On your local machine, run these commands to convert files to base64:
 
-### Option B: Use Desktop Client Locally (Recommended)
+**Windows (PowerShell)**:
+```powershell
+# Encode credentials.json
+$credB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("credentials.json"))
+Write-Output $credB64 | Set-Content "credentials.json.b64"
 
-1. Keep `credentials.json` and `token.pickle` **locally only**
-2. Pre-generate `token.pickle` on your machine
-3. For production, implement server-to-server OAuth (Service Account) instead
-
-### Option C: Manual Token Generation Script
-
-Create a script to generate token:
-```bash
-python scripts/generate_google_drive_token.py
+# Encode token.pickle
+$tokenB64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("token.pickle"))
+Write-Output $tokenB64 | Set-Content "token.pickle.b64"
 ```
 
-Then commit `token.pickle` (or use Option A's base64 encoding).
+**Mac/Linux**:
+```bash
+# Encode credentials.json
+cat credentials.json | base64 > credentials.json.b64
+
+# Encode token.pickle
+cat token.pickle | base64 > token.pickle.b64
+```
+
+### Step 2: Add Environment Variables to Render
+
+1. Go to your Render backend service
+2. Click "Environment"
+3. Add new environment variables:
+
+```
+GOOGLE_CREDENTIALS_JSON_B64=<contents of credentials.json.b64>
+GOOGLE_TOKEN_PICKLE_B64=<contents of token.pickle.b64>
+GOOGLE_DRIVE_FOLDER_ID=your-folder-id-here
+```
+
+**Copy-paste the entire base64 string** (it will be very long - that's normal!)
+
+### Step 3: Redeploy
+
+1. Push your updated code to GitHub
+2. Render will automatically redeploy
+3. Backend will decode base64 variables and create temp files
+4. Photos will upload to Google Drive ✅
+
+### How Production Mode Works
+
+```
+Render receives base64 env vars
+         ↓
+Backend starts up
+         ↓
+Code detects base64 variables
+         ↓
+Decodes and creates temp files
+         ↓
+OAuth2 uses temp credentials
+         ↓
+Photos upload to Google Drive ✅
+         ↓
+Temp files cleaned up on app restart
+```
+
+**Important**: The files are temporary and not persisted between restarts - but the OAuth2 token is valid as long as needed.
+
+### Security
+
+✅ **This is secure because**:
+- Credentials never stored on disk permanently
+- Base64 is just encoding, not encryption (but GitHub is private)
+- Render environment variables are encrypted
+- Only visible to authorized users
+- Temporary files auto-cleanup
+
+### Fallback: Keep Token Valid
+
+To ensure the token stays valid:
+1. Generate token.pickle locally (browser auth)
+2. Encode as base64
+3. Add to Render environment
+4. Token will refresh automatically if needed
 
 ---
 
