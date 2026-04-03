@@ -105,8 +105,15 @@ class GoogleDriveManager:
                     if hasattr(creds, 'expired'):
                         logger.info(f"   - Expired: {creds.expired}")
                         
+                except (pickle.UnpicklingError, EOFError, MemoryError) as pickle_err:
+                    # Handle specific pickle errors (corrupted token)
+                    logger.error(f"❌ Token file is corrupted ({type(pickle_err).__name__}): {str(pickle_err)}", exc_info=True)
+                    logger.warning("⚠️  Token file corrupted - will skip Google Drive for this request")
+                    creds = None
                 except Exception as pickle_err:
+                    # Handle any other unexpected errors during unpickling
                     logger.error(f"❌ Failed to unpickle token: {type(pickle_err).__name__}: {pickle_err}", exc_info=True)
+                    logger.warning("⚠️  Could not load token - Google Drive will be unavailable")
                     creds = None
             else:
                 logger.warning(f"❌ Token file not found at {self.token_pickle_path}")

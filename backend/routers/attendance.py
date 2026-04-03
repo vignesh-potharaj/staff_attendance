@@ -27,6 +27,10 @@ router = APIRouter(
 UPLOAD_DIR = "static/images"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# Get backend URL from environment variable (for absolute URLs in database)
+# Format: https://my-app.onrender.com or http://localhost:8000
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
+
 def upload_photo_to_drive(
     file_content: bytes,
     filename: str
@@ -87,7 +91,8 @@ def mark_attendance(
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
             buffer.write(file_content)
-        photo_url = f"/static/images/{filename}"
+        # Use absolute URL for database (so photos work on deployed Render)
+        photo_url = f"{BACKEND_URL}/static/images/{filename}"
         logger.info(f"Photo saved to local storage: {photo_url}")
 
     # Determine LATE or PRESENT based on DailyRoaster
@@ -174,7 +179,8 @@ def check_out_attendance(
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
             buffer.write(file_content)
-        check_out_photo_url = f"/static/images/{filename}"
+        # Use absolute URL for database (so photos work on deployed Render)
+        check_out_photo_url = f"{BACKEND_URL}/static/images/{filename}"
         logger.info(f"Check-out photo saved to local storage: {check_out_photo_url}")
 
     # Assign to instance attributes, not class attributes
