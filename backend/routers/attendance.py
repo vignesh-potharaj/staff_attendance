@@ -93,18 +93,17 @@ def mark_attendance(
     ).first()
 
     if roaster:
-        if roaster.is_leave:
+        # Use instance values, not Column objects or ColumnElement
+        is_leave_val = getattr(roaster, 'is_leave', 0)
+        if isinstance(is_leave_val, int) and is_leave_val == 1:
             raise HTTPException(status_code=400, detail="You are marked as ON LEAVE for today.")
-        
-        if roaster.start_time:
+        start_time_val = getattr(roaster, 'start_time', None)
+        if start_time_val is not None:
             now_time = datetime.now(IST).time()
-            # Calculate shift start + grace period (15 mins)
-            # Use current IST date for combination
             current_date = datetime.now(IST).date()
-            shift_start_dt = datetime.combine(current_date, roaster.start_time)
+            shift_start_dt = datetime.combine(current_date, start_time_val)
             grace_td = timedelta(minutes=15)
             allowed_time = (shift_start_dt + grace_td).time()
-            
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
     else:
@@ -152,7 +151,7 @@ def check_out_attendance(
     if not existing:
         raise HTTPException(status_code=400, detail="You must check in first before checking out.")
 
-    if existing.check_out_time:
+    if getattr(existing, 'check_out_time', None) is not None:
         raise HTTPException(status_code=400, detail="You have already checked out for today.")
 
     # Save check-out photo
@@ -173,8 +172,9 @@ def check_out_attendance(
         check_out_photo_url = f"/static/images/{filename}"
         logger.info(f"Check-out photo saved to local storage: {check_out_photo_url}")
 
-    existing.check_out_time = datetime.now(IST)
-    existing.check_out_photo_url = check_out_photo_url
+    # Assign to instance attributes, not class attributes
+    setattr(existing, 'check_out_time', datetime.now(IST))
+    setattr(existing, 'check_out_photo_url', check_out_photo_url)
     db.commit()
     db.refresh(existing)
     
@@ -221,7 +221,7 @@ def export_attendance_csv(
     writer.writerow(["Employee Name", "Employee ID", "Date", "Check In Time", "Check Out Time", "Status", "Latitude", "Longitude", "Device"])
 
     for r in records:
-        check_out_str = r.check_out_time.strftime("%H:%M:%S") if r.check_out_time else "N/A"
+        check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
         writer.writerow([
             r.user.name,
             r.user.employee_id,
