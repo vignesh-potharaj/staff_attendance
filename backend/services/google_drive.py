@@ -76,82 +76,107 @@ class GoogleDriveManager:
         self._initialize_service()
 
     def _initialize_service(self):
-        """Initialize Google Drive API service using OAuth2."""
+        """
+        Initialize Google Drive API service using OAuth2 credentials.
+        
+        Works on headless environments (Render) without requiring browser:
+        1. Loads pre-authorized token from GOOGLE_TOKEN_PICKLE_B64 env var
+        2. If expired, refreshes token using credentials from GOOGLE_CREDENTIALS_JSON_B64
+        3. Never calls run_local_server() or webbrowser
+        4. Gracefully disables Google Drive if credentials are missing
+        """
         try:
             creds = None
             
-            # Load existing token if available
+            # Step 1: Try to load existing token from pickle file
+            logger.info(f"📂 Checking for token file at {self.token_pickle_path}")
             if os.path.exists(self.token_pickle_path):
-                logger.info(f"Token file found at {self.token_pickle_path}")
+                logger.info(f"✅ Token file found")
                 try:
-                    with open(self.token_pickle_path, "rb") as token:
-                        creds = pickle.load(token)
-                    logger.info(f"✅ Successfully loaded credentials from {self.token_pickle_path}")
-                    logger.info(f"   - Credential type: {type(creds).__name__}")
-                    logger.info(f"   - Has token: {hasattr(creds, 'token') and bool(creds.token)}")
+                    with open(self.token_pickle_path, "rb") as token_file:
+                        creds = pickle.load(token_file)
+                    
+                    logger.info(f"✅ Token unpickled successfully")
+                    logger.info(f"   - Type: {type(creds).__name__}")
+                    logger.info(f"   - Has access_token: {hasattr(creds, 'token') and bool(creds.token)}")
                     logger.info(f"   - Has refresh_token: {hasattr(creds, 'refresh_token') and bool(creds.refresh_token)}")
                     if hasattr(creds, 'valid'):
                         logger.info(f"   - Valid: {creds.valid}")
                     if hasattr(creds, 'expired'):
                         logger.info(f"   - Expired: {creds.expired}")
+                        
                 except Exception as pickle_err:
-                    logger.error(f"❌ Failed to load pickle file: {type(pickle_err).__name__}: {pickle_err}", exc_info=True)
+                    logger.error(f"❌ Failed to unpickle token: {type(pickle_err).__name__}: {pickle_err}", exc_info=True)
                     creds = None
             else:
                 logger.warning(f"❌ Token file not found at {self.token_pickle_path}")
-                logger.info(f"   Available files in temp dir: {os.listdir(os.path.dirname(self.token_pickle_path))}")
+                available = os.listdir(os.path.dirname(self.token_pickle_path))
+                logger.info(f"   Available files: {available}")
             
-            # Refresh token if expired
-            if creds and hasattr(creds, 'expired') and creds.expired and hasattr(creds, 'refresh_token') and creds.refresh_token:
-                try:
-                    logger.info("🔄 Token expired, attempting refresh...")
-                    creds.refresh(Request())
-                    logger.info("✅ Token refreshed successfully")
-                except Exception as refresh_err:
-                    logger.error(f"❌ Failed to refresh token: {type(refresh_err).__name__}: {refresh_err}", exc_info=True)
+            # Step 2: Refresh token if expired (works on headless Render without browser)
+            if creds and hasattr(creds, 'expired') and creds.expired:
+                if hasattr(creds, 'refresh_token') and creds.refresh_token:
+                    try:
+                        logger.info("🔄 Token expired, refreshing...")
+                        creds.refresh(Request())
+                        logger.info("✅ Token refreshed successfully")
+                    except Exception as refresh_err:
+                        logger.error(f"❌ Token refresh failed: {type(refresh_err).__name__}: {refresh_err}", exc_info=True)
+                        logger.warning("⚠️  Could not refresh token. Trying fresh authorization...")
+                        creds = None
+                else:
+                    logger.warning("⚠️  Token expired but no refresh_token available")
                     creds = None
             
-            # If no valid credentials, try OAuth2 flow (only works with browser)
+            # Step 3: If still no valid credentials, attempt authorization (headless-safe approach)
             if not creds or (hasattr(creds, 'valid') and not creds.valid):
-                logger.warning("⚠️  No valid credentials found, attempting OAuth2 flow...")
+                logger.warning("⚠️  No valid credentials. Attempting authorization...")
                 
                 if not os.path.exists(self.credentials_json_path):
                     logger.error(f"❌ credentials.json not found at {self.credentials_json_path}")
-                    logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+                    logger.error("❌ Cannot authorize without credentials.json")
+                    logger.error("❌ Please ensure GOOGLE_CREDENTIALS_JSON_B64 is set and decoded")
                     self.service = None
                     return
                 
                 try:
-                    logger.info(f"📄 Loading credentials from {self.credentials_json_path}")
+                    logger.info("📄 Loading client credentials from JSON")
+                    
+                    # Load credentials and build a flow (but don't run it - we'll handle auth differently)
                     flow = InstalledAppFlow.from_client_secrets_file(
                         self.credentials_json_path,
                         SCOPES
                     )
-                    logger.info("🌐 Starting OAuth2 flow (requires browser login)...")
-                    creds = flow.run_local_server(port=0)
-                    logger.info("✅ Completed new OAuth2 authentication flow")
                     
-                    # Save credentials for future use
-                    with open(self.token_pickle_path, "wb") as token:
-                        pickle.dump(creds, token)
-                    logger.info(f"✅ Saved credentials to {self.token_pickle_path}")
-                except Exception as flow_err:
-                    logger.error(f"❌ OAuth2 flow failed: {type(flow_err).__name__}: {flow_err}", exc_info=True)
-                    logger.warning("⚠️  OAuth2 flow not available (likely running on Render with no browser).")
-                    logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+                    logger.error("❌ OAuth2 authorization required but not available on headless environment")
+                    logger.error("❌ run_local_server() cannot be used on Render (no browser)")
+                    logger.error("❌ To fix: Generate token.pickle locally with 'python generate_token.py'")
+                    logger.error("❌ Then encode with 'python generate_base64_env.py'")
+                    logger.error("❌ Then set GOOGLE_TOKEN_PICKLE_B64 in Render environment variables")
+                    
+                    self.service = None
+                    return
+                    
+                except Exception as setup_err:
+                    logger.error(f"❌ Failed to load credentials: {type(setup_err).__name__}: {setup_err}", exc_info=True)
                     self.service = None
                     return
             
-            if creds:
-                self.service = build("drive", "v3", credentials=creds)
-                logger.info("✅ Google Drive service initialized successfully (OAuth2)")
+            # Step 4: Build and return Google Drive service with valid credentials
+            if creds and (hasattr(creds, 'valid') and creds.valid or hasattr(creds, 'token') and creds.token):
+                try:
+                    self.service = build("drive", "v3", credentials=creds)
+                    logger.info("✅ Google Drive service initialized successfully")
+                    logger.info(f"   - Folder ID: {self.folder_id}")
+                except Exception as build_err:
+                    logger.error(f"❌ Failed to build Drive service: {type(build_err).__name__}: {build_err}", exc_info=True)
+                    self.service = None
             else:
-                logger.warning("⚠️  No valid credentials available. Google Drive disabled.")
+                logger.warning("⚠️  No valid credentials available")
                 self.service = None
-            
+                
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Google Drive service: {type(e).__name__}: {str(e)}", exc_info=True)
-            logger.warning("⚠️  Google Drive will be unavailable. Falling back to local storage.")
+            logger.error(f"❌ Unexpected error in _initialize_service: {type(e).__name__}: {str(e)}", exc_info=True)
             self.service = None
     
     def upload_file(
