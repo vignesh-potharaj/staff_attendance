@@ -15,21 +15,23 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=AnalyticsSummary)
-def get_analytics(db: Session = Depends(get_db)):
+def get_analytics(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     today_str = datetime.now(IST).strftime("%Y-%m-%d")
     
     # 1. Total staff
-    total_staff = db.query(User).filter(User.role == RoleEnum.STAFF).count()
+    total_staff = db.query(User).filter(User.role == RoleEnum.STAFF, User.tenant_id == current_admin.tenant_id).count()
     
     # 2. Present today (including late)
     present_today = db.query(Attendance).filter(
-        Attendance.date == today_str
+        Attendance.date == today_str,
+        Attendance.tenant_id == current_admin.tenant_id,
     ).count()
     
     # 3. Late today
     late_today = db.query(Attendance).filter(
         Attendance.date == today_str,
-        Attendance.status == AttendanceStatus.LATE
+        Attendance.status == AttendanceStatus.LATE,
+        Attendance.tenant_id == current_admin.tenant_id,
     ).count()
     
     # 4. Absent today (total staff - present today)
@@ -43,9 +45,11 @@ def get_analytics(db: Session = Depends(get_db)):
     }
     
 @router.get("/trends")
-def get_attendance_trends(db: Session = Depends(get_db)):
+def get_attendance_trends(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     # Simple line chart data representation (Counts grouped by date)
-    trends = db.query(Attendance.date, func.count(Attendance.id).label("count")).group_by(Attendance.date).order_by(Attendance.date.desc()).limit(30).all()
+    trends = db.query(Attendance.date, func.count(Attendance.id).label("count")).filter(
+        Attendance.tenant_id == current_admin.tenant_id
+    ).group_by(Attendance.date).order_by(Attendance.date.desc()).limit(30).all()
     # Reverse to be chronological
     trends = trends[::-1]
     

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Lock, User } from 'lucide-react';
+import { Building2, Lock, User } from 'lucide-react';
 
 const Login: React.FC = () => {
+  const [tenantSlug, setTenantSlug] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,12 +19,10 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', employeeId);
-      formData.append('password', password);
-
-      const response = await api.post('/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      const response = await api.post('/auth/login', {
+        tenant_slug: tenantSlug.trim() || undefined,
+        user_id: employeeId,
+        password,
       });
       
       const { access_token, user } = response.data;
@@ -36,12 +35,8 @@ const Login: React.FC = () => {
       login(access_token, user);
       navigate('/');
     } catch (err: unknown) {
-      const error = err as { response?: { status?: number } };
-      if (error.response?.status === 401) {
-        setError('Invalid credentials');
-      } else {
-        setError('An error occurred during login. Is the server running?');
-      }
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'An error occurred during login. Is the server running?');
     } finally {
       setLoading(false);
     }
@@ -65,7 +60,22 @@ const Login: React.FC = () => {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Administrator ID / Username</label>
+              <label className="block text-sm font-medium text-gray-700">Workspace</label>
+              <div className="mt-1 relative rounded-md shadow-sm">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Building2 className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={tenantSlug}
+                  onChange={(e) => setTenantSlug(e.target.value)}
+                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+                  placeholder="e.g. bright-traders"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Administrator ID / User ID</label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-gray-400" />
@@ -108,6 +118,17 @@ const Login: React.FC = () => {
               </button>
             </div>
           </form>
+
+          <div className="mt-6 text-center text-sm">
+            <div className="flex items-center justify-center gap-4">
+              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                Create company account
+              </Link>
+              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                Forgot password
+              </Link>
+            </div>
+          </div>
 
           <div className="mt-6 text-center border-t border-gray-100 pt-6">
             <a 

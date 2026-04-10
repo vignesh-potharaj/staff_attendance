@@ -11,16 +11,33 @@ class RoleEnum(str, enum.Enum):
     ADMIN = "ADMIN"
     STAFF = "STAFF"
 
+class UserStatus(str, enum.Enum):
+    PENDING_VERIFICATION = "PENDING_VERIFICATION"
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+
 class AttendanceStatus(str, enum.Enum):
     PRESENT = "PRESENT"
     LATE = "LATE"
 
 # Shift model is removed as per requirements. Shifts are solely managed via DailyRoaster.
 
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    status = Column(String, default="ACTIVE", nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+
+    users = relationship("User", back_populates="tenant")
+
 class DailyRoaster(Base):
     __tablename__ = "daily_roasters"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     date = Column(String, index=True) # YYYY-MM-DD
     start_time = Column(Time, nullable=True)
@@ -37,17 +54,25 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     employee_id = Column(String, unique=True, index=True)
+    email = Column(String, index=True, nullable=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     password_hash = Column(String)
     role = Column(SQLEnum(RoleEnum), default=RoleEnum.STAFF)
     phone = Column(String)
+    status = Column(SQLEnum(UserStatus), default=UserStatus.PENDING_VERIFICATION)
+    is_email_verified = Column(Integer, default=0)
+    failed_login_attempts = Column(Integer, default=0)
+    locked_until = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
+    tenant = relationship("Tenant", back_populates="users")
     attendance_records = relationship("Attendance", back_populates="user")
 
 class Attendance(Base):
     __tablename__ = "attendance"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     date = Column(String) # Storing YYYY-MM-DD for easy querying
     check_in_time = Column(DateTime, default=lambda: datetime.now(IST))
@@ -61,3 +86,23 @@ class Attendance(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     user = relationship("User", back_populates="attendance_records")
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String, nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    used_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST))

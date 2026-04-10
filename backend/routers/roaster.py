@@ -23,7 +23,10 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
     Returns empty list if no records found for that date.
     """
     try:
-        records = db.query(DailyRoaster).filter(DailyRoaster.date == date).all()
+        records = db.query(DailyRoaster).filter(
+            DailyRoaster.date == date,
+            DailyRoaster.tenant_id == current_user.tenant_id,
+        ).all()
         
         # Convert records to dict for clean JSON serialization
         result = []
@@ -78,7 +81,10 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                 raise HTTPException(status_code=400, detail="Schedule date does not match the URL date")
 
         # Find existing records for this date
-        existing_records = db.query(DailyRoaster).filter(DailyRoaster.date == date).all()
+        existing_records = db.query(DailyRoaster).filter(
+            DailyRoaster.date == date,
+            DailyRoaster.tenant_id == current_user.tenant_id,
+        ).all()
         existing_map: Dict[int, DailyRoaster] = {r.user_id: r for r in existing_records}  # type: ignore
 
         for schedule in schedules:
@@ -129,6 +135,7 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                     end_time = schedule.end_time
                 
                 new_record = DailyRoaster(
+                    tenant_id=current_user.tenant_id,
                     user_id=schedule.user_id,
                     date=schedule.date,
                     start_time=start_time,

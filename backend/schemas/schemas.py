@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from backend.models.models import RoleEnum, AttendanceStatus
+from backend.models.models import RoleEnum, AttendanceStatus, UserStatus
 
 class Token(BaseModel):
     access_token: str
@@ -9,8 +9,49 @@ class Token(BaseModel):
     user: dict
 
 class TokenData(BaseModel):
-    employee_id: str | None = None
+    user_id: int | None = None
+    tenant_id: int | None = None
     role: str | None = None
+
+class TenantRegistrationRequest(BaseModel):
+    company_name: str
+    admin_name: str
+    email: str
+    mobile_number: str
+    user_id: str
+    password: str
+    confirm_password: str
+
+class TenantRegistrationResponse(BaseModel):
+    message: str
+    tenant_slug: str
+    verification_sent: bool
+    verification_preview_url: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    tenant_slug: Optional[str] = None
+    user_id: str
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    reset_preview_url: Optional[str] = None
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+    confirm_password: str
+
+class ResendVerificationRequest(BaseModel):
+    email: str
+    tenant_slug: Optional[str] = None
+
+class ActionMessage(BaseModel):
+    message: str
+    preview_url: Optional[str] = None
 
 # Shift schemas are removed as per requirements.
 
@@ -32,6 +73,7 @@ class DailyRoasterResponse(DailyRoasterBase):
 class UserBase(BaseModel):
     name: str
     employee_id: str
+    email: Optional[str] = None
     phone: str
     role: RoleEnum
 
@@ -46,6 +88,9 @@ class UserUpdate(BaseModel):
 
 class UserResponse(UserBase):
     id: int
+    tenant_id: Optional[int] = None
+    status: Optional[UserStatus] = None
+    is_email_verified: bool = False
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
