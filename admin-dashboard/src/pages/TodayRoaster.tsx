@@ -26,6 +26,7 @@ interface ScheduleInput {
 }
 
 const TodayRoaster: React.FC = () => {
+  // Rebuild trigger - v2
   const [users, setUsers] = useState<User[]>([]);
   const [schedules, setSchedules] = useState<Record<number, ScheduleInput>>({});
   const [loading, setLoading] = useState(true);
