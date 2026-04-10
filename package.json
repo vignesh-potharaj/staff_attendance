@@ -9,5 +9,8 @@
     "dev:staff": "powershell -Command \"cd staff-portal; npm run dev\"",
     "dev": "npm run dev:dashboard",
     "build": "npm install --prefix admin-dashboard --legacy-peer-deps && npm run build --prefix admin-dashboard && npm install --prefix staff-portal && npm run build --prefix staff-portal"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.3"
   }
 }

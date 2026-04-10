@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Check } from 'lucide-react';
+import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock } from 'lucide-react';
 import api from '../services/api';
 
 interface Shift {

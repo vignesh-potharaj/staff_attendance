@@ -34,16 +34,38 @@ async def lifespan(app: FastAPI):
     # Ensure one default admin
     db = SessionLocal()
     try:
+        default_tenant = db.query(models.Tenant).filter(models.Tenant.slug == "default").first()
+        if not default_tenant:
+            default_tenant = models.Tenant(
+                name="Default Workspace",
+                slug="default",
+                status="ACTIVE",
+            )
+            db.add(default_tenant)
+            db.commit()
+            db.refresh(default_tenant)
+
         admin_exists = db.query(models.User).filter(models.User.employee_id == "admin").first()
         if not admin_exists:
             admin_user = models.User(
                 name="System Admin",
                 employee_id="admin",
+                email="admin@local.test",
                 password_hash=get_password_hash("admin123"),
                 role=models.RoleEnum.ADMIN,
-                phone="0000000000"
+                phone="0000000000",
+                tenant_id=default_tenant.id,
+                status=models.UserStatus.ACTIVE,
+                is_email_verified=1,
             )
             db.add(admin_user)
+            db.commit()
+        elif not admin_exists.tenant_id:
+            admin_exists.tenant_id = default_tenant.id
+            admin_exists.status = models.UserStatus.ACTIVE
+            admin_exists.is_email_verified = 1
+            if not admin_exists.email:
+                admin_exists.email = "admin@local.test"
             db.commit()
     except Exception as e:
         logger.error(f"Admin creation error: {e}")

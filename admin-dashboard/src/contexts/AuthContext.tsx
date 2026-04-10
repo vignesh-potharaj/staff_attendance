@@ -5,7 +5,11 @@ interface User {
   id: number;
   name: string;
   employee_id: string;
+  email?: string | null;
   role: string;
+  tenant_id?: number | null;
+  tenant_slug?: string | null;
+  is_email_verified?: boolean;
 }
 
 interface AuthContextType {

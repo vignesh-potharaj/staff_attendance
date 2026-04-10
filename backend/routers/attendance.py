@@ -98,6 +98,7 @@ def mark_attendance(
     # Determine LATE or PRESENT based on DailyRoaster
     status = AttendanceStatus.PRESENT
     roaster = db.query(DailyRoaster).filter(
+        DailyRoaster.tenant_id == current_user.tenant_id,
         DailyRoaster.user_id == current_user.id,
         DailyRoaster.date == today_str
     ).first()
@@ -126,6 +127,7 @@ def mark_attendance(
             status = AttendanceStatus.LATE
                 
     new_attendance = Attendance(
+        tenant_id=current_user.tenant_id,
         user_id=current_user.id,
         date=today_str,
         photo_url=photo_url,
@@ -201,9 +203,10 @@ def get_attendance_records(
     employee_id: Optional[str] = None,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
 ):
-    query = db.query(Attendance).join(User)
+    query = db.query(Attendance).join(User).filter(Attendance.tenant_id == current_admin.tenant_id)
     
     if date:
         query = query.filter(Attendance.date == date)
@@ -216,9 +219,10 @@ def get_attendance_records(
 def export_attendance_csv(
     date: Optional[str] = None,
     employee_id: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
 ):
-    query = db.query(Attendance).join(User)
+    query = db.query(Attendance).join(User).filter(Attendance.tenant_id == current_admin.tenant_id)
     
     if date:
         query = query.filter(Attendance.date == date)

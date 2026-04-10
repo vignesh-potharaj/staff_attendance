@@ -6,8 +6,16 @@ services:
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app
     envVars:
       - key: DATABASE_URL
-        value: "postgresql://neondb_owner:npg_7zZc5VCjHqhf@ep-noisy-flower-a11rlrc2-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+        sync: false
       - key: SECRET_KEY
-        value: "staff-attendance-secure-key-2026-production-admin-api"
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
       - key: PYTHONPATH
         value: "."
