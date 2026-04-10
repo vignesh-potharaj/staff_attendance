@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Calendar as CalendarIcon, User as UserIcon, Clock } from 'lucide-react';
+import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Check } from 'lucide-react';
 import api from '../services/api';
 
 interface Shift {
@@ -30,6 +30,7 @@ const TodayRoaster: React.FC = () => {
   const [schedules, setSchedules] = useState<Record<number, ScheduleInput>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // History State
   const [historyDate, setHistoryDate] = useState(new Date().toLocaleDateString('en-CA'));
@@ -213,6 +214,63 @@ const TodayRoaster: React.FC = () => {
     }
   };
 
+  const handleSaveAndCopy = async () => {
+    try {
+      const todayDate = new Date().toLocaleDateString('en-CA');
+      
+      const payload = users.map(u => ({
+        user_id: u.id,
+        date: todayDate,
+        start_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : null),
+        end_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : null),
+        is_leave: schedules[u.id]?.isLeave || false,
+        is_week_off: schedules[u.id]?.isWeekOff || false
+      }));
+
+      await api.post(`/roaster/bulk?date=${todayDate}`, payload);
+      fetchHistory(todayDate); // Refresh history if viewing today
+      
+      const todayFormatted = new Date().toLocaleDateString('en-GB', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      });
+
+      let message = `📅 Staff Duty Roaster - ${todayFormatted}\n`;
+      message += `------------------------------------------\n\n`;
+
+      users.forEach((user, index) => {
+        const schedule = schedules[user.id];
+        let statusText = '';
+
+        if (schedule && schedule.isLeave) {
+          statusText = '🔴 ON LEAVE';
+        } else if (schedule && schedule.isWeekOff) {
+          statusText = '🟡 WEEK OFF';
+        } else if (schedule && schedule.startTime && schedule.endTime) {
+          statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
+        } else {
+          statusText = '⚪ Not Assigned';
+        }
+
+        message += `${index + 1}. ${user.name}: ${statusText}\n`;
+      });
+
+      message += `\n------------------------------------------\n`;
+      message += `Please be on time. Have a great day!`;
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(message);
+      
+      // Show success feedback
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to save and copy roaster', err);
+      alert('Failed to save and copy roaster. Please ensure backend is running.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -253,13 +311,27 @@ const TodayRoaster: React.FC = () => {
             </h2>
             <p className="text-gray-500 mt-1">Assign custom shift timings and share the schedule</p>
           </div>
-          <button
-            onClick={handleSaveAndShare}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-shadow"
-          >
-            <Share2 className="w-5 h-5" />
-            <span>Save & Share on WhatsApp</span>
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleSaveAndCopy}
+              className={`px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-all font-medium ${
+                copySuccess 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+              }`}
+              title="Save roaster and copy to clipboard"
+            >
+              <Copy className="w-5 h-5" />
+              <span>{copySuccess ? 'Copied!' : 'Save & Copy'}</span>
+            </button>
+            <button
+              onClick={handleSaveAndShare}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-shadow"
+            >
+              <Share2 className="w-5 h-5" />
+              <span>Save & Share on WhatsApp</span>
+            </button>
+          </div>
         </div>
 
         <div className="space-y-3">
