@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 import os
 import logging
 
 from backend.database.database import get_db, engine
-from backend.models.models import DailyRoaster, User, Attendance
+from backend.models.models import DailyRoaster, User, Attendance, Tenant
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,35 @@ router = APIRouter(
     prefix="/debug",
     tags=["Debug"]
 )
+
+@router.delete("/purge-unverified-user/{employee_id}")
+async def purge_unverified_user(employee_id: str, db: Session = Depends(get_db)):
+    """
+    TEMPORARY UTILITY: Delete an unverified user (and their tenant) entirely from the database 
+    so you can register again from scratch.
+    """
+    user = db.query(User).filter(User.employee_id == employee_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user.is_email_verified:
+        raise HTTPException(status_code=400, detail="Cannot delete a verified user from this endpoint.")
+    
+    tenant_id = user.tenant_id
+    
+    # Delete the user 
+    db.delete(user)
+    db.commit()
+    
+    # Check if tenant has any other users; if not, delete the tenant
+    remaining_users = db.query(User).filter(User.tenant_id == tenant_id).count()
+    if remaining_users == 0 and tenant_id:
+        tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if tenant and tenant.slug != "default":
+            db.delete(tenant)
+            db.commit()
+            
+    return {"status": "success", "message": f"Successfully purged unverified user {employee_id} and their workspace."}
 
 @router.get("/db-status")
 async def db_status(db: Session = Depends(get_db)):
