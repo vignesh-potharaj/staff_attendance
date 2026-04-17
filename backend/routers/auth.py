@@ -73,12 +73,19 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     db.commit()
 
     preview_url = build_preview_url("/verify-email", token)
+    tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
+    company_name = tenant.name if tenant else "Our Platform"
+    
     sent = send_email(
         subject="Verify your Smart Attend account",
         recipient=user_record.email or "",
         plain_text=(
             f"Hello {user_record.name},\n\n"
-            "Welcome to Smart Attend.\n"
+            f"Welcome to {company_name} via Smart Attend.\n"
+            f"Here are your registration details:\n"
+            f"- Company: {company_name}\n"
+            f"- User ID / Employee ID: {user_record.employee_id}\n"
+            f"- Mobile Number: {user_record.phone}\n\n"
             f"Verify your email by opening this link:\n{preview_url}\n\n"
             "This link expires in 24 hours."
         ),
@@ -98,11 +105,19 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     db.commit()
 
     preview_url = build_preview_url("/reset-password", token)
+    tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
+    company_name = tenant.name if tenant else "Our Platform"
+
     sent = send_email(
         subject="Reset your Smart Attend password",
         recipient=user_record.email or "",
         plain_text=(
             f"Hello {user_record.name},\n\n"
+            f"A password reset was requested for your account at {company_name} (Smart Attend).\n"
+            f"Here are your account details:\n"
+            f"- Company: {company_name}\n"
+            f"- User ID / Employee ID: {user_record.employee_id}\n"
+            f"- Mobile Number: {user_record.phone}\n\n"
             "Use the link below to reset your password:\n"
             f"{preview_url}\n\n"
             "This link expires in 30 minutes."
