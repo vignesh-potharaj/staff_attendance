@@ -265,7 +265,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
     if user.locked_until and user.locked_until > datetime.now(IST):
         raise HTTPException(status_code=423, detail="Account is temporarily locked. Try again later.")
-    if not user.is_email_verified:
+    if user.email and not user.is_email_verified:
         raise HTTPException(status_code=403, detail="Verify your email before signing in.")
     if user.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=403, detail="Account is not active.")
