@@ -67,7 +67,7 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     verification = EmailVerificationToken(
         user_id=user_record.id,
         token_hash=hash_token(token),
-        expires_at=datetime.now(IST) + timedelta(hours=24),
+        expires_at=(datetime.now(IST) + timedelta(hours=24)).replace(tzinfo=None),
     )
     db.add(verification)
     db.commit()
@@ -92,7 +92,7 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     reset_token = PasswordResetToken(
         user_id=user_record.id,
         token_hash=hash_token(token),
-        expires_at=datetime.now(IST) + timedelta(minutes=30),
+        expires_at=(datetime.now(IST) + timedelta(minutes=30)).replace(tzinfo=None),
     )
     db.add(reset_token)
     db.commit()
@@ -214,7 +214,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
     user_data.is_email_verified = 1
     user_data.status = UserStatus.ACTIVE
-    record_data.used_at = datetime.now(IST)
+    record_data.used_at = datetime.now(IST).replace(tzinfo=None)
     db.commit()
 
     return ActionMessage(message="Email verified successfully. You can now sign in.")
@@ -273,7 +273,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
             user_data = orm_value(user)
             user_data.failed_login_attempts = (user_data.failed_login_attempts or 0) + 1
             if user_data.failed_login_attempts >= 5:
-                user_data.locked_until = datetime.now(IST) + timedelta(minutes=15)
+                user_data.locked_until = (datetime.now(IST) + timedelta(minutes=15)).replace(tzinfo=None)
             db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -336,7 +336,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user_data.password_hash = get_password_hash(payload.new_password)
     user_data.failed_login_attempts = 0
     user_data.locked_until = None
-    record_data.used_at = datetime.now(IST)
+    record_data.used_at = datetime.now(IST).replace(tzinfo=None)
     db.commit()
 
     return ActionMessage(message="Password reset successfully. You can now sign in.")
