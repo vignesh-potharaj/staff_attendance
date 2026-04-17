@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI):
             admin_exists.tenant_id = default_tenant.id  # type: ignore
             admin_exists.status = models.UserStatus.ACTIVE  # type: ignore
             admin_exists.is_email_verified = 1  # type: ignore
-            if not admin_exists.email:
+            if not admin_exists.email:  # type: ignore
                 admin_exists.email = "admin@local.test"  # type: ignore
             db.commit()
     except Exception as e:
