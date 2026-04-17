@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
-from backend.routers import auth, users, attendance, analytics, roaster, debug
+from backend.routers import auth, users, attendance, analytics, roaster, debug, settings
 from backend.auth.security import get_password_hash
 from backend.database.migrations import run_migrations
 
@@ -101,6 +101,7 @@ app.include_router(attendance.router)
 app.include_router(analytics.router)
 app.include_router(roaster.router)
 app.include_router(debug.router)
+app.include_router(settings.router)
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):

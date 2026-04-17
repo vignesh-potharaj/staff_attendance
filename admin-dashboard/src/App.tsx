@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import TodayRoaster from './pages/TodayRoaster';
 import Attendance from './pages/Attendance';
+import Settings from './pages/Settings';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -42,6 +43,7 @@ const App: React.FC = () => {
             <Route path="roaster" element={<TodayRoaster />} />
             <Route path="roaster-management" element={<TodayRoaster />} />
             <Route path="attendance" element={<Attendance />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </AuthProvider>
