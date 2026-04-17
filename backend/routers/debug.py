@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 import os
 import logging
+import traceback
 
 from backend.database.database import get_db, engine
 from backend.models.models import DailyRoaster, User, Attendance, Tenant
@@ -24,7 +25,7 @@ async def purge_unverified_user(employee_id: str, db: Session = Depends(get_db))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if user.is_email_verified:
+    if user.is_email_verified:  # type: ignore
         raise HTTPException(status_code=400, detail="Cannot delete a verified user from this endpoint.")
     
     tenant_id = user.tenant_id
@@ -35,9 +36,9 @@ async def purge_unverified_user(employee_id: str, db: Session = Depends(get_db))
     
     # Check if tenant has any other users; if not, delete the tenant
     remaining_users = db.query(User).filter(User.tenant_id == tenant_id).count()
-    if remaining_users == 0 and tenant_id:
+    if remaining_users == 0 and tenant_id is not None:
         tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-        if tenant and tenant.slug != "default":
+        if tenant and tenant.slug != "default":  # type: ignore
             db.delete(tenant)
             db.commit()
             
@@ -113,7 +114,7 @@ async def test_query(db: Session = Depends(get_db)):
             "status": "ERROR",
             "error": str(e),
             "error_type": type(e).__name__,
-            "traceback": str(e.__traceback__),
+            "traceback": traceback.format_exc(),
         }
 
 @router.get("/test-time-conversion")
