@@ -237,8 +237,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
 @router.post("/resend-verification", response_model=ActionMessage)
 def resend_verification(payload: ResendVerificationRequest, db: Session = Depends(get_db)):
-    email = payload.email.strip().lower()
-    query = db.query(User).filter(User.email == email)
+    query = db.query(User)
 
     if payload.tenant_slug:
         tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip().lower()).first()
@@ -247,12 +246,23 @@ def resend_verification(payload: ResendVerificationRequest, db: Session = Depend
         tenant_data = orm_value(tenant)
         query = query.filter(User.tenant_id == tenant_data.id)
 
+    if payload.email:
+        query = query.filter(User.email == payload.email.strip().lower())
+    elif payload.user_id:
+        query = query.filter(User.employee_id == payload.user_id.strip())
+    else:
+        raise HTTPException(status_code=400, detail="Must provide email or user ID")
+
     user = query.first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
     user_data = orm_value(user)
     if user_data.is_email_verified:
         return ActionMessage(message="Email is already verified.")
+        
+    if not user_data.email:
+        raise HTTPException(status_code=400, detail="User does not have an email address.")
 
     sent, preview_url = issue_verification_token(db, user)
     return ActionMessage(

@@ -46,7 +46,8 @@ class ResetPasswordRequest(BaseModel):
     confirm_password: str
 
 class ResendVerificationRequest(BaseModel):
-    email: str
+    email: Optional[str] = None
+    user_id: Optional[str] = None
     tenant_slug: Optional[str] = None
 
 class ActionMessage(BaseModel):

@@ -10,12 +10,34 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendSuccess('');
+    setError('');
+    
+    try {
+      await api.post('/auth/resend-verification', {
+        user_id: employeeId,
+        tenant_slug: tenantSlug.trim() || undefined,
+      });
+      setResendSuccess('Verification email sent! Please check your inbox.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Failed to resend verification email.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setResendSuccess('');
     setLoading(true);
 
     try {
@@ -55,8 +77,23 @@ const Login: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
           <form className="space-y-6" onSubmit={handleLogin}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex justify-between items-center bg-opacity-90 leading-tight">
+                <span>{error}</span>
+                {error.includes('Verify your email') && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    className="ml-2 font-medium underline hover:text-red-800 flex-shrink-0"
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend Email'}
+                  </button>
+                )}
+              </div>
+            )}
+            {resendSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+                {resendSuccess}
               </div>
             )}
             <div>
