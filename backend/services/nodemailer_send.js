@@ -1,4 +1,10 @@
-const nodemailer = require('nodemailer');
+let nodemailer;
+try {
+  nodemailer = require('nodemailer');
+} catch (err) {
+  process.stderr.write(`FATAL: Failed to load nodemailer: ${err?.message || String(err)}\n`);
+  process.exit(1);
+}
 
 async function main() {
   const {
@@ -53,6 +59,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write(error?.stack || String(error));
+  const errorMsg = error?.stack || String(error);
+  process.stderr.write(`ERROR: ${errorMsg}\n`);
   process.exit(1);
 });

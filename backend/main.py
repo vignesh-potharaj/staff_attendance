@@ -60,12 +60,12 @@ async def lifespan(app: FastAPI):
             )
             db.add(admin_user)
             db.commit()
-        elif not admin_exists.tenant_id:
-            admin_exists.tenant_id = default_tenant.id
-            admin_exists.status = models.UserStatus.ACTIVE
-            admin_exists.is_email_verified = 1
+        elif admin_exists.tenant_id is None:
+            admin_exists.tenant_id = default_tenant.id  # type: ignore
+            admin_exists.status = models.UserStatus.ACTIVE  # type: ignore
+            admin_exists.is_email_verified = 1  # type: ignore
             if not admin_exists.email:
-                admin_exists.email = "admin@local.test"
+                admin_exists.email = "admin@local.test"  # type: ignore
             db.commit()
     except Exception as e:
         logger.error(f"Admin creation error: {e}")

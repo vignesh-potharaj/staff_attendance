@@ -33,7 +33,13 @@ def _smtp_configured() -> bool:
 
 def send_email(subject: str, recipient: str, plain_text: str) -> bool:
     if not _smtp_configured():
-        logger.warning("SMTP is not configured. Skipping email send to %s", recipient)
+        logger.warning("⚠️  SMTP is not configured.")
+        logger.warning("   GMAIL_USER + GMAIL_APP_PASSWORD: %s", "SET" if _gmail_configured() else "NOT SET")
+        logger.warning("   SMTP_HOST + SMTP_PORT + SMTP_USERNAME + SMTP_PASSWORD + MAIL_FROM: %s",
+                       "SET" if all([os.getenv("SMTP_HOST"), os.getenv("SMTP_PORT"), 
+                                     os.getenv("SMTP_USERNAME"), os.getenv("SMTP_PASSWORD"), 
+                                     os.getenv("MAIL_FROM")]) else "NOT SET")
+        logger.warning("   Skipping email send to %s", recipient)
         return False
 
     try:
@@ -54,11 +60,17 @@ def send_email(subject: str, recipient: str, plain_text: str) -> bool:
             check=True,
         )
         if result.stdout.strip():
-            logger.info("Nodemailer result for %s: %s", recipient, result.stdout.strip())
-        logger.info("Email sent to %s", recipient)
+            logger.info("✅ Nodemailer result for %s: %s", recipient, result.stdout.strip())
+        logger.info("✅ Email sent to %s", recipient)
         return True
+    except subprocess.CalledProcessError as exc:
+        logger.error("❌ Node script failed with exit code %s for %s", exc.returncode, recipient)
+        if exc.stderr:
+            logger.error("   Node stderr: %s", exc.stderr.strip())
+        logger.error("   Full error: %s", exc, exc_info=True)
+        return False
     except Exception as exc:
-        logger.error("Failed to send email to %s: %s", recipient, exc, exc_info=True)
+        logger.error("❌ Failed to send email to %s: %s", recipient, exc, exc_info=True)
         return False
 
 
