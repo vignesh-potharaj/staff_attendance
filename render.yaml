@@ -3,7 +3,7 @@ services:
     name: staff-attendance-api
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app --timeout 120
     envVars:
       - key: DATABASE_URL
         sync: false
