@@ -68,7 +68,7 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/verify-email", token)
     sent = send_email(
         subject="Verify your Smart Attend account",
-        recipient=user.email or "",
+        recipient=str(user.email) if user.email else "",  # type: ignore
         plain_text=(
             f"Hello {user.name},\n\n"
             "Welcome to Smart Attend.\n"
@@ -92,7 +92,7 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/reset-password", token)
     sent = send_email(
         subject="Reset your Smart Attend password",
-        recipient=user.email or "",
+        recipient=str(user.email) if user.email else "",  # type: ignore
         plain_text=(
             f"Hello {user.name},\n\n"
             "Use the link below to reset your password:\n"
