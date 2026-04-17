@@ -8,8 +8,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn('[API] No token found in localStorage. Make sure you are logged in.');
   }
   // Add this to bypass ngrok browser warning page
   config.headers['ngrok-skip-browser-warning'] = 'true';

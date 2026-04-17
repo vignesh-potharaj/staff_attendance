@@ -1,4 +1,4 @@
-const CACHE_NAME = 'smart-admin-v2';
+const CACHE_NAME = 'smart-admin-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -12,11 +12,17 @@ const API_PATTERNS = [
   '/auth/',
   '/users/',
   '/roaster/',
-  '/analytics/'
+  '/analytics/',
+  '/settings/'
 ];
 
 const isApiCall = (url) => {
   return API_PATTERNS.some(pattern => url.includes(pattern));
+};
+
+const isAppRoute = (request) => {
+  const url = new URL(request.url);
+  return request.method === 'GET' && !url.pathname.split('/').pop().includes('.');
 };
 
 self.addEventListener('install', (event) => {
@@ -48,8 +54,8 @@ self.addEventListener('fetch', (event) => {
     return; // Pass through cross-origin requests without intercepting
   }
 
-  // For navigate requests (page navigation), use network-first
-  if (request.mode === 'navigate') {
+  // For SPA routes, use network-first and fall back to index.html.
+  if (request.mode === 'navigate' || isAppRoute(request)) {
     event.respondWith(
       fetch(request).catch(() => {
         return caches.match('/index.html') || caches.match(request);
