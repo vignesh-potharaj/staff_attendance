@@ -2,7 +2,7 @@ services:
   - type: web
     name: staff-attendance-api
     runtime: python
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r backend/requirements.txt && npm ci --omit=dev
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.main:app --timeout 120
     envVars:
       - key: DATABASE_URL
