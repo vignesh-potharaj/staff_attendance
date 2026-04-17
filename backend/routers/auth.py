@@ -1,5 +1,6 @@
 import re
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
@@ -40,6 +41,11 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
+
+def orm_value(value: object) -> Any:
+    """Tell static type checkers this is a loaded SQLAlchemy ORM value."""
+    return cast(Any, value)
+
 def slugify_company_name(company_name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", company_name.strip().lower()).strip("-")
     return slug or "workspace"
@@ -56,9 +62,10 @@ def generate_unique_slug(db: Session, company_name: str) -> str:
 
 
 def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
+    user_record = orm_value(user)
     token = generate_random_token()
     verification = EmailVerificationToken(
-        user_id=user.id,
+        user_id=user_record.id,
         token_hash=hash_token(token),
         expires_at=datetime.now(IST) + timedelta(hours=24),
     )
@@ -68,9 +75,9 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/verify-email", token)
     sent = send_email(
         subject="Verify your Smart Attend account",
-        recipient=str(user.email) if user.email else "",  # type: ignore
+        recipient=user_record.email or "",
         plain_text=(
-            f"Hello {user.name},\n\n"
+            f"Hello {user_record.name},\n\n"
             "Welcome to Smart Attend.\n"
             f"Verify your email by opening this link:\n{preview_url}\n\n"
             "This link expires in 24 hours."
@@ -80,9 +87,10 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
 
 
 def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
+    user_record = orm_value(user)
     token = generate_random_token()
     reset_token = PasswordResetToken(
-        user_id=user.id,
+        user_id=user_record.id,
         token_hash=hash_token(token),
         expires_at=datetime.now(IST) + timedelta(minutes=30),
     )
@@ -92,9 +100,9 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/reset-password", token)
     sent = send_email(
         subject="Reset your Smart Attend password",
-        recipient=str(user.email) if user.email else "",  # type: ignore
+        recipient=user_record.email or "",
         plain_text=(
-            f"Hello {user.name},\n\n"
+            f"Hello {user_record.name},\n\n"
             "Use the link below to reset your password:\n"
             f"{preview_url}\n\n"
             "This link expires in 30 minutes."
@@ -104,12 +112,13 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
 
 
 def build_login_response(user: User) -> dict:
+    user_record = orm_value(user)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={
-            "sub": str(user.id),
-            "tenant_id": user.tenant_id,
-            "role": user.role.value if hasattr(user.role, "value") else user.role,
+            "sub": str(user_record.id),
+            "tenant_id": user_record.tenant_id,
+            "role": user_record.role.value if hasattr(user_record.role, "value") else user_record.role,
         },
         expires_delta=access_token_expires,
     )
@@ -117,14 +126,14 @@ def build_login_response(user: User) -> dict:
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
-            "id": user.id,
-            "name": user.name,
-            "employee_id": user.employee_id,
-            "email": user.email,
-            "role": user.role,
-            "tenant_id": user.tenant_id,
-            "tenant_slug": user.tenant.slug if user.tenant else None,
-            "is_email_verified": bool(user.is_email_verified),
+            "id": user_record.id,
+            "name": user_record.name,
+            "employee_id": user_record.employee_id,
+            "email": user_record.email,
+            "role": user_record.role,
+            "tenant_id": user_record.tenant_id,
+            "tenant_slug": user_record.tenant.slug if user_record.tenant else None,
+            "is_email_verified": bool(user_record.is_email_verified),
         }
     }
 
@@ -158,6 +167,7 @@ def register_tenant(payload: TenantRegistrationRequest, db: Session = Depends(ge
     )
     db.add(tenant)
     db.flush()
+    tenant_record = orm_value(tenant)
 
     admin_user = User(
         name=payload.admin_name.strip(),
@@ -166,7 +176,7 @@ def register_tenant(payload: TenantRegistrationRequest, db: Session = Depends(ge
         password_hash=get_password_hash(payload.password),
         role=RoleEnum.ADMIN,
         phone=payload.mobile_number.strip(),
-        tenant_id=tenant.id,
+        tenant_id=tenant_record.id,
         status=UserStatus.PENDING_VERIFICATION,
         is_email_verified=0,
     )
@@ -177,7 +187,7 @@ def register_tenant(payload: TenantRegistrationRequest, db: Session = Depends(ge
     verification_sent, preview_url = issue_verification_token(db, admin_user)
     return TenantRegistrationResponse(
         message="Company account created. Verify your email to activate login.",
-        tenant_slug=tenant.slug,
+        tenant_slug=tenant_record.slug,
         verification_sent=verification_sent,
         verification_preview_url=None if verification_sent else preview_url,
     )
@@ -190,18 +200,20 @@ def verify_email(token: str, db: Session = Depends(get_db)):
 
     if not record:
         raise HTTPException(status_code=400, detail="Invalid verification token")
-    if record.used_at is not None:
+    record_data = orm_value(record)
+    if record_data.used_at is not None:
         raise HTTPException(status_code=400, detail="Verification token has already been used")
-    if record.expires_at < datetime.now(IST):
+    if record_data.expires_at < datetime.now(IST):
         raise HTTPException(status_code=400, detail="Verification token has expired")
 
-    user = db.query(User).filter(User.id == record.user_id).first()
+    user = db.query(User).filter(User.id == record_data.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    user_data = orm_value(user)
 
-    user.is_email_verified = 1
-    user.status = UserStatus.ACTIVE
-    record.used_at = datetime.now(IST)
+    user_data.is_email_verified = 1
+    user_data.status = UserStatus.ACTIVE
+    record_data.used_at = datetime.now(IST)
     db.commit()
 
     return ActionMessage(message="Email verified successfully. You can now sign in.")
@@ -216,12 +228,14 @@ def resend_verification(payload: ResendVerificationRequest, db: Session = Depend
         tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip().lower()).first()
         if not tenant:
             raise HTTPException(status_code=404, detail="Workspace not found")
-        query = query.filter(User.tenant_id == tenant.id)
+        tenant_data = orm_value(tenant)
+        query = query.filter(User.tenant_id == tenant_data.id)
 
     user = query.first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.is_email_verified:
+    user_data = orm_value(user)
+    if user_data.is_email_verified:
         return ActionMessage(message="Email is already verified.")
 
     sent, preview_url = issue_verification_token(db, user)
@@ -245,17 +259,20 @@ async def login(request: Request, db: Session = Depends(get_db)):
         tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip().lower()).first()
         if not tenant:
             raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
+    tenant_data = orm_value(tenant) if tenant else None
 
     query = db.query(User).filter(User.employee_id == payload.user_id.strip())
-    if tenant:
-        query = query.filter(User.tenant_id == tenant.id)
+    if tenant_data:
+        query = query.filter(User.tenant_id == tenant_data.id)
 
     user = query.first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    user_data = orm_value(user) if user else None
+    if not user_data or not verify_password(payload.password, user_data.password_hash):
         if user:
-            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
-            if user.failed_login_attempts >= 5:
-                user.locked_until = datetime.now(IST) + timedelta(minutes=15)
+            user_data = orm_value(user)
+            user_data.failed_login_attempts = (user_data.failed_login_attempts or 0) + 1
+            if user_data.failed_login_attempts >= 5:
+                user_data.locked_until = datetime.now(IST) + timedelta(minutes=15)
             db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -263,15 +280,15 @@ async def login(request: Request, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if user.locked_until and user.locked_until > datetime.now(IST):
+    if user_data.locked_until and user_data.locked_until > datetime.now(IST):
         raise HTTPException(status_code=423, detail="Account is temporarily locked. Try again later.")
-    if user.email and not user.is_email_verified:
+    if user_data.email and not user_data.is_email_verified:
         raise HTTPException(status_code=403, detail="Verify your email before signing in.")
-    if user.status != UserStatus.ACTIVE:
+    if user_data.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=403, detail="Account is not active.")
 
-    user.failed_login_attempts = 0
-    user.locked_until = None
+    user_data.failed_login_attempts = 0
+    user_data.locked_until = None
     db.commit()
 
     return build_login_response(user)
@@ -302,19 +319,21 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     ).first()
     if not record:
         raise HTTPException(status_code=400, detail="Invalid reset token")
-    if record.used_at is not None:
+    record_data = orm_value(record)
+    if record_data.used_at is not None:
         raise HTTPException(status_code=400, detail="Reset token has already been used")
-    if record.expires_at < datetime.now(IST):
+    if record_data.expires_at < datetime.now(IST):
         raise HTTPException(status_code=400, detail="Reset token has expired")
 
-    user = db.query(User).filter(User.id == record.user_id).first()
+    user = db.query(User).filter(User.id == record_data.user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    user_data = orm_value(user)
 
-    user.password_hash = get_password_hash(payload.new_password)
-    user.failed_login_attempts = 0
-    user.locked_until = None
-    record.used_at = datetime.now(IST)
+    user_data.password_hash = get_password_hash(payload.new_password)
+    user_data.failed_login_attempts = 0
+    user_data.locked_until = None
+    record_data.used_at = datetime.now(IST)
     db.commit()
 
     return ActionMessage(message="Password reset successfully. You can now sign in.")

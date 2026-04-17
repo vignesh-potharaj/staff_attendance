@@ -2,7 +2,6 @@ import logging
 import os
 import smtplib
 from email.message import EmailMessage
-from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
@@ -94,7 +93,7 @@ def send_email(subject: str, recipient: str, plain_text: str) -> bool:
         return False
 
 
-def build_preview_url(path: str, token: str) -> Optional[str]:
+def build_preview_url(path: str, token: str) -> str:
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
     parsed = urlparse(frontend_url)
 
