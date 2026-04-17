@@ -203,7 +203,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     record_data = orm_value(record)
     if record_data.used_at is not None:
         raise HTTPException(status_code=400, detail="Verification token has already been used")
-    if record_data.expires_at < datetime.now(IST):
+    if record_data.expires_at < datetime.now(IST).replace(tzinfo=None):
         raise HTTPException(status_code=400, detail="Verification token has expired")
 
     user = db.query(User).filter(User.id == record_data.user_id).first()
@@ -280,7 +280,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    if user_data.locked_until and user_data.locked_until > datetime.now(IST):
+    if user_data.locked_until and user_data.locked_until > datetime.now(IST).replace(tzinfo=None):
         raise HTTPException(status_code=423, detail="Account is temporarily locked. Try again later.")
     if user_data.email and not user_data.is_email_verified:
         raise HTTPException(status_code=403, detail="Verify your email before signing in.")
@@ -322,7 +322,7 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     record_data = orm_value(record)
     if record_data.used_at is not None:
         raise HTTPException(status_code=400, detail="Reset token has already been used")
-    if record_data.expires_at < datetime.now(IST):
+    if record_data.expires_at < datetime.now(IST).replace(tzinfo=None):
         raise HTTPException(status_code=400, detail="Reset token has expired")
 
     user = db.query(User).filter(User.id == record_data.user_id).first()
