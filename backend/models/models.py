@@ -29,6 +29,10 @@ class Tenant(Base):
     name = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
     status = Column(String, default="ACTIVE", nullable=False)
+    geofence_maps_link = Column(String, nullable=True)
+    geofence_latitude = Column(Float, nullable=True)
+    geofence_longitude = Column(Float, nullable=True)
+    geofence_radius_meters = Column(Integer, default=100, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(IST))
 
     users = relationship("User", back_populates="tenant")

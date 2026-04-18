@@ -103,6 +103,29 @@ def run_migrations():
                 "locked_until column ensured on users",
             )
 
+    if "tenants" in tables:
+        columns = {col["name"] for col in inspector.get_columns("tenants")}
+        if "geofence_maps_link" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN geofence_maps_link VARCHAR NULL",
+                "geofence_maps_link column ensured on tenants",
+            )
+        if "geofence_latitude" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN geofence_latitude FLOAT NULL",
+                "geofence_latitude column ensured on tenants",
+            )
+        if "geofence_longitude" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN geofence_longitude FLOAT NULL",
+                "geofence_longitude column ensured on tenants",
+            )
+        if "geofence_radius_meters" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN geofence_radius_meters INTEGER DEFAULT 100",
+                "geofence_radius_meters column ensured on tenants",
+            )
+
     inspector = inspect(engine)
     tables = inspector.get_table_names()
 

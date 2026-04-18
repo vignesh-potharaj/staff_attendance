@@ -3,6 +3,7 @@ import shutil
 import io
 import csv
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -30,6 +31,40 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Get backend URL from environment variable (for absolute URLs in database)
 # Format: https://my-app.onrender.com or http://localhost:8000
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
+
+
+def distance_in_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    earth_radius_meters = 6371000
+    lat1_rad = math.radians(lat1)
+    lat2_rad = math.radians(lat2)
+    delta_lat = math.radians(lat2 - lat1)
+    delta_lon = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(delta_lat / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_meters * c
+
+
+def enforce_geofence(latitude: float, longitude: float, current_user: User):
+    tenant = current_user.tenant
+    if not tenant or tenant.geofence_latitude is None or tenant.geofence_longitude is None:
+        return
+
+    radius = tenant.geofence_radius_meters or 100
+    distance = distance_in_meters(
+        latitude,
+        longitude,
+        tenant.geofence_latitude,
+        tenant.geofence_longitude,
+    )
+    if distance > radius:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You are {round(distance)} meters away from the allowed attendance location. Please mark attendance within {radius} meters.",
+        )
 
 def upload_photo_to_cloudinary(
     file_content: bytes,
@@ -75,6 +110,8 @@ def mark_attendance(
     
     if existing:
         raise HTTPException(status_code=400, detail="Attendance already recorded")
+
+    enforce_geofence(latitude, longitude, current_user)
 
     # Save photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
@@ -165,6 +202,8 @@ def check_out_attendance(
 
     if getattr(existing, 'check_out_time', None) is not None:
         raise HTTPException(status_code=400, detail="You have already checked out for today.")
+
+    enforce_geofence(latitude, longitude, current_user)
 
     # Save check-out photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")

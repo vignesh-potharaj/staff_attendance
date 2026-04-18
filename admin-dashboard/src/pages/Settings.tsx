@@ -8,6 +8,7 @@ import {
   Download,
   Lock,
   Mail,
+  MapPin,
   Palette,
   Save,
   ShieldCheck,
@@ -25,6 +26,10 @@ interface SettingsData {
   phone?: string | null;
   employee_id: string;
   role: string;
+  geofence_maps_link?: string | null;
+  geofence_latitude?: number | null;
+  geofence_longitude?: number | null;
+  geofence_radius_meters: number;
 }
 
 interface PreferenceData {
@@ -72,6 +77,7 @@ const Settings: React.FC = () => {
     business_name: '',
     admin_name: '',
     phone: '',
+    geofence_maps_link: '',
   });
   const [preferences, setPreferences] = useState<PreferenceData>(() => {
     const stored = localStorage.getItem('smartAttendPreferences');
@@ -99,6 +105,7 @@ const Settings: React.FC = () => {
           business_name: res.data.business_name,
           admin_name: res.data.admin_name,
           phone: res.data.phone || '',
+          geofence_maps_link: res.data.geofence_maps_link || '',
         });
       } catch (err) {
         console.error(err);
@@ -138,6 +145,7 @@ const Settings: React.FC = () => {
         business_name: res.data.business_name,
         admin_name: res.data.admin_name,
         phone: res.data.phone || '',
+        geofence_maps_link: res.data.geofence_maps_link || '',
       });
       updateUser({ name: res.data.admin_name });
       localStorage.setItem('smartAttendWorkspaceName', res.data.business_name);
@@ -173,6 +181,10 @@ const Settings: React.FC = () => {
       workspace: formData.business_name,
       admin: formData.admin_name,
       phone: formData.phone,
+      geofence_maps_link: formData.geofence_maps_link,
+      geofence_latitude: settings?.geofence_latitude,
+      geofence_longitude: settings?.geofence_longitude,
+      geofence_radius_meters: settings?.geofence_radius_meters,
       preferences,
       exported_at: new Date().toISOString(),
     };
@@ -297,6 +309,38 @@ const Settings: React.FC = () => {
                 </div>
                 <p className="mt-2 break-words text-sm text-slate-600">{settings?.email || 'No email saved'}</p>
                 <p className="mt-1 text-xs text-slate-500">User ID: {settings?.employee_id}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-blue-100 p-2 text-blue-700">
+                  <MapPin className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-slate-900">Attendance geofence</h3>
+                  <p className="mt-1 text-sm leading-5 text-slate-600">
+                    Paste a Google Maps link for the workplace. Staff can mark attendance only within 100 meters of this point.
+                  </p>
+                  <label className="mt-4 block">
+                    <span className="text-sm font-medium text-gray-700">Google Maps link</span>
+                    <input
+                      value={formData.geofence_maps_link}
+                      onChange={(event) => setFormData({ ...formData, geofence_maps_link: event.target.value })}
+                      className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      placeholder="https://www.google.com/maps/@12.9716,77.5946,18z"
+                    />
+                  </label>
+                  <div className="mt-3 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-600">
+                    {settings?.geofence_latitude != null && settings?.geofence_longitude != null ? (
+                      <span>
+                        Active fence: {settings.geofence_latitude.toFixed(6)}, {settings.geofence_longitude.toFixed(6)} with {settings.geofence_radius_meters}m radius.
+                      </span>
+                    ) : (
+                      <span>No geofence is active yet. Leave the link empty to keep location enforcement disabled.</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </form>

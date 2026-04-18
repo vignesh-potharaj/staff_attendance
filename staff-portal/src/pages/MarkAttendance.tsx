@@ -37,6 +37,11 @@ const MarkAttendance: React.FC = () => {
       },
       () => {
         setError('Unable to retrieve your location. Please enable GPS.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
       }
     );
   };
