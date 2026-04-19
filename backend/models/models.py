@@ -33,7 +33,7 @@ class Tenant(Base):
     geofence_latitude = Column(Float, nullable=True)
     geofence_longitude = Column(Float, nullable=True)
     geofence_radius_meters = Column(Integer, default=100, nullable=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     users = relationship("User", back_populates="tenant")
 
@@ -48,7 +48,7 @@ class DailyRoaster(Base):
     end_time = Column(Time, nullable=True)
     is_leave = Column(Integer, default=0) # SQLite doesn't have strict boolean, but Integer 0/1 works
     is_week_off = Column(Integer, default=0)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     user = relationship("User")
 
@@ -79,7 +79,7 @@ class Attendance(Base):
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     date = Column(String) # Storing YYYY-MM-DD for easy querying
-    check_in_time = Column(DateTime, default=lambda: datetime.now(IST))
+    check_in_time = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
     photo_url = Column(String)
     latitude = Column(Float)
     longitude = Column(Float)
@@ -87,7 +87,7 @@ class Attendance(Base):
     device_info = Column(String)
     check_out_time = Column(DateTime, nullable=True)
     check_out_photo_url = Column(String, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     user = relationship("User", back_populates="attendance_records")
 
@@ -99,7 +99,7 @@ class EmailVerificationToken(Base):
     token_hash = Column(String, nullable=False, index=True)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
@@ -109,4 +109,4 @@ class PasswordResetToken(Base):
     token_hash = Column(String, nullable=False, index=True)
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))

@@ -225,7 +225,7 @@ def check_out_attendance(
         logger.info(f"Check-out photo saved to local storage: {check_out_photo_url}")
 
     # Assign to instance attributes, not class attributes
-    setattr(existing, 'check_out_time', datetime.now(IST))
+    setattr(existing, 'check_out_time', datetime.now(IST).replace(tzinfo=None))
     setattr(existing, 'check_out_photo_url', check_out_photo_url)
     db.commit()
     db.refresh(existing)
