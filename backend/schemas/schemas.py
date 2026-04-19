@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, field_serializer
 from typing import Optional, List
 from datetime import datetime
 from backend.models.models import RoleEnum, AttendanceStatus, UserStatus
@@ -118,6 +118,18 @@ class UserResponse(UserBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+    @field_serializer('created_at')
+    def _serialize_created_at(self, v: datetime, _info):
+        # Ensure created_at is expressed in IST with offset
+        from backend.models.models import IST
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=IST)
+        else:
+            v = v.astimezone(IST)
+        return v.isoformat()
+
 class AttendanceBase(BaseModel):
     date: str
     check_in_time: datetime
@@ -126,6 +138,19 @@ class AttendanceBase(BaseModel):
     longitude: float
     status: AttendanceStatus
     device_info: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer('check_in_time')
+    def _serialize_check_in_time(self, v: datetime, _info):
+        from backend.models.models import IST
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=IST)
+        else:
+            v = v.astimezone(IST)
+        return v.isoformat()
 
 class AttendanceCreate(BaseModel):
     latitude: float
@@ -140,6 +165,17 @@ class AttendanceResponse(AttendanceBase):
     check_out_time: Optional[datetime] = None
     check_out_photo_url: Optional[str] = None  # URL to check-out photo (local or Google Drive)
     model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer('check_out_time')
+    def _serialize_check_out_time(self, v: datetime, _info):
+        from backend.models.models import IST
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            v = v.replace(tzinfo=IST)
+        else:
+            v = v.astimezone(IST)
+        return v.isoformat()
 
 class AnalyticsSummary(BaseModel):
     total_staff: int
