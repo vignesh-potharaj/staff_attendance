@@ -67,7 +67,7 @@ class User(Base):
     is_email_verified = Column(Integer, default=0)
     failed_login_attempts = Column(Integer, default=0)
     locked_until = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(IST))
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     tenant = relationship("Tenant", back_populates="users")
     attendance_records = relationship("Attendance", back_populates="user")
