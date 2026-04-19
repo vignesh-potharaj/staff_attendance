@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from backend.models.models import RoleEnum, AttendanceStatus, UserStatus
@@ -29,7 +29,8 @@ class TenantRegistrationResponse(BaseModel):
     verification_preview_url: Optional[str] = None
 
 class LoginRequest(BaseModel):
-    tenant_slug: Optional[str] = None
+    # Workspace email (admin email) is required to identify tenant context for login
+    workspace_email: EmailStr
     user_id: str
     password: str
 

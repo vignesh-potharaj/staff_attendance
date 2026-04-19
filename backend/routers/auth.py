@@ -154,12 +154,15 @@ def build_login_response(user: User) -> dict:
 
 
 def parse_login_payload(data: dict) -> LoginRequest:
-    tenant_slug = data.get("tenant_slug")
+    # Expect workspace_email, user_id and password in payload
+    workspace_email = data.get("workspace_email")
     user_id = data.get("user_id") or data.get("username")
     password = data.get("password")
-    if not user_id or not password:
-        raise HTTPException(status_code=400, detail="tenant_slug, user_id and password are required")
-    return LoginRequest(tenant_slug=tenant_slug, user_id=user_id, password=password)
+    if not workspace_email or not user_id or not password:
+        raise HTTPException(status_code=400, detail="workspace_email, user_id and password are required")
+    # Normalize workspace email
+    workspace_email = workspace_email.strip().lower()
+    return LoginRequest(workspace_email=workspace_email, user_id=user_id, password=password)
 
 
 @router.post("/register-tenant", response_model=TenantRegistrationResponse)
@@ -170,10 +173,10 @@ def register_tenant(payload: TenantRegistrationRequest, db: Session = Depends(ge
     email = payload.email.strip().lower()
     user_id = payload.user_id.strip()
 
+    # Email must be globally unique for tenant admin registration
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="Email is already registered")
-    if db.query(User).filter(User.employee_id == user_id).first():
-        raise HTTPException(status_code=400, detail="User ID is already registered")
+    # No global employee_id uniqueness required; employee IDs are tenant-scoped
 
     tenant = Tenant(
         name=payload.company_name.strip(),
@@ -280,17 +283,20 @@ async def login(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         payload = parse_login_payload(dict(form))
 
-    tenant = None
-    if payload.tenant_slug:
-        tenant = db.query(Tenant).filter(Tenant.slug == payload.tenant_slug.strip().lower()).first()
-        if not tenant:
-            raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
-    tenant_data = orm_value(tenant) if tenant else None
+    # Workspace email MUST be present (enforced by parse_login_payload) and normalized there
+    workspace_email = payload.workspace_email.strip().lower()
 
-    query = db.query(User).filter(User.employee_id == payload.user_id.strip())
-    if tenant_data:
-        query = query.filter(User.tenant_id == tenant_data.id)
+    # Find admin user by workspace email
+    admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
+    if not admin_user:
+        # Workspace not found or does not have an admin with this email
+        raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
 
+    tenant = db.query(Tenant).filter(Tenant.id == admin_user.tenant_id).first()
+    tenant_data = orm_value(tenant)
+
+    # Now look up the employee within the tenant only
+    query = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.tenant_id == tenant_data.id)
     user = query.first()
     user_data = orm_value(user) if user else None
     if not user_data or not verify_password(payload.password, user_data.password_hash):

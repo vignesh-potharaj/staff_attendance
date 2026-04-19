@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text, inspect
 import os
@@ -6,7 +6,7 @@ import logging
 import traceback
 
 from backend.database.database import get_db, engine
-from backend.models.models import DailyRoaster, User, Attendance, Tenant
+from backend.models.models import DailyRoaster, User, Attendance, Tenant, RoleEnum
 
 logger = logging.getLogger(__name__)
 
@@ -16,14 +16,20 @@ router = APIRouter(
 )
 
 @router.delete("/purge-unverified-user/{employee_id}")
-async def purge_unverified_user(employee_id: str, db: Session = Depends(get_db)):
+async def purge_unverified_user(employee_id: str, workspace_email: str = Query(...), db: Session = Depends(get_db)):
     """
     TEMPORARY UTILITY: Delete an unverified user (and their tenant) entirely from the database 
     so you can register again from scratch.
     """
-    user = db.query(User).filter(User.employee_id == employee_id).first()
+    # Normalize workspace email and resolve tenant via admin user
+    workspace_email = workspace_email.strip().lower()
+    admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
+    if not admin_user:
+        raise HTTPException(status_code=404, detail="Workspace/admin not found")
+
+    user = db.query(User).filter(User.employee_id == employee_id, User.tenant_id == admin_user.tenant_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found in specified workspace")
     
     if user.is_email_verified:  # type: ignore
         raise HTTPException(status_code=400, detail="Cannot delete a verified user from this endpoint.")

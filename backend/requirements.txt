@@ -1,7 +1,9 @@
 fastapi==0.115.12
 uvicorn==0.34.0
 sqlalchemy>=2.0.35
-psycopg2-binary==2.9.9
+# Use a slightly newer psycopg2-binary which provides prebuilt wheels for more Python versions.
+# If you still see build errors on Windows, install PostgreSQL client tools (pg_config) or use WSL.
+psycopg2-binary==2.9.11
 pydantic==2.11.1
 pydantic-settings==2.8.1
 passlib==1.7.4

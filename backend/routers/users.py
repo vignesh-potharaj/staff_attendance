@@ -24,11 +24,12 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), cu
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     try:
-        db_user = db.query(User).filter(User.employee_id == user.employee_id).first()
+        # Ensure uniqueness within the tenant scope
+        db_user = db.query(User).filter(User.employee_id == user.employee_id, User.tenant_id == current_admin.tenant_id).first()
         if db_user:
-            raise HTTPException(status_code=400, detail="Employee ID already registered")
-        if user.email and db.query(User).filter(User.email == user.email.lower()).first():
-            raise HTTPException(status_code=400, detail="Email already registered")
+            raise HTTPException(status_code=400, detail="Employee ID already registered for this workspace")
+        if user.email and db.query(User).filter(User.email == user.email.lower(), User.tenant_id == current_admin.tenant_id).first():
+            raise HTTPException(status_code=400, detail="Email already registered for this workspace")
 
         hashed_password = get_password_hash(user.password)
         db_user = User(

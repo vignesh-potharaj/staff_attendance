@@ -7,6 +7,7 @@ import { Lock, User, ShieldCheck } from 'lucide-react';
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
+  const [workspaceEmail, setWorkspaceEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -18,9 +19,10 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', employeeId);
-      formData.append('password', password);
+    const formData = new URLSearchParams();
+    formData.append('user_id', employeeId);
+    formData.append('password', password);
+    if (workspaceEmail) formData.append('workspace_email', workspaceEmail.trim().toLowerCase());
 
       const response = await api.post('/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -82,6 +84,20 @@ const Login: React.FC = () => {
                 />
               </div>
             </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700">Workspace email</label>
+                <div className="mt-1 relative">
+                  <input
+                    type="email"
+                    required
+                    value={workspaceEmail}
+                    onChange={(e) => setWorkspaceEmail(e.target.value)}
+                    className="block w-full pl-3 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                    placeholder="admin@yourcompany.com"
+                  />
+                </div>
+              </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700">Password</label>
