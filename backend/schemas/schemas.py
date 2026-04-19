@@ -63,11 +63,16 @@ class SettingsResponse(BaseModel):
     phone: Optional[str] = None
     employee_id: str
     role: str
+    geofence_maps_link: Optional[str] = None
+    geofence_latitude: Optional[float] = None
+    geofence_longitude: Optional[float] = None
+    geofence_radius_meters: int = 100
 
 class SettingsUpdate(BaseModel):
     business_name: Optional[str] = None
     admin_name: Optional[str] = None
     phone: Optional[str] = None
+    geofence_maps_link: Optional[str] = None
 
 class DeleteAccountRequest(BaseModel):
     confirmation: str
