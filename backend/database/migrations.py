@@ -105,6 +105,26 @@ def run_migrations():
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}
+        if "subscription_status" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR DEFAULT 'PENDING'",
+                "subscription_status column ensured on tenants",
+            )
+        if "subscription_plan_name" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN subscription_plan_name VARCHAR NULL",
+                "subscription_plan_name column ensured on tenants",
+            )
+        if "subscription_amount_paise" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN subscription_amount_paise INTEGER NULL",
+                "subscription_amount_paise column ensured on tenants",
+            )
+        if "subscription_currency" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN subscription_currency VARCHAR NULL",
+                "subscription_currency column ensured on tenants",
+            )
         if "geofence_maps_link" not in columns:
             _execute_migration(
                 "ALTER TABLE tenants ADD COLUMN geofence_maps_link VARCHAR NULL",
