@@ -12,6 +12,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _employeeIdController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _workspaceEmailController = TextEditingController();
   bool _isLoading = false;
 
   void _login() async {
@@ -20,6 +21,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(authProvider.notifier).login(
         _employeeIdController.text,
         _passwordController.text,
+        workspaceEmail: _workspaceEmailController.text,
       );
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
@@ -59,6 +61,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 decoration: InputDecoration(
                   labelText: 'Employee ID',
                   prefixIcon: const Icon(Icons.person),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _workspaceEmailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Workspace admin email',
+                  prefixIcon: const Icon(Icons.email),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),

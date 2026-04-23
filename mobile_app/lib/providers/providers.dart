@@ -21,8 +21,8 @@ class AuthNotifier extends StateNotifier<User?> {
     }
   }
 
-  Future<void> login(String employeeId, String password) async {
-    final data = await apiService.login(employeeId, password);
+  Future<void> login(String employeeId, String password, {String? workspaceEmail}) async {
+    final data = await apiService.login(employeeId, password, workspaceEmail: workspaceEmail);
     state = User.fromJson(data['user']);
   }
 

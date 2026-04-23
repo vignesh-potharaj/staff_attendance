@@ -5,7 +5,7 @@ import api from '../services/api';
 import { Building2, Lock, User } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const [tenantSlug, setTenantSlug] = useState('');
+  const [workspaceEmail, setWorkspaceEmail] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
     try {
       await api.post('/auth/resend-verification', {
         user_id: employeeId,
-        tenant_slug: tenantSlug.trim() || undefined,
+        email: workspaceEmail.trim().toLowerCase() || undefined,
       });
       setResendSuccess('Verification email sent! Please check your inbox.');
     } catch (err: unknown) {
@@ -42,7 +42,7 @@ const Login: React.FC = () => {
 
     try {
       const response = await api.post('/auth/login', {
-        tenant_slug: tenantSlug.trim() || undefined,
+        workspace_email: workspaceEmail.trim().toLowerCase(),
         user_id: employeeId,
         password,
       });
@@ -97,17 +97,17 @@ const Login: React.FC = () => {
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Workspace</label>
+              <label className="block text-sm font-medium text-gray-700">Workspace admin email</label>
               <div className="mt-1 relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Building2 className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
-                  value={tenantSlug}
-                  onChange={(e) => setTenantSlug(e.target.value)}
+                  value={workspaceEmail}
+                  onChange={(e) => setWorkspaceEmail(e.target.value)}
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
-                  placeholder="e.g. bright-traders"
+                  placeholder="e.g. admin@yourcompany.com"
                 />
               </div>
             </div>

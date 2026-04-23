@@ -23,19 +23,27 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> login(String employeeId, String password) async {
+  Future<Map<String, dynamic>> login(String employeeId, String password, {String? workspaceEmail}) async {
+    final data = <String, String>{
+      'user_id': employeeId,
+      'password': password,
+    };
+    if (workspaceEmail != null && workspaceEmail.isNotEmpty) {
+      data['workspace_email'] = workspaceEmail.trim().toLowerCase();
+    }
+
     final response = await _dio.post(
       '/auth/login',
-      data: {'username': employeeId, 'password': password},
+      data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
-    
-    final data = response.data;
+
+    final responseData = response.data;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', data['access_token']);
-    await prefs.setString('user', jsonEncode(data['user']));
-    
-    return data;
+    await prefs.setString('token', responseData['access_token']);
+    await prefs.setString('user', jsonEncode(responseData['user']));
+
+    return responseData;
   }
 
   Future<void> logout() async {

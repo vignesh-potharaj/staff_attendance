@@ -149,6 +149,7 @@ def build_login_response(user: User) -> dict:
             "tenant_id": user_record.tenant_id,
             "tenant_slug": user_record.tenant.slug if user_record.tenant else None,
             "is_email_verified": bool(user_record.is_email_verified),
+            "subscription_status": user_record.tenant.subscription_status if user_record.tenant else None,
         }
     }
 
@@ -182,6 +183,10 @@ def register_tenant(payload: TenantRegistrationRequest, db: Session = Depends(ge
         name=payload.company_name.strip(),
         slug=generate_unique_slug(db, payload.company_name),
         status="ACTIVE",
+        subscription_status="PENDING",
+        subscription_plan_name="Smart Attend Monthly",
+        subscription_amount_paise=30000,
+        subscription_currency="INR",
     )
     db.add(tenant)
     db.flush()

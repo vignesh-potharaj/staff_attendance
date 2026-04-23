@@ -7,8 +7,10 @@ BASE_URL = "http://localhost:8000"
 print("=== Testing Login ===")
 try:
     login_data = {
-        "username": "EMP-101",  # Using employee_id
-        "password": "password123"
+        "user_id": "EMP-101",  # Using employee_id
+        "password": "password123",
+        # Provide the workspace admin email that owns this employee ID
+        "workspace_email": "admin@yourcompany.com",
     }
     
     response = requests.post(
