@@ -30,7 +30,7 @@ class TenantRegistrationResponse(BaseModel):
 
 class LoginRequest(BaseModel):
     # Workspace email (admin email) is required to identify tenant context for login
-    workspace_email: EmailStr
+    workspace_email: Optional[EmailStr] = None
     user_id: str
     password: str
 

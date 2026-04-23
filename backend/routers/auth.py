@@ -155,14 +155,16 @@ def build_login_response(user: User) -> dict:
 
 
 def parse_login_payload(data: dict) -> LoginRequest:
-    # Expect workspace_email, user_id and password in payload
+    # Expect user_id and password; workspace_email is required for staff login,
+    # optional for admin login.
     workspace_email = data.get("workspace_email")
     user_id = data.get("user_id") or data.get("username")
     password = data.get("password")
-    if not workspace_email or not user_id or not password:
-        raise HTTPException(status_code=400, detail="workspace_email, user_id and password are required")
-    # Normalize workspace email
-    workspace_email = workspace_email.strip().lower()
+    if not user_id or not password:
+        raise HTTPException(status_code=400, detail="user_id and password are required")
+    # Normalize workspace email if provided
+    if workspace_email:
+        workspace_email = workspace_email.strip().lower()
     return LoginRequest(workspace_email=workspace_email, user_id=user_id, password=password)
 
 
@@ -288,21 +290,31 @@ async def login(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         payload = parse_login_payload(dict(form))
 
-    # Workspace email MUST be present (enforced by parse_login_payload) and normalized there
-    workspace_email = payload.workspace_email.strip().lower()
+    # If workspace email is provided, scope login to that tenant (staff login)
+    user = None
+    if payload.workspace_email:
+        workspace_email = payload.workspace_email.strip().lower()
+        # Find admin user by workspace email
+        admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
+        if not admin_user:
+            # Workspace not found or does not have an admin with this email
+            raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
 
-    # Find admin user by workspace email
-    admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
-    if not admin_user:
-        # Workspace not found or does not have an admin with this email
-        raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
+        tenant = db.query(Tenant).filter(Tenant.id == admin_user.tenant_id).first()
+        tenant_data = orm_value(tenant)
 
-    tenant = db.query(Tenant).filter(Tenant.id == admin_user.tenant_id).first()
-    tenant_data = orm_value(tenant)
+        # Now look up the employee within the tenant only
+        query = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.tenant_id == tenant_data.id)
+        user = query.first()
+    else:
+        # Admin portal login: allow user_id + password only, but require ADMIN role
+        admin_candidates = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.role == RoleEnum.ADMIN).all()
+        if not admin_candidates:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        if len(admin_candidates) > 1:
+            raise HTTPException(status_code=400, detail="Multiple admin accounts found. Provide workspace email.")
+        user = admin_candidates[0]
 
-    # Now look up the employee within the tenant only
-    query = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.tenant_id == tenant_data.id)
-    user = query.first()
     user_data = orm_value(user) if user else None
     if not user_data or not verify_password(payload.password, user_data.password_hash):
         if user:
@@ -313,7 +325,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
             db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid workspace or credentials",
+            detail="Invalid workspace or credentials" if payload.workspace_email else "Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
