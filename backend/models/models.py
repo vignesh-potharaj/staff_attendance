@@ -20,6 +20,11 @@ class AttendanceStatus(str, enum.Enum):
     PRESENT = "PRESENT"
     LATE = "LATE"
 
+
+class TenantRoleEnum(str, enum.Enum):
+    TENANT = "tenant"
+    SUPER_ADMIN = "super_admin"
+
 # Shift model is removed as per requirements. Shifts are solely managed via DailyRoaster.
 
 class Tenant(Base):
@@ -28,6 +33,7 @@ class Tenant(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     slug = Column(String, unique=True, index=True, nullable=False)
+    role = Column(String, default=TenantRoleEnum.TENANT.value, nullable=False)
     status = Column(String, default="ACTIVE", nullable=False)
     subscription_status = Column(String, default="PENDING", nullable=False)
     subscription_plan_name = Column(String, default="Smart Attend Monthly", nullable=True)
@@ -35,6 +41,9 @@ class Tenant(Base):
     subscription_currency = Column(String, default="INR", nullable=True)
     subscription_current_start = Column(DateTime, nullable=True)
     subscription_current_end = Column(DateTime, nullable=True)
+    grace_period_end = Column(DateTime, nullable=True)
+    subscription_notes = Column(Text, nullable=True)
+    suspension_reason = Column(Text, nullable=True)
     razorpay_customer_id = Column(String, nullable=True, index=True)
     razorpay_subscription_id = Column(String, nullable=True, index=True)
     billing_last_event_at = Column(DateTime, nullable=True)
@@ -59,12 +68,27 @@ class BillingPayment(Base):
     amount_paise = Column(Integer, default=0, nullable=False)
     currency = Column(String, default="INR", nullable=False)
     status = Column(String, nullable=False)
+    payment_method = Column(String, nullable=True)
     paid_at = Column(DateTime, nullable=True)
     failure_reason = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
     raw_event = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     tenant = relationship("Tenant", back_populates="billing_payments")
+
+class SuperAdminAuditLog(Base):
+    __tablename__ = "super_admin_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, nullable=False, index=True)
+    tenant_id = Column(Integer, nullable=True, index=True)
+    tenant_name = Column(String, nullable=True)
+    changed_fields = Column(Text, nullable=True)
+    previous_values = Column(Text, nullable=True)
+    new_values = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)
+    performed_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None), nullable=False)
 
 class DailyRoaster(Base):
     __tablename__ = "daily_roasters"

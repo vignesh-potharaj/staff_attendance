@@ -28,10 +28,10 @@ def run_migrations():
     if "tenants" in tables:
         _execute_migration(
             "INSERT INTO tenants ("
-            "name, slug, status, subscription_status, subscription_plan_name, "
+            "name, slug, role, status, subscription_status, subscription_plan_name, "
             "subscription_amount_paise, subscription_currency, geofence_radius_meters, created_at"
             ") "
-            "SELECT 'Default Workspace', 'default', 'ACTIVE', 'ACTIVE', "
+            "SELECT 'Default Workspace', 'default', 'tenant', 'ACTIVE', 'ACTIVE', "
             "'Smart Attend Monthly', 30000, 'INR', 100, CURRENT_TIMESTAMP "
             "WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug = 'default')",
             "Default tenant ensured successfully",
@@ -109,6 +109,11 @@ def run_migrations():
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}
+        if "role" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN role VARCHAR DEFAULT 'tenant'",
+                "role column ensured on tenants",
+            )
         if "subscription_status" not in columns:
             _execute_migration(
                 "ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR DEFAULT 'PENDING'",
@@ -139,6 +144,21 @@ def run_migrations():
             _execute_migration(
                 f"ALTER TABLE tenants ADD COLUMN subscription_current_end {subscription_datetime_type} NULL",
                 "subscription_current_end column ensured on tenants",
+            )
+        if "grace_period_end" not in columns:
+            _execute_migration(
+                f"ALTER TABLE tenants ADD COLUMN grace_period_end {subscription_datetime_type} NULL",
+                "grace_period_end column ensured on tenants",
+            )
+        if "subscription_notes" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN subscription_notes TEXT NULL",
+                "subscription_notes column ensured on tenants",
+            )
+        if "suspension_reason" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN suspension_reason TEXT NULL",
+                "suspension_reason column ensured on tenants",
             )
         if "razorpay_customer_id" not in columns:
             _execute_migration(
@@ -193,17 +213,49 @@ def run_migrations():
             "amount_paise INTEGER DEFAULT 0 NOT NULL, "
             "currency VARCHAR DEFAULT 'INR' NOT NULL, "
             "status VARCHAR NOT NULL, "
+            "payment_method VARCHAR NULL, "
             f"paid_at {billing_datetime_type} NULL, "
             "failure_reason VARCHAR NULL, "
+            "notes TEXT NULL, "
             "raw_event TEXT NULL, "
             f"created_at {billing_datetime_type} NULL, "
             "FOREIGN KEY(tenant_id) REFERENCES tenants (id)"
             ")",
             "billing_payments table ensured",
         )
+    else:
+        columns = {col["name"] for col in inspector.get_columns("billing_payments")}
+        if "payment_method" not in columns:
+            _execute_migration(
+                "ALTER TABLE billing_payments ADD COLUMN payment_method VARCHAR NULL",
+                "payment_method column ensured on billing_payments",
+            )
+        if "notes" not in columns:
+            _execute_migration(
+                "ALTER TABLE billing_payments ADD COLUMN notes TEXT NULL",
+                "notes column ensured on billing_payments",
+            )
 
     inspector = inspect(engine)
     tables = inspector.get_table_names()
+
+    if "super_admin_audit_logs" not in tables:
+        audit_datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        id_definition = "id SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "id INTEGER PRIMARY KEY"
+        _execute_migration(
+            "CREATE TABLE super_admin_audit_logs ("
+            f"{id_definition}, "
+            "action VARCHAR NOT NULL, "
+            "tenant_id INTEGER NULL, "
+            "tenant_name VARCHAR NULL, "
+            "changed_fields TEXT NULL, "
+            "previous_values TEXT NULL, "
+            "new_values TEXT NULL, "
+            "notes TEXT NULL, "
+            f"performed_at {audit_datetime_type} NOT NULL"
+            ")",
+            "super_admin_audit_logs table ensured",
+        )
 
     if "tenants" in tables and "users" in tables:
         try:
@@ -216,6 +268,7 @@ def run_migrations():
                         text("UPDATE users SET tenant_id = :tenant_id WHERE tenant_id IS NULL"),
                         {"tenant_id": default_tenant_id},
                     )
+                    conn.execute(text("UPDATE tenants SET role = 'tenant' WHERE role IS NULL"))
                     conn.execute(text("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL"))
                     conn.execute(
                         text(

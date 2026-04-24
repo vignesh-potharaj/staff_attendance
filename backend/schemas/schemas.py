@@ -34,6 +34,11 @@ class LoginRequest(BaseModel):
     user_id: str
     password: str
 
+
+class SuperAdminLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
 class ForgotPasswordRequest(BaseModel):
     email: str
 

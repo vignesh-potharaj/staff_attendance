@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
-from backend.routers import auth, users, attendance, analytics, roaster, debug, settings, billing
+from backend.routers import auth, users, attendance, analytics, roaster, debug, settings, billing, super_admin_auth, super_admin
 from backend.auth.security import get_password_hash
 from backend.database.migrations import run_migrations
 
@@ -103,6 +103,8 @@ app.include_router(roaster.router)
 app.include_router(debug.router)
 app.include_router(settings.router)
 app.include_router(billing.router)
+app.include_router(super_admin_auth.router)
+app.include_router(super_admin.router, prefix="/super-admin")
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):

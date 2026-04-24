@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/sidebarlayout.tsx","./src/components/statusbadge.tsx","./src/contexts/superadminauthcontext.tsx","./src/pages/auditlogs.tsx","./src/pages/dashboard.tsx","./src/pages/login.tsx","./src/pages/tenantdetail.tsx","./src/pages/tenants.tsx","./src/services/api.ts"],"version":"5.9.3"}
