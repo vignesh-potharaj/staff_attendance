@@ -33,7 +33,7 @@ services:
         sync: false
       - key: PYTHONPATH
         value: "."
-  - type: static
+  - type: web
     name: staff-attendance-super-admin
     rootDir: super-admin-dashboard
     buildCommand: npm run build
