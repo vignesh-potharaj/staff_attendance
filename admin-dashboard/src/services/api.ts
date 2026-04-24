@@ -4,6 +4,21 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
 });
 
+const redirectToBillingOrCheckout = (error: unknown) => {
+  const response = (error as { response?: { data?: { detail?: unknown } } }).response;
+  const detail = response?.data?.detail;
+  if (typeof detail === 'object' && detail !== null) {
+    const checkoutUrl = (detail as { checkout_url?: unknown }).checkout_url;
+    if (typeof checkoutUrl === 'string' && checkoutUrl) {
+      window.location.href = checkoutUrl;
+      return;
+    }
+  }
+  if (window.location.pathname !== '/billing') {
+    window.location.href = '/billing';
+  }
+};
+
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -22,6 +37,8 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+    } else if (error.response?.status === 402) {
+      redirectToBillingOrCheckout(error);
     }
     return Promise.reject(error);
   }

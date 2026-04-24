@@ -27,8 +27,12 @@ def run_migrations():
 
     if "tenants" in tables:
         _execute_migration(
-            "INSERT INTO tenants (name, slug, status, created_at) "
-            "SELECT 'Default Workspace', 'default', 'ACTIVE', CURRENT_TIMESTAMP "
+            "INSERT INTO tenants ("
+            "name, slug, status, subscription_status, subscription_plan_name, "
+            "subscription_amount_paise, subscription_currency, geofence_radius_meters, created_at"
+            ") "
+            "SELECT 'Default Workspace', 'default', 'ACTIVE', 'ACTIVE', "
+            "'Smart Attend Monthly', 30000, 'INR', 100, CURRENT_TIMESTAMP "
             "WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug = 'default')",
             "Default tenant ensured successfully",
         )
@@ -125,6 +129,32 @@ def run_migrations():
                 "ALTER TABLE tenants ADD COLUMN subscription_currency VARCHAR NULL",
                 "subscription_currency column ensured on tenants",
             )
+        subscription_datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        if "subscription_current_start" not in columns:
+            _execute_migration(
+                f"ALTER TABLE tenants ADD COLUMN subscription_current_start {subscription_datetime_type} NULL",
+                "subscription_current_start column ensured on tenants",
+            )
+        if "subscription_current_end" not in columns:
+            _execute_migration(
+                f"ALTER TABLE tenants ADD COLUMN subscription_current_end {subscription_datetime_type} NULL",
+                "subscription_current_end column ensured on tenants",
+            )
+        if "razorpay_customer_id" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN razorpay_customer_id VARCHAR NULL",
+                "razorpay_customer_id column ensured on tenants",
+            )
+        if "razorpay_subscription_id" not in columns:
+            _execute_migration(
+                "ALTER TABLE tenants ADD COLUMN razorpay_subscription_id VARCHAR NULL",
+                "razorpay_subscription_id column ensured on tenants",
+            )
+        if "billing_last_event_at" not in columns:
+            _execute_migration(
+                f"ALTER TABLE tenants ADD COLUMN billing_last_event_at {subscription_datetime_type} NULL",
+                "billing_last_event_at column ensured on tenants",
+            )
         if "geofence_maps_link" not in columns:
             _execute_migration(
                 "ALTER TABLE tenants ADD COLUMN geofence_maps_link VARCHAR NULL",
@@ -145,6 +175,32 @@ def run_migrations():
                 "ALTER TABLE tenants ADD COLUMN geofence_radius_meters INTEGER DEFAULT 100",
                 "geofence_radius_meters column ensured on tenants",
             )
+
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+
+    if "billing_payments" not in tables:
+        billing_datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        id_definition = "id SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "id INTEGER PRIMARY KEY"
+        _execute_migration(
+            "CREATE TABLE billing_payments ("
+            f"{id_definition}, "
+            "tenant_id INTEGER NOT NULL, "
+            "razorpay_event_id VARCHAR NULL, "
+            "razorpay_payment_id VARCHAR NULL, "
+            "razorpay_invoice_id VARCHAR NULL, "
+            "razorpay_subscription_id VARCHAR NULL, "
+            "amount_paise INTEGER DEFAULT 0 NOT NULL, "
+            "currency VARCHAR DEFAULT 'INR' NOT NULL, "
+            "status VARCHAR NOT NULL, "
+            f"paid_at {billing_datetime_type} NULL, "
+            "failure_reason VARCHAR NULL, "
+            "raw_event TEXT NULL, "
+            f"created_at {billing_datetime_type} NULL, "
+            "FOREIGN KEY(tenant_id) REFERENCES tenants (id)"
+            ")",
+            "billing_payments table ensured",
+        )
 
     inspector = inspect(engine)
     tables = inspector.get_table_names()

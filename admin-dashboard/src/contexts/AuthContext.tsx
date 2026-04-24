@@ -10,6 +10,7 @@ interface User {
   tenant_id?: number | null;
   tenant_slug?: string | null;
   is_email_verified?: boolean;
+  subscription_status?: string | null;
 }
 
 interface AuthContextType {

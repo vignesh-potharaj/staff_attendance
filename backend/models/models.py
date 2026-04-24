@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum as SQLEnum, Time
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Enum as SQLEnum, Time, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone, timedelta
 import enum
@@ -33,6 +33,11 @@ class Tenant(Base):
     subscription_plan_name = Column(String, default="Smart Attend Monthly", nullable=True)
     subscription_amount_paise = Column(Integer, default=30000, nullable=True)
     subscription_currency = Column(String, default="INR", nullable=True)
+    subscription_current_start = Column(DateTime, nullable=True)
+    subscription_current_end = Column(DateTime, nullable=True)
+    razorpay_customer_id = Column(String, nullable=True, index=True)
+    razorpay_subscription_id = Column(String, nullable=True, index=True)
+    billing_last_event_at = Column(DateTime, nullable=True)
     geofence_maps_link = Column(String, nullable=True)
     geofence_latitude = Column(Float, nullable=True)
     geofence_longitude = Column(Float, nullable=True)
@@ -40,6 +45,26 @@ class Tenant(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     users = relationship("User", back_populates="tenant")
+    billing_payments = relationship("BillingPayment", back_populates="tenant")
+
+class BillingPayment(Base):
+    __tablename__ = "billing_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    razorpay_event_id = Column(String, nullable=True, index=True)
+    razorpay_payment_id = Column(String, nullable=True, index=True)
+    razorpay_invoice_id = Column(String, nullable=True, index=True)
+    razorpay_subscription_id = Column(String, nullable=True, index=True)
+    amount_paise = Column(Integer, default=0, nullable=False)
+    currency = Column(String, default="INR", nullable=False)
+    status = Column(String, nullable=False)
+    paid_at = Column(DateTime, nullable=True)
+    failure_reason = Column(String, nullable=True)
+    raw_event = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
+
+    tenant = relationship("Tenant", back_populates="billing_payments")
 
 class DailyRoaster(Base):
     __tablename__ = "daily_roasters"
