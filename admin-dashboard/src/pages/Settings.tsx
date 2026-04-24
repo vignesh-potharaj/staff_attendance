@@ -78,6 +78,7 @@ const Settings: React.FC = () => {
     admin_name: '',
     phone: '',
     geofence_maps_link: '',
+    geofence_radius_meters: 100,
   });
   const [preferences, setPreferences] = useState<PreferenceData>(() => {
     const stored = localStorage.getItem('smartAttendPreferences');
@@ -106,6 +107,7 @@ const Settings: React.FC = () => {
           admin_name: res.data.admin_name,
           phone: res.data.phone || '',
           geofence_maps_link: res.data.geofence_maps_link || '',
+          geofence_radius_meters: res.data.geofence_radius_meters || 100,
         });
       } catch (err) {
         console.error(err);
@@ -146,6 +148,7 @@ const Settings: React.FC = () => {
         admin_name: res.data.admin_name,
         phone: res.data.phone || '',
         geofence_maps_link: res.data.geofence_maps_link || '',
+        geofence_radius_meters: res.data.geofence_radius_meters || 100,
       });
       updateUser({ name: res.data.admin_name });
       localStorage.setItem('smartAttendWorkspaceName', res.data.business_name);
@@ -320,7 +323,7 @@ const Settings: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-slate-900">Attendance geofence</h3>
                   <p className="mt-1 text-sm leading-5 text-slate-600">
-                    Paste a Google Maps link for the workplace. Staff can mark attendance only within 100 meters of this point.
+                    Paste a Google Maps link for the workplace. Staff can mark attendance only within the configured radius of this point.
                   </p>
                   <label className="mt-4 block">
                     <span className="text-sm font-medium text-gray-700">Google Maps link</span>
@@ -329,6 +332,23 @@ const Settings: React.FC = () => {
                       onChange={(event) => setFormData({ ...formData, geofence_maps_link: event.target.value })}
                       className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                       placeholder="https://www.google.com/maps/@12.9716,77.5946,18z"
+                    />
+                  </label>
+                  <label className="mt-4 block">
+                    <span className="text-sm font-medium text-gray-700">Geofence radius (meters)</span>
+                    <input
+                      type="number"
+                      min={10}
+                      max={5000}
+                      value={formData.geofence_radius_meters}
+                      onChange={(event) =>
+                        setFormData({
+                          ...formData,
+                          geofence_radius_meters: Number(event.target.value) || 0,
+                        })
+                      }
+                      className="mt-2 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                      placeholder="100"
                     />
                   </label>
                   <div className="mt-3 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-600">

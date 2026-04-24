@@ -132,7 +132,6 @@ def update_settings(
             tenant.geofence_maps_link = None
             tenant.geofence_latitude = None
             tenant.geofence_longitude = None
-            tenant.geofence_radius_meters = 100
         else:
             coordinates = _extract_coordinates_from_maps_link(maps_link)
             if not coordinates:
@@ -146,7 +145,15 @@ def update_settings(
             tenant.geofence_maps_link = maps_link
             tenant.geofence_latitude = latitude
             tenant.geofence_longitude = longitude
-            tenant.geofence_radius_meters = 100
+
+    if payload.geofence_radius_meters is not None:
+        tenant = current_admin.tenant
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        radius = int(payload.geofence_radius_meters)
+        if radius < 10 or radius > 5000:
+            raise HTTPException(status_code=400, detail="Geofence radius must be between 10 and 5000 meters")
+        tenant.geofence_radius_meters = radius
 
     db.commit()
     db.refresh(current_admin)

@@ -73,6 +73,7 @@ class SettingsUpdate(BaseModel):
     admin_name: Optional[str] = None
     phone: Optional[str] = None
     geofence_maps_link: Optional[str] = None
+    geofence_radius_meters: Optional[int] = None
 
 class DeleteAccountRequest(BaseModel):
     confirmation: str
