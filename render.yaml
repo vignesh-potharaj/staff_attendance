@@ -36,6 +36,7 @@ services:
   - type: web
     name: staff-attendance-super-admin
     rootDir: super-admin-dashboard
+    runtime: static
     buildCommand: npm run build
     staticPublishPath: dist
     envVars:
