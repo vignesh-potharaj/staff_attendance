@@ -13,9 +13,9 @@ super_admin_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/super-admin/auth/log
 
 
 def _super_admin_secret_key() -> str:
-    value = os.getenv("SUPER_ADMIN_SECRET_KEY")
+    value = os.getenv("SUPER_ADMIN_JWT_SECRET")
     if not value:
-        raise HTTPException(status_code=503, detail="Missing required environment variable: SUPER_ADMIN_SECRET_KEY")
+        raise HTTPException(status_code=503, detail="Missing required environment variable: SUPER_ADMIN_JWT_SECRET")
     return value
 
 
