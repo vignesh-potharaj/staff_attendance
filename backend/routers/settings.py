@@ -1,6 +1,7 @@
 import re
 from urllib.parse import unquote, urlparse, parse_qs
 from urllib.request import Request, urlopen
+from typing import Optional, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -78,10 +79,10 @@ def _settings_response(current_admin: User) -> SettingsResponse:
     return SettingsResponse(
         business_name=tenant.name if tenant else "Smart Attend Workspace",
         tenant_slug=tenant.slug if tenant else None,
-        admin_name=current_admin.name,
-        email=current_admin.email,
-        phone=current_admin.phone,
-        employee_id=current_admin.employee_id,
+        admin_name=cast(str, current_admin.name or ""),
+        email=cast(Optional[str], current_admin.email),
+        phone=cast(Optional[str], current_admin.phone),
+        employee_id=cast(str, current_admin.employee_id or ""),
         role=current_admin.role.value if hasattr(current_admin.role, "value") else str(current_admin.role),
         geofence_maps_link=tenant.geofence_maps_link if tenant else None,
         geofence_latitude=tenant.geofence_latitude if tenant else None,
@@ -114,13 +115,15 @@ def update_settings(
         admin_name = payload.admin_name.strip()
         if len(admin_name) < 2:
             raise HTTPException(status_code=400, detail="Your name must be at least 2 characters")
-        current_admin.name = admin_name
+        # Use setattr to avoid static typing issues with SQLAlchemy Column descriptors
+        setattr(current_admin, "name", admin_name)
 
     if payload.phone is not None:
         phone = payload.phone.strip()
         if len(phone) < 6:
             raise HTTPException(status_code=400, detail="Phone number must be at least 6 characters")
-        current_admin.phone = phone
+        # Use setattr to avoid static typing issues with SQLAlchemy Column descriptors
+        setattr(current_admin, "phone", phone)
 
     if payload.geofence_maps_link is not None:
         tenant = current_admin.tenant
