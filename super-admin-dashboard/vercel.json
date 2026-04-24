@@ -1,0 +1,5 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd super-admin-dashboard && npm install && npm run build",
+  "outputDirectory": "super-admin-dashboard/dist"
+}
