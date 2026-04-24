@@ -107,88 +107,89 @@ const Tenants: React.FC = () => {
 
       {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-300">{error}</div>}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
-        <table className="min-w-full divide-y divide-slate-800 text-sm">
-          <thead className="bg-slate-950/70 text-slate-400">
-            <tr>
-              <th className="px-4 py-3 text-left font-medium">Business Name</th>
-              <th className="px-4 py-3 text-left font-medium">Owner</th>
-              <th className="px-4 py-3 text-left font-medium">Email</th>
-              <th className="px-4 py-3 text-left font-medium">Phone</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-left font-medium">Plan Amount</th>
-              <th className="px-4 py-3 text-left font-medium">Period End</th>
-              <th className="px-4 py-3 text-left font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800">
-            {loading ? (
-              <tr>
-                <td className="px-4 py-4 text-slate-400" colSpan={8}>
-                  Loading tenants...
-                </td>
-              </tr>
-            ) : filteredTenants.length ? (
-              filteredTenants.map(tenant => (
-                <tr key={tenant.id} className="align-top text-slate-200">
-                  <td className="px-4 py-4">
-                    <p className="font-semibold">{tenant.name}</p>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+        {loading ? (
+          <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-6 text-sm text-slate-400">
+            Loading tenants...
+          </div>
+        ) : filteredTenants.length ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredTenants.map(tenant => (
+              <div key={tenant.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-lg font-semibold text-white">{tenant.name}</p>
                     <p className="text-xs text-slate-500">{tenant.slug}</p>
-                  </td>
-                  <td className="px-4 py-4">{tenant.owner_name || 'N/A'}</td>
-                  <td className="px-4 py-4">{tenant.email || 'N/A'}</td>
-                  <td className="px-4 py-4">{tenant.phone || 'N/A'}</td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={tenant.subscription_status} />
-                  </td>
-                  <td className="px-4 py-4">{currency(tenant.subscription_amount_paise)}</td>
-                  <td className="px-4 py-4">{tenant.current_period_end ? new Date(tenant.current_period_end).toLocaleDateString('en-IN') : 'N/A'}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/tenants/${tenant.id}`)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        View
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/tenants/${tenant.id}`)}
-                        className="rounded-lg border border-blue-500/30 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/10"
-                      >
-                        Edit Subscription
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void markPaid(tenant.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10"
-                      >
-                        <CircleCheck className="h-3.5 w-3.5" />
-                        Mark Paid
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void suspend(tenant.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/10"
-                      >
-                        <PauseCircle className="h-3.5 w-3.5" />
-                        Suspend
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td className="px-4 py-4 text-slate-400" colSpan={8}>
-                  No tenants match the current filter.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                  </div>
+                  <StatusBadge status={tenant.subscription_status} />
+                </div>
+
+                <div className="mt-4 space-y-2 text-sm text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Owner</span>
+                    <span className="font-medium text-slate-200">{tenant.owner_name || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Email</span>
+                    <span className="font-medium text-slate-200">{tenant.email || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Phone</span>
+                    <span className="font-medium text-slate-200">{tenant.phone || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Plan amount</span>
+                    <span className="font-medium text-slate-200">{currency(tenant.subscription_amount_paise)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Period end</span>
+                    <span className="font-medium text-slate-200">
+                      {tenant.current_period_end ? new Date(tenant.current_period_end).toLocaleDateString('en-IN') : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/tenants/${tenant.id}`)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/tenants/${tenant.id}`)}
+                    className="rounded-lg border border-blue-500/30 px-3 py-1.5 text-xs font-semibold text-blue-300 hover:bg-blue-500/10"
+                  >
+                    Edit Subscription
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void markPaid(tenant.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/10"
+                  >
+                    <CircleCheck className="h-3.5 w-3.5" />
+                    Mark Paid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void suspend(tenant.id)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-semibold text-red-300 hover:bg-red-500/10"
+                  >
+                    <PauseCircle className="h-3.5 w-3.5" />
+                    Suspend
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-800 bg-slate-900 px-4 py-6 text-sm text-slate-400">
+            No tenants match the current filter.
+          </div>
+        )}
       </div>
     </div>
   );
