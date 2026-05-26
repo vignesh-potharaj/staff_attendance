@@ -1,0 +1,15 @@
+name: Anti-Gravity Keep-Alive
+
+on:
+  schedule:
+    # This cron expression runs the job every 14 minutes
+    - cron: "*/14 * * * *"
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Server
+        run: curl -s https://staff-attendance-api.onrender.com > /dev/null
