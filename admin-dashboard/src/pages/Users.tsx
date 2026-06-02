@@ -8,6 +8,7 @@ interface User {
   employee_id: string;
   phone: string;
   role: string;
+  hourly_pay: number;
 }
 
 const Users: React.FC = () => {
@@ -18,7 +19,7 @@ const Users: React.FC = () => {
   // Form State
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', employee_id: '', phone: '', role: 'STAFF', password: ''
+    name: '', employee_id: '', phone: '', role: 'STAFF', password: '', hourly_pay: '0'
   });
 
   const fetchUsers = async () => {
@@ -43,7 +44,8 @@ const Users: React.FC = () => {
       employee_id: user.employee_id,
       phone: user.phone,
       role: user.role,
-      password: ''
+      password: '',
+      hourly_pay: String(user.hourly_pay || 0)
     });
     setShowModal(true);
   };
@@ -67,6 +69,12 @@ const Users: React.FC = () => {
         return;
       }
 
+      const hourlyPay = Number(formData.hourly_pay);
+      if (Number.isNaN(hourlyPay) || hourlyPay < 0) {
+        alert('Please enter a valid hourly pay amount');
+        return;
+      }
+
       // For new users, password is required
       if (!editingUser && !formData.password) {
         alert('Password is required for new users');
@@ -74,7 +82,8 @@ const Users: React.FC = () => {
       }
 
       const payload: Record<string, string | number | null> = {
-        ...formData
+        ...formData,
+        hourly_pay: hourlyPay
       };
 
       if (editingUser) {
@@ -87,7 +96,7 @@ const Users: React.FC = () => {
 
       setShowModal(false);
       setEditingUser(null);
-      setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '' });
+      setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '', hourly_pay: '0' });
       fetchUsers();
     } catch {
       alert(editingUser ? 'Failed to update user' : 'Failed to create user');
@@ -101,7 +110,7 @@ const Users: React.FC = () => {
         <button
           onClick={() => {
             setEditingUser(null);
-            setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '' });
+            setFormData({ name: '', employee_id: '', phone: '', role: 'STAFF', password: '', hourly_pay: '0' });
             setShowModal(true);
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
@@ -153,6 +162,11 @@ const Users: React.FC = () => {
                 <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Phone</p>
                   <p className="text-sm font-semibold text-slate-900">{user.phone}</p>
+                </div>
+
+                <div className="bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                  <p className="text-xs text-emerald-700 font-medium mb-1 uppercase tracking-wide">Hourly Pay</p>
+                  <p className="text-sm font-semibold text-slate-900">₹{Number(user.hourly_pay || 0).toFixed(2)}</p>
                 </div>
 
                 {/* Actions */}
@@ -229,6 +243,18 @@ const Users: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Phone</label>
                 <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Hourly Pay (₹)</label>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                  value={formData.hourly_pay}
+                  onChange={e => setFormData({...formData, hourly_pay: e.target.value})}
+                />
               </div>
               
               <div className="mt-6 flex justify-end space-x-3">
