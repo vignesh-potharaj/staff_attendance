@@ -1,4 +1,4 @@
-﻿{
+{
   "version": 2,
   "routes": [
     { "src": "^/staff/assets/(.*)$", "dest": "/staff-portal/dist/assets/$1" },
