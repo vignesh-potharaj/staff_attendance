@@ -30,6 +30,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: 
             raise HTTPException(status_code=400, detail="Employee ID already registered for this workspace")
         if user.email and db.query(User).filter(User.email == user.email.lower(), User.tenant_id == current_admin.tenant_id).first():
             raise HTTPException(status_code=400, detail="Email already registered for this workspace")
+        if user.hourly_pay < 0:
+            raise HTTPException(status_code=400, detail="Hourly pay cannot be negative")
 
         hashed_password = get_password_hash(user.password)
         db_user = User(
@@ -38,6 +40,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: 
             email=user.email.lower() if user.email else None,
             phone=user.phone,
             role=user.role,
+            hourly_pay=user.hourly_pay,
             password_hash=hashed_password,
             tenant_id=current_admin.tenant_id,
             status=UserStatus.ACTIVE,
@@ -73,6 +76,8 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="User not found")
     
     update_data = user_update.model_dump(exclude_unset=True)
+    if "hourly_pay" in update_data and update_data["hourly_pay"] is not None and update_data["hourly_pay"] < 0:
+        raise HTTPException(status_code=400, detail="Hourly pay cannot be negative")
     if "password" in update_data:
         update_data["password_hash"] = get_password_hash(update_data.pop("password"))
         

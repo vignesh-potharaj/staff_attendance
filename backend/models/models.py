@@ -116,6 +116,7 @@ class User(Base):
     password_hash = Column(String)
     role = Column(SQLEnum(RoleEnum), default=RoleEnum.STAFF)
     phone = Column(String)
+    hourly_pay = Column(Float, default=0, nullable=False)
     status = Column(SQLEnum(UserStatus), default=UserStatus.PENDING_VERIFICATION)
     is_email_verified = Column(Integer, default=0)
     failed_login_attempts = Column(Integer, default=0)

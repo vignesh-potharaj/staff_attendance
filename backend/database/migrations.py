@@ -106,6 +106,11 @@ def run_migrations():
                 f"ALTER TABLE users ADD COLUMN locked_until {locked_until_type} NULL",
                 "locked_until column ensured on users",
             )
+        if "hourly_pay" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN hourly_pay FLOAT DEFAULT 0 NOT NULL",
+                "hourly_pay column ensured on users",
+            )
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}

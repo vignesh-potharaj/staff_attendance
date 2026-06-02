@@ -146,6 +146,7 @@ def build_login_response(user: User) -> dict:
             "employee_id": user_record.employee_id,
             "email": user_record.email,
             "role": user_record.role,
+            "hourly_pay": user_record.hourly_pay,
             "tenant_id": user_record.tenant_id,
             "tenant_slug": user_record.tenant.slug if user_record.tenant else None,
             "is_email_verified": bool(user_record.is_email_verified),

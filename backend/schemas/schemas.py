@@ -106,6 +106,7 @@ class UserBase(BaseModel):
     email: Optional[str] = None
     phone: str
     role: RoleEnum
+    hourly_pay: float = 0
 
 class UserCreate(UserBase):
     password: str
@@ -115,6 +116,10 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     role: Optional[RoleEnum] = None
     password: Optional[str] = None
+    hourly_pay: Optional[float] = None
+
+class HourlyPayUpdate(BaseModel):
+    hourly_pay: float
 
 class UserResponse(UserBase):
     id: int

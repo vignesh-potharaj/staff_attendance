@@ -1,12 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw, LogOut, History as HistoryIcon } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 const MarkAttendance: React.FC = () => {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const webcamRef = useRef<Webcam>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -92,53 +90,33 @@ const MarkAttendance: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce">
+      <div className="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 text-center">
+        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
           <CheckCircle2 className="w-16 h-16 text-green-600" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Success!</h1>
         <p className="text-gray-600 mb-8">Your action has been recorded successfully.</p>
-        <button
-          onClick={() => navigate('/history')}
-          className="w-full max-w-xs bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all"
-        >
-          View History
-        </button>
+        <div className="w-full max-w-xs space-y-3">
+          <button
+            onClick={() => navigate('/staff/dashboard')}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all"
+          >
+            Back to Dashboard
+          </button>
+          <button
+            onClick={() => navigate('/staff/attendance-history')}
+            className="w-full border border-slate-300 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all"
+          >
+            View History
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-            {user?.name.charAt(0)}
-          </div>
-          <div>
-            <h2 className="font-bold text-gray-900">{user?.name}</h2>
-            <p className="text-xs text-gray-500">ID: {user?.employee_id}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => navigate('/history')}
-            className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
-          >
-            <HistoryIcon className="w-6 h-6" />
-          </button>
-          <button 
-            onClick={logout}
-            className="px-3 py-1.5 flex items-center gap-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 p-6 space-y-6 max-w-md mx-auto w-full">
+    <div className="max-w-md mx-auto w-full">
+      <main className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">Mark Attendance</h1>
           <p className="text-sm text-gray-500">Capture a selfie and your location</p>
