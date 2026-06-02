@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import StaffLayout from './components/StaffLayout';
+import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import MarkAttendance from './pages/MarkAttendance';
 import History from './pages/History';
@@ -23,22 +25,21 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route 
-            path="/" 
+          <Route path="/" element={<Navigate to="/staff/dashboard" replace />} />
+          <Route
+            path="/staff"
             element={
               <PrivateRoute>
-                <MarkAttendance />
+                <StaffLayout />
               </PrivateRoute>
-            } 
-          />
-          <Route 
-            path="/history" 
-            element={
-              <PrivateRoute>
-                <History />
-              </PrivateRoute>
-            } 
-          />
+            }
+          >
+            <Route index element={<Navigate to="/staff/dashboard" replace />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="mark-attendance" element={<MarkAttendance />} />
+            <Route path="attendance-history" element={<History />} />
+          </Route>
+          <Route path="/history" element={<Navigate to="/staff/attendance-history" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

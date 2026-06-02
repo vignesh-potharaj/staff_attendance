@@ -1,30 +1,42 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock, MapPin, Search, LogOut } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Calendar, Clock, Search } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { resolvePhotoUrl } from '../utils/urlHelper';
 
 interface AttendanceRecord {
   id: number;
   date: string;
   status: string;
   check_in_time: string;
-  latitude: number;
-  longitude: number;
-  photo_url: string;
+  check_out_time?: string | null;
+  duration_hours: number;
 }
 
+const formatTime = (value?: string | null) => {
+  if (!value) return '—';
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+const displayStatus = (record: AttendanceRecord) => {
+  if (!record.check_out_time) return 'Pending';
+  if (record.status === 'PRESENT' || record.status === 'LATE') return 'Present';
+  return record.status;
+};
+
 const History: React.FC = () => {
-  const { logout } = useAuth();
+  const { user } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [monthFilter, setMonthFilter] = useState('');
 
   useEffect(() => {
     const fetchHistory = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
       try {
-        const response = await api.get('/attendance/history');
+        const response = await api.get(`/api/attendance/staff/${user.id}`);
         setRecords(response.data);
       } catch {
         console.error('Failed to fetch history');
@@ -33,69 +45,114 @@ const History: React.FC = () => {
       }
     };
     fetchHistory();
-  }, []);
+  }, [user?.id]);
+
+  const visibleRecords = useMemo(() => {
+    if (!monthFilter) return records;
+    return records.filter((record) => record.date.startsWith(monthFilter));
+  }, [monthFilter, records]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col pb-10">
-      <header className="bg-white border-b px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-        <button onClick={() => navigate('/')} className="p-2 -ml-2 text-gray-500 hover:text-blue-600 transition-colors">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <h1 className="flex-1 text-center font-bold text-gray-900">Attendance History</h1>
-        <button 
-          onClick={logout}
-          className="px-3 py-1.5 flex items-center gap-2 text-sm font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
-      </header>
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-blue-600">Attendance History</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Your Records</h1>
+        </div>
+        <label className="block sm:w-56">
+          <span className="block text-sm font-medium text-slate-700 mb-1">Month</span>
+          <input
+            type="month"
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="block w-full border border-slate-300 rounded-lg py-2 px-3 bg-white"
+          />
+        </label>
+      </div>
 
-      <main className="px-6 py-6 max-w-md mx-auto w-full space-y-4">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-500 font-medium">Loading history...</p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-500 font-medium">Loading history...</p>
+        </div>
+      ) : visibleRecords.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-xl border border-slate-200">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Search className="w-10 h-10 text-gray-300" />
           </div>
-        ) : records.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-10 h-10 text-gray-300" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900">No records found</h3>
-            <p className="text-gray-500">You haven't marked attendance yet.</p>
+          <h3 className="text-lg font-bold text-gray-900">No records found</h3>
+          <p className="text-gray-500">Try another month or mark attendance first.</p>
+        </div>
+      ) : (
+        <>
+          <div className="hidden md:block bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100 text-slate-600 uppercase text-xs">
+                <tr>
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Check-in</th>
+                  <th className="text-left px-4 py-3">Check-out</th>
+                  <th className="text-left px-4 py-3">Duration</th>
+                  <th className="text-left px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visibleRecords.map((record) => (
+                  <tr key={record.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-4 font-semibold text-slate-900">{record.date}</td>
+                    <td className="px-4 py-4 text-slate-600">{formatTime(record.check_in_time)}</td>
+                    <td className="px-4 py-4 text-slate-600">{formatTime(record.check_out_time)}</td>
+                    <td className="px-4 py-4 text-slate-600">{record.duration_hours.toFixed(2)} hrs</td>
+                    <td className="px-4 py-4">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        displayStatus(record) === 'Pending'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {displayStatus(record)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          records.map((record) => (
-            <div key={record.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100">
-                <img src={resolvePhotoUrl(record.photo_url) || ''} className="w-full h-full object-cover" alt="Check-in selfie" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 font-bold text-gray-900 text-sm">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
+
+          <div className="md:hidden space-y-4">
+            {visibleRecords.map((record) => (
+              <div key={record.id} className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 font-bold text-slate-900">
+                    <Calendar className="w-4 h-4 text-blue-600" />
                     {record.date}
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                    record.status === 'PRESENT' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    displayStatus(record) === 'Pending'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-green-100 text-green-700'
                   }`}>
-                    {record.status}
+                    {displayStatus(record)}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <Clock className="w-3.5 h-3.5" />
-                  Clock-in: {new Date(record.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 font-semibold">Check-in</p>
+                    <p className="font-bold text-slate-900 mt-1">{formatTime(record.check_in_time)}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-3">
+                    <p className="text-xs text-slate-500 font-semibold">Check-out</p>
+                    <p className="font-bold text-slate-900 mt-1">{formatTime(record.check_out_time)}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <MapPin className="w-3.5 h-3.5" />
-                  {record.latitude.toFixed(4)}, {record.longitude.toFixed(4)}
+                <div className="flex items-center gap-2 text-slate-600 text-sm">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  {record.duration_hours.toFixed(2)} hours worked
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </main>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

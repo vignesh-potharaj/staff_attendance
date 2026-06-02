@@ -5,6 +5,7 @@ interface User {
   name: string;
   employee_id: string;
   role: string;
+  hourly_pay?: number;
 }
 
 interface AuthContextType {
