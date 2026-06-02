@@ -100,6 +100,8 @@ def _payroll_payload(staff: User, records: list[Attendance]) -> dict:
 def update_hourly_pay(
     staff_id: int,
     payload: HourlyPayUpdate,
+    month: int = None,
+    year: int = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
@@ -111,34 +113,89 @@ def update_hourly_pay(
     db.commit()
     db.refresh(staff)
 
-    records = _attendance_query(db, staff).all()
+    query = _attendance_query(db, staff)
+    if month is not None and year is not None:
+        month_prefix = f"{year:04d}-{month:02d}"
+        query = query.filter(Attendance.date.like(f"{month_prefix}%"))
+    records = query.all()
     return _payroll_payload(staff, records)
 
 
 @router.get("/staff/{staff_id}/payroll")
 def get_staff_payroll(
     staff_id: int,
+    month: int = None,
+    year: int = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if month is None or year is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'month' and 'year' query parameters are required"
+        )
+    try:
+        month = int(month)
+        year = int(year)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="'month' and 'year' must be valid integers"
+        )
+
+    if not (1 <= month <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="'month' must be between 1 and 12"
+        )
+
     staff = _staff_for_current_user(db, staff_id, current_user)
-    records = _attendance_query(db, staff).all()
+    month_prefix = f"{year:04d}-{month:02d}"
+    records = _attendance_query(db, staff).filter(
+        Attendance.date.like(f"{month_prefix}%")
+    ).all()
     return _payroll_payload(staff, records)
 
 
 @router.get("/payroll/all")
 def get_all_payroll(
+    month: int = None,
+    year: int = None,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
+    if month is None or year is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'month' and 'year' query parameters are required"
+        )
+    try:
+        month = int(month)
+        year = int(year)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="'month' and 'year' must be valid integers"
+        )
+
+    if not (1 <= month <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="'month' must be between 1 and 12"
+        )
+
     staff_members = db.query(User).filter(
         User.tenant_id == current_admin.tenant_id,
         User.role == RoleEnum.STAFF,
     ).order_by(User.name.asc()).all()
 
+    month_prefix = f"{year:04d}-{month:02d}"
+
     summaries = []
     for staff in staff_members:
-        records = _attendance_query(db, staff).all()
+        records = _attendance_query(db, staff).filter(
+            Attendance.date.like(f"{month_prefix}%")
+        ).all()
         summaries.append(_payroll_payload(staff, records))
     return summaries
 

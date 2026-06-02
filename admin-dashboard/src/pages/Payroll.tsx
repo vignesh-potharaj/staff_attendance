@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X } from 'lucide-react';
+import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import api from '../services/api';
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 
 interface PayrollSummary {
   staff_id: number;
@@ -22,6 +28,10 @@ const formatCurrency = (value: number) =>
   }).format(value || 0);
 
 const Payroll: React.FC = () => {
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
   const [summaries, setSummaries] = useState<PayrollSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -30,9 +40,12 @@ const Payroll: React.FC = () => {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const fetchPayroll = async () => {
+  const fetchPayroll = async (date: Date) => {
+    setLoading(true);
     try {
-      const res = await api.get('/api/payroll/all');
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const res = await api.get(`/api/payroll/all?month=${month}&year=${year}`);
       setSummaries(res.data);
     } catch {
       alert('Failed to load payroll data');
@@ -42,8 +55,8 @@ const Payroll: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPayroll();
-  }, []);
+    fetchPayroll(selectedDate);
+  }, [selectedDate]);
 
   const sortedSummaries = useMemo(() => {
     return [...summaries].sort((a, b) => {
@@ -77,7 +90,12 @@ const Payroll: React.FC = () => {
 
     setSavingId(staffId);
     try {
-      const res = await api.patch(`/api/staff/${staffId}/hourly_pay`, { hourly_pay: hourlyPay });
+      const month = selectedDate.getMonth() + 1;
+      const year = selectedDate.getFullYear();
+      const res = await api.patch(
+        `/api/staff/${staffId}/hourly_pay?month=${month}&year=${year}`,
+        { hourly_pay: hourlyPay }
+      );
       setSummaries((current) =>
         current.map((summary) =>
           summary.staff_id === staffId ? { ...summary, ...res.data } : summary
@@ -96,6 +114,47 @@ const Payroll: React.FC = () => {
       <div>
         <h2 className="text-xl font-semibold text-gray-800">Payroll Structure</h2>
         <p className="text-sm text-gray-500 mt-1">Computed from approved attendance hours and staff hourly pay.</p>
+      </div>
+
+      {/* Primary Month Selector */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-100">
+            <Calendar className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Payroll Period</h3>
+            <p className="text-xl font-bold text-slate-800">
+              {MONTHS[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-inner">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+            }}
+            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors"
+            aria-label="Previous Month"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="h-6 w-[1px] bg-slate-200 mx-1"></div>
+          
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+            }}
+            className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-50 rounded-md transition-colors"
+            aria-label="Next Month"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
