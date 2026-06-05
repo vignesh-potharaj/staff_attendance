@@ -29,11 +29,9 @@ services:
         sync: false
       - key: GMAIL_APP_PASSWORD
         sync: false
-      - key: MAILGUN_API_KEY
+      - key: BREVO_API_KEY
         sync: false
-      - key: MAILGUN_DOMAIN
-        sync: false
-      - key: MAILGUN_API_URL
+      - key: MAIL_FROM_NAME
         sync: false
       - key: MAIL_FROM
         sync: false

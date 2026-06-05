@@ -1,4 +1,4 @@
-import base64
+import json
 import logging
 import os
 import smtplib
@@ -11,11 +11,11 @@ from urllib.parse import urlparse, urlunparse
 logger = logging.getLogger(__name__)
 
 
-def _mailgun_configured() -> bool:
+def _brevo_configured() -> bool:
     return all(
         [
-            os.getenv("MAILGUN_API_KEY"),
-            os.getenv("MAILGUN_DOMAIN"),
+            os.getenv("BREVO_API_KEY"),
+            os.getenv("MAIL_FROM"),
         ]
     )
 
@@ -43,73 +43,58 @@ def _smtp_configured() -> bool:
     )
 
 
-def _send_via_mailgun(subject: str, recipient: str, plain_text: str) -> bool:
-    api_key = os.getenv("MAILGUN_API_KEY")
-    domain = os.getenv("MAILGUN_DOMAIN")
-    api_url = os.getenv("MAILGUN_API_URL", "https://api.mailgun.net/v3").rstrip("/")
+def _send_via_brevo(subject: str, recipient: str, plain_text: str) -> bool:
+    api_key = os.getenv("BREVO_API_KEY")
+    from_address = os.getenv("MAIL_FROM")
+    from_name = os.getenv("MAIL_FROM_NAME", "Smart Attend")
 
-    # 1. Clean up domain (remove https://, http://, whitespace, and leading/trailing slashes)
-    if domain:
-        domain = domain.strip()
-        if domain.startswith("https://"):
-            domain = domain[8:]
-        elif domain.startswith("http://"):
-            domain = domain[7:]
-        domain = domain.strip("/")
+    url = "https://api.brevo.com/v3/smtp/email"
 
-    # 2. Clean up and ensure api_url ends with /v3
-    if api_url:
-        api_url = api_url.strip()
-        if not api_url.endswith("/v3") and "/v3/" not in api_url:
-            api_url = f"{api_url}/v3"
-        api_url = api_url.rstrip("/")
-
-    from_address = os.getenv("MAIL_FROM") or f"Excited User <mailgun@{domain}>"
-    url = f"{api_url}/{domain}/messages"
-
-    # Log connection details with masked API key for debugging
     masked_key = f"{api_key[:6]}...{api_key[-4:]}" if api_key and len(api_key) > 10 else "INVALID"
     logger.info(
-        "Attempting to send email via Mailgun:\n"
-        "   Constructed URL: %s\n"
-        "   Sanitized Domain: %s\n"
-        "   From: %s\n"
+        "Attempting to send email via Brevo:\n"
+        "   From: %s <%s>\n"
+        "   To: %s\n"
         "   API Key: %s",
-        url,
-        domain,
+        from_name,
         from_address,
+        recipient,
         masked_key,
     )
 
     try:
-        auth_str = f"api:{api_key}"
-        auth_header = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
-
         headers = {
-            "Authorization": f"Basic {auth_header}",
-            "Content-Type": "application/x-www-form-urlencoded",
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json",
         }
 
-        data = urllib.parse.urlencode(
-            {
-                "from": from_address,
-                "to": recipient,
-                "subject": subject,
-                "text": plain_text,
-            }
-        ).encode("utf-8")
+        payload = {
+            "sender": {
+                "name": from_name,
+                "email": from_address,
+            },
+            "to": [
+                {
+                    "email": recipient,
+                }
+            ],
+            "subject": subject,
+            "textContent": plain_text,
+        }
 
+        data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(url=url, data=data, headers=headers, method="POST")
 
         with urllib.request.urlopen(req, timeout=20) as response:
             status_code = response.getcode()
             response_body = response.read().decode("utf-8")
             if 200 <= status_code < 300:
-                logger.info("Email sent to %s via Mailgun (Status: %s)", recipient, status_code)
+                logger.info("Email sent to %s via Brevo (Status: %s)", recipient, status_code)
                 return True
             else:
                 logger.error(
-                    "Failed to send email to %s via Mailgun. Status code: %s, Response: %s",
+                    "Failed to send email to %s via Brevo. Status code: %s, Response: %s",
                     recipient,
                     status_code,
                     response_body,
@@ -121,7 +106,7 @@ def _send_via_mailgun(subject: str, recipient: str, plain_text: str) -> bool:
         except Exception:
             error_body = "Could not read error body"
         logger.error(
-            "Mailgun HTTPError: Status %s, Reason: %s, Body: %s",
+            "Brevo HTTPError: Status %s, Reason: %s, Body: %s",
             exc.code,
             exc.reason,
             error_body,
@@ -129,19 +114,19 @@ def _send_via_mailgun(subject: str, recipient: str, plain_text: str) -> bool:
         )
         return False
     except Exception as exc:
-        logger.error("Failed to send email to %s via Mailgun: %s", recipient, exc, exc_info=True)
+        logger.error("Failed to send email to %s via Brevo: %s", recipient, exc, exc_info=True)
         return False
 
 
 def send_email(subject: str, recipient: str, plain_text: str) -> bool:
-    if _mailgun_configured():
-        return _send_via_mailgun(subject, recipient, plain_text)
+    if _brevo_configured():
+        return _send_via_brevo(subject, recipient, plain_text)
 
     if not _smtp_configured():
-        logger.warning("Neither Mailgun nor SMTP is configured.")
+        logger.warning("Neither Brevo nor SMTP is configured.")
         logger.warning(
-            "   Mailgun (MAILGUN_API_KEY + MAILGUN_DOMAIN): %s",
-            "SET" if _mailgun_configured() else "NOT SET",
+            "   Brevo (BREVO_API_KEY + MAIL_FROM): %s",
+            "SET" if _brevo_configured() else "NOT SET",
         )
         logger.warning("   GMAIL_USER + GMAIL_APP_PASSWORD: %s", "SET" if _gmail_configured() else "NOT SET")
         logger.warning(
