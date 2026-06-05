@@ -119,10 +119,52 @@ def _send_via_brevo(subject: str, recipient: str, plain_text: str) -> bool:
 
 
 def send_email(subject: str, recipient: str, plain_text: str) -> bool:
-    if _brevo_configured():
-        return _send_via_brevo(subject, recipient, plain_text)
+    success = False
 
-    if not _smtp_configured():
+    if _brevo_configured():
+        success = _send_via_brevo(subject, recipient, plain_text)
+    elif _smtp_configured():
+        try:
+            gmail_user = os.getenv("GMAIL_USER")
+            gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+
+            if gmail_user and gmail_password:
+                smtp_host = "smtp.gmail.com"
+                smtp_port = 465
+                smtp_username = gmail_user
+                smtp_password = gmail_password
+                from_address = os.getenv("MAIL_FROM") or gmail_user
+                use_ssl = True
+            else:
+                smtp_host = os.getenv("SMTP_HOST") or ""
+                smtp_port = int(os.getenv("SMTP_PORT") or "587")
+                smtp_username = os.getenv("SMTP_USERNAME") or ""
+                smtp_password = os.getenv("SMTP_PASSWORD") or ""
+                from_address = os.getenv("MAIL_FROM") or smtp_username
+                use_ssl = smtp_port == 465
+
+            message = EmailMessage()
+            message["Subject"] = subject
+            message["From"] = from_address
+            message["To"] = recipient
+            message.set_content(plain_text)
+
+            if use_ssl:
+                with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20) as server:
+                    server.login(smtp_username, smtp_password)
+                    server.send_message(message)
+            else:
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+                    server.starttls()
+                    server.login(smtp_username, smtp_password)
+                    server.send_message(message)
+
+            logger.info("Email sent to %s", recipient)
+            success = True
+        except Exception as exc:
+            logger.error("Failed to send email to %s: %s", recipient, exc, exc_info=True)
+            success = False
+    else:
         logger.warning("Neither Brevo nor SMTP is configured.")
         logger.warning(
             "   Brevo (BREVO_API_KEY + MAIL_FROM): %s",
@@ -144,48 +186,27 @@ def send_email(subject: str, recipient: str, plain_text: str) -> bool:
             else "NOT SET",
         )
         logger.warning("   Skipping email send to %s", recipient)
-        return False
+        success = False
 
-    try:
-        gmail_user = os.getenv("GMAIL_USER")
-        gmail_password = os.getenv("GMAIL_APP_PASSWORD")
+    # If the email failed to send, output a prominent log fallback so developers/admins can retrieve the contents (tokens/links/etc)
+    if not success:
+        logger.warning(
+            "\n"
+            "========================================================================\n"
+            "SYSTEM FALLBACK LOG: EMAIL DELIVERY FAILED OR NOT CONFIGURED\n"
+            "========================================================================\n"
+            "Recipient: %s\n"
+            "Subject:   %s\n"
+            "------------------------------------------------------------------------\n"
+            "Email Body:\n"
+            "%s\n"
+            "========================================================================",
+            recipient,
+            subject,
+            plain_text,
+        )
 
-        if gmail_user and gmail_password:
-            smtp_host = "smtp.gmail.com"
-            smtp_port = 465
-            smtp_username = gmail_user
-            smtp_password = gmail_password
-            from_address = os.getenv("MAIL_FROM") or gmail_user
-            use_ssl = True
-        else:
-            smtp_host = os.getenv("SMTP_HOST") or ""
-            smtp_port = int(os.getenv("SMTP_PORT") or "587")
-            smtp_username = os.getenv("SMTP_USERNAME") or ""
-            smtp_password = os.getenv("SMTP_PASSWORD") or ""
-            from_address = os.getenv("MAIL_FROM") or smtp_username
-            use_ssl = smtp_port == 465
-
-        message = EmailMessage()
-        message["Subject"] = subject
-        message["From"] = from_address
-        message["To"] = recipient
-        message.set_content(plain_text)
-
-        if use_ssl:
-            with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=20) as server:
-                server.login(smtp_username, smtp_password)
-                server.send_message(message)
-        else:
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
-                server.starttls()
-                server.login(smtp_username, smtp_password)
-                server.send_message(message)
-
-        logger.info("Email sent to %s", recipient)
-        return True
-    except Exception as exc:
-        logger.error("Failed to send email to %s: %s", recipient, exc, exc_info=True)
-        return False
+    return success
 
 
 def build_preview_url(path: str, token: str) -> str:
