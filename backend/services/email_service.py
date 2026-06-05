@@ -47,9 +47,40 @@ def _send_via_mailgun(subject: str, recipient: str, plain_text: str) -> bool:
     api_key = os.getenv("MAILGUN_API_KEY")
     domain = os.getenv("MAILGUN_DOMAIN")
     api_url = os.getenv("MAILGUN_API_URL", "https://api.mailgun.net/v3").rstrip("/")
-    from_address = os.getenv("MAIL_FROM") or f"Excited User <mailgun@{domain}>"
 
+    # 1. Clean up domain (remove https://, http://, whitespace, and leading/trailing slashes)
+    if domain:
+        domain = domain.strip()
+        if domain.startswith("https://"):
+            domain = domain[8:]
+        elif domain.startswith("http://"):
+            domain = domain[7:]
+        domain = domain.strip("/")
+
+    # 2. Clean up and ensure api_url ends with /v3
+    if api_url:
+        api_url = api_url.strip()
+        if not api_url.endswith("/v3") and "/v3/" not in api_url:
+            api_url = f"{api_url}/v3"
+        api_url = api_url.rstrip("/")
+
+    from_address = os.getenv("MAIL_FROM") or f"Excited User <mailgun@{domain}>"
     url = f"{api_url}/{domain}/messages"
+
+    # Log connection details with masked API key for debugging
+    masked_key = f"{api_key[:6]}...{api_key[-4:]}" if api_key and len(api_key) > 10 else "INVALID"
+    logger.info(
+        "Attempting to send email via Mailgun:\n"
+        "   Constructed URL: %s\n"
+        "   Sanitized Domain: %s\n"
+        "   From: %s\n"
+        "   API Key: %s",
+        url,
+        domain,
+        from_address,
+        masked_key,
+    )
+
     try:
         auth_str = f"api:{api_key}"
         auth_header = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
