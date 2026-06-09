@@ -35,9 +35,9 @@ def _smtp_configured() -> bool:
     return all(
         [
             os.getenv("SMTP_HOST"),
-            os.getenv("SMTP_PORT"),
-            os.getenv("SMTP_USERNAME"),
-            os.getenv("SMTP_PASSWORD"),
+            os.getenv("SMTP_PORT") or os.getenv("SMOTP_PORT"),
+            os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER"),
+            os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS"),
             os.getenv("MAIL_FROM"),
         ]
     )
@@ -137,9 +137,9 @@ def send_email(subject: str, recipient: str, plain_text: str) -> bool:
                 use_ssl = True
             else:
                 smtp_host = os.getenv("SMTP_HOST") or ""
-                smtp_port = int(os.getenv("SMTP_PORT") or "587")
-                smtp_username = os.getenv("SMTP_USERNAME") or ""
-                smtp_password = os.getenv("SMTP_PASSWORD") or ""
+                smtp_port = int(os.getenv("SMTP_PORT") or os.getenv("SMOTP_PORT") or "587")
+                smtp_username = os.getenv("SMTP_USERNAME") or os.getenv("SMTP_USER") or ""
+                smtp_password = os.getenv("SMTP_PASSWORD") or os.getenv("SMTP_PASS") or ""
                 from_address = os.getenv("MAIL_FROM") or smtp_username
                 use_ssl = smtp_port == 465
 
