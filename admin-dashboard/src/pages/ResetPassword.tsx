@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -31,8 +31,7 @@ const ResetPassword: React.FC = () => {
       });
       setMessage(response.data.message);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Unable to reset your password.');
+      setError(getApiErrorMessage(err, 'Unable to reset your password.'));
     } finally {
       setLoading(false);
     }

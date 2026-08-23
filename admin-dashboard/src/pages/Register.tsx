@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Mail, Phone, User } from 'lucide-react';
 
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -41,8 +41,7 @@ const Register: React.FC = () => {
         previewUrl: response.data.verification_preview_url,
       });
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Unable to create your company account.');
+      setError(getApiErrorMessage(err, 'Unable to create your company account.'));
     } finally {
       setLoading(false);
     }

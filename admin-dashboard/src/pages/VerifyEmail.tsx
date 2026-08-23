@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 const VerifyEmail: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -21,8 +21,7 @@ const VerifyEmail: React.FC = () => {
         const response = await api.post(`/auth/verify-email?token=${encodeURIComponent(token)}`);
         setMessage(response.data.message);
       } catch (err: unknown) {
-        const error = err as { response?: { data?: { detail?: string } } };
-        setError(error.response?.data?.detail || 'Unable to verify your email.');
+        setError(getApiErrorMessage(err, 'Unable to verify your email.'));
         setMessage('');
       }
     };

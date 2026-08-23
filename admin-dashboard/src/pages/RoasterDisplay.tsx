@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, Plus, AlertCircle, RefreshCw, User, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 interface RoasterRecord {
   id: number;
@@ -198,7 +198,7 @@ export const RoasterDisplay: React.FC = () => {
       }));
       setRoasterData(transformedData);
     } catch (err: any) {
-      const errorMsg = err.response?.data?.detail || 'Failed to fetch roaster data';
+      const errorMsg = getApiErrorMessage(err, 'Failed to fetch roaster data');
       setError(errorMsg);
       console.error('Roaster fetch error:', err);
     } finally {

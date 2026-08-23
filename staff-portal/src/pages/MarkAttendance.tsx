@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 const MarkAttendance: React.FC = () => {
   const navigate = useNavigate();
@@ -81,8 +81,7 @@ const MarkAttendance: React.FC = () => {
 
       setSuccess(true);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || `Failed to ${action === 'check-in' ? 'check in' : 'check out'}`);
+      setError(getApiErrorMessage(err, `Failed to ${action === 'check-in' ? 'check in' : 'check out'}`));
     } finally {
       setLoading(false);
     }

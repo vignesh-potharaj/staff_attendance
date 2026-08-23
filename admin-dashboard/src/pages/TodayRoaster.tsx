@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock } from 'lucide-react';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 
 interface Shift {
   id: number;
@@ -86,19 +86,7 @@ const TodayRoaster: React.FC = () => {
       });
       setSchedules(initialSchedules);
     } catch (err: unknown) {
-      let errorMsg = 'Failed to fetch roaster data';
-      if (err instanceof Error) {
-        errorMsg = err.message;
-      } else if (typeof err === 'object' && err !== null && 'response' in err) {
-        const axiosErr = err as any;
-        if (axiosErr.response?.status === 401) {
-          errorMsg = 'Authentication failed. Please log in again.';
-        } else if (axiosErr.response?.status === 403) {
-          errorMsg = 'You do not have permission to access this resource.';
-        } else if (axiosErr.response?.data?.detail) {
-          errorMsg = axiosErr.response.data.detail;
-        }
-      }
+      const errorMsg = getApiErrorMessage(err, 'Failed to fetch roaster data');
       setError(errorMsg);
       console.error('Failed to fetch data', err);
     } finally {

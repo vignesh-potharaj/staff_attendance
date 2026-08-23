@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 import { Lock, User } from 'lucide-react';
 
 const Login: React.FC = () => {
@@ -25,8 +25,7 @@ const Login: React.FC = () => {
       });
       setResendSuccess('Verification email sent! Please check your inbox.');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Failed to resend verification email.');
+      setError(getApiErrorMessage(err, 'Failed to resend verification email.'));
     } finally {
       setResendLoading(false);
     }
@@ -54,8 +53,7 @@ const Login: React.FC = () => {
       login(access_token, user);
       navigate('/');
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'An error occurred during login. Is the server running?');
+      setError(getApiErrorMessage(err, 'An error occurred during login. Is the server running?'));
     } finally {
       setLoading(false);
     }

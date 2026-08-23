@@ -4,6 +4,26 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
 });
 
+export const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err
+  ) {
+    const response = (err as { response?: { data?: { detail?: unknown } } }).response;
+    const detail = response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (typeof detail === 'object' && detail !== null) {
+      const message = (detail as { message?: unknown }).message;
+      if (typeof message === 'string') return message;
+    }
+  }
+  if (err instanceof Error && typeof err.message === 'string') {
+    return err.message;
+  }
+  return fallback;
+};
+
 const redirectToBillingOrCheckout = (error: unknown) => {
   const response = (error as { response?: { data?: { detail?: unknown } } }).response;
   const detail = response?.data?.detail;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CreditCard, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react';
 
-import api from '../services/api';
+import api, { getApiErrorMessage } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface BillingStatusResponse {
@@ -32,22 +32,7 @@ const formatDate = (value?: string | null) => {
   });
 };
 
-const getApiErrorMessage = (err: unknown, fallback: string) => {
-  if (
-    typeof err === 'object' &&
-    err !== null &&
-    'response' in err
-  ) {
-    const response = (err as { response?: { data?: { detail?: unknown } } }).response;
-    const detail = response?.data?.detail;
-    if (typeof detail === 'string') return detail;
-    if (typeof detail === 'object' && detail !== null) {
-      const message = (detail as { message?: unknown }).message;
-      if (typeof message === 'string') return message;
-    }
-  }
-  return fallback;
-};
+
 
 const Billing: React.FC = () => {
   const { user, updateUser } = useAuth();
