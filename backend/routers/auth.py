@@ -35,6 +35,7 @@ from backend.schemas.schemas import (
     Token,
 )
 from backend.services.email_service import build_preview_url, send_email
+from backend.auth.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -145,14 +146,40 @@ def build_login_response(user: User) -> dict:
             "name": user_record.name,
             "employee_id": user_record.employee_id,
             "email": user_record.email,
+            "phone": user_record.phone,
             "role": user_record.role,
             "hourly_pay": user_record.hourly_pay,
             "tenant_id": user_record.tenant_id,
+            "tenant_name": user_record.tenant.name if user_record.tenant else None,
             "tenant_slug": user_record.tenant.slug if user_record.tenant else None,
             "is_email_verified": bool(user_record.is_email_verified),
             "subscription_status": user_record.tenant.subscription_status if user_record.tenant else None,
+            "geofence_maps_link": user_record.tenant.geofence_maps_link if user_record.tenant else None,
+            "geofence_radius_meters": user_record.tenant.geofence_radius_meters if user_record.tenant else 100,
         }
     }
+
+
+@router.get("/me")
+def get_current_user_profile(current_user: User = Depends(get_current_user)):
+    user_record = orm_value(current_user)
+    tenant = user_record.tenant
+    return {
+        "id": user_record.id,
+        "name": user_record.name,
+        "employee_id": user_record.employee_id,
+        "email": user_record.email,
+        "phone": user_record.phone,
+        "role": user_record.role,
+        "hourly_pay": user_record.hourly_pay,
+        "tenant_id": user_record.tenant_id,
+        "tenant_name": tenant.name if tenant else None,
+        "tenant_slug": tenant.slug if tenant else None,
+        "subscription_status": tenant.subscription_status if tenant else None,
+        "geofence_maps_link": tenant.geofence_maps_link if tenant else None,
+        "geofence_radius_meters": tenant.geofence_radius_meters if tenant else 100,
+    }
+
 
 
 def parse_login_payload(data: dict) -> LoginRequest:

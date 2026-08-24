@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
+import { BarChart3, Building2, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const navItems = [
@@ -31,7 +31,7 @@ const StaffLayout: React.FC = () => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-30 p-3 rounded-xl bg-white text-slate-800 border border-slate-200 shadow-lg hover:bg-slate-100"
+        className="fixed top-4 left-4 z-30 p-3 rounded-xl bg-white text-slate-800 border border-slate-200 shadow-lg hover:bg-slate-100 flex items-center gap-2"
         aria-label="Open navigation"
       >
         <Menu className="w-6 h-6" />
@@ -51,24 +51,38 @@ const StaffLayout: React.FC = () => {
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
-              {initials}
+        <div className="p-5 border-b border-slate-800 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold truncate">{user?.name}</p>
+                <p className="text-xs text-slate-400 truncate">ID: {user?.employee_id}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-bold truncate">{user?.name}</p>
-              <p className="text-xs text-slate-400 truncate">ID: {user?.employee_id}</p>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="p-2 text-slate-400 hover:text-white"
+              aria-label="Close navigation"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 flex items-center gap-2.5">
+            <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400 shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Workspace</p>
+              <p className="text-sm font-semibold text-slate-100 truncate">
+                {user?.tenant_name || 'Default Workspace'}
+              </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="p-2 text-slate-400 hover:text-white"
-            aria-label="Close navigation"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
