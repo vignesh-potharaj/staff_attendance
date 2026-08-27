@@ -20,6 +20,32 @@ from cloudinary.utils import cloudinary_url
 logger = logging.getLogger(__name__)
 
 
+def compress_image_bytes(file_content: bytes, max_dim: int = 800, quality: int = 60) -> bytes:
+    """
+    Compress image bytes to reduced quality and resolution to optimize storage and upload speed.
+    """
+    try:
+        from PIL import Image
+        img = Image.open(io.BytesIO(file_content))
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        
+        # Resize if width or height exceeds max_dim
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        
+        out_buffer = io.BytesIO()
+        img.save(out_buffer, format="JPEG", quality=quality, optimize=True)
+        compressed_bytes = out_buffer.getvalue()
+        logger.info(
+            f"🖼️ Compressed image from {len(file_content)} bytes ({round(len(file_content)/1024, 1)} KB) "
+            f"to {len(compressed_bytes)} bytes ({round(len(compressed_bytes)/1024, 1)} KB) [quality={quality}]"
+        )
+        return compressed_bytes
+    except Exception as e:
+        logger.warning(f"⚠️ Image compression skipped/failed: {e}. Using raw file content.")
+        return file_content
+
+
 class CloudinaryManager:
     """Manages file uploads to Cloudinary for attendance photos."""
     
@@ -81,12 +107,19 @@ class CloudinaryManager:
             
             logger.info(f"🔄 Uploading '{filename}' to Cloudinary...")
             
+            # Compress image before uploading to optimize quality and storage
+            compressed_content = compress_image_bytes(file_content, max_dim=800, quality=60)
+            
             # Upload to Cloudinary under attendance_photos folder
             result = cloudinary.uploader.upload(
-                io.BytesIO(file_content),
+                io.BytesIO(compressed_content),
                 public_id=filename,
                 folder="attendance_photos",
                 resource_type="auto",
+                transformation=[
+                    {"width": 800, "height": 800, "crop": "limit"},
+                    {"quality": 60}
+                ],
                 overwrite=True
             )
             
