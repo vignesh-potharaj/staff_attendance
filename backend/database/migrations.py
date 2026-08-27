@@ -275,6 +275,7 @@ def run_migrations():
                     )
                     conn.execute(text("UPDATE tenants SET role = 'tenant' WHERE role IS NULL"))
                     conn.execute(text("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL"))
+                    conn.execute(text("UPDATE users SET failed_login_attempts = 0, locked_until = NULL"))
                     conn.execute(
                         text(
                             "UPDATE users SET is_email_verified = 1 "
