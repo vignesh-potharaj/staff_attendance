@@ -8,6 +8,7 @@ import {
   requestNotificationPermission,
   scheduleShiftReminders,
   subscribeUserToPush,
+  triggerDelayedTestNotification,
 } from '../services/notificationService';
 
 interface AttendanceRecord {
@@ -36,6 +37,8 @@ const Dashboard: React.FC = () => {
   const [monthly, setMonthly] = useState<MonthlySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(getNotificationPermission());
+  const [testCountdown, setTestCountdown] = useState<number | null>(null);
+  const isDevBranch = import.meta.env.VITE_APP_ENV === 'development' || import.meta.env.DEV;
 
   const handleEnableNotifications = async () => {
     const perm = await requestNotificationPermission();
@@ -43,6 +46,31 @@ const Dashboard: React.FC = () => {
     if (perm === 'granted') {
       await subscribeUserToPush(api);
     }
+  };
+
+  const handleRunTestNotification = () => {
+    if (getNotificationPermission() !== 'granted') {
+      alert('Please enable notifications first by clicking "Enable Shift & Check-in Reminders".');
+      return;
+    }
+
+    setTestCountdown(3);
+    triggerDelayedTestNotification(3000);
+
+    const interval = setInterval(() => {
+      setTestCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Try to blur window or instruct user to minimize app
+    setTimeout(() => {
+      try { window.blur(); } catch {}
+    }, 500);
   };
 
   useEffect(() => {
@@ -112,6 +140,27 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {isDevBranch && (
+        <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-base shrink-0">
+              🧪
+            </div>
+            <div>
+              <p className="text-sm font-bold text-purple-900">DEV Background Push Tester</p>
+              <p className="text-xs text-purple-700">Triggers a test notification in 3s so you can exit/minimize the app to test notification arrival</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleRunTestNotification}
+            className="w-full sm:w-auto px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all shrink-0"
+          >
+            {testCountdown !== null ? `⏰ Sending in ${testCountdown}s... Exit App!` : '🧪 Send Test Push Notification (3s Delay)'}
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">

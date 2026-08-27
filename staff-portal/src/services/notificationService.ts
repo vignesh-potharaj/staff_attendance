@@ -162,3 +162,16 @@ export const subscribeUserToPush = async (apiClient: { get: Function; post: Func
   }
   return false;
 };
+
+export const triggerDelayedTestNotification = (delayMs: number = 3000): void => {
+  setTimeout(() => {
+    sendInstantNotification(
+      '🧪 Test Push Notification!',
+      'This is a delayed test notification received from Smart Staff (DEV).',
+      {
+        tag: 'delayed-test-notification',
+        data: { url: '/staff/dashboard' }
+      }
+    );
+  }, delayMs);
+};
