@@ -111,6 +111,16 @@ def run_migrations():
                 "ALTER TABLE users ADD COLUMN hourly_pay FLOAT DEFAULT 0 NOT NULL",
                 "hourly_pay column ensured on users",
             )
+        if "daily_pay" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN daily_pay FLOAT DEFAULT 0 NOT NULL",
+                "daily_pay column ensured on users",
+            )
+        if "pay_type" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN pay_type VARCHAR DEFAULT 'hourly' NOT NULL",
+                "pay_type column ensured on users",
+            )
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}

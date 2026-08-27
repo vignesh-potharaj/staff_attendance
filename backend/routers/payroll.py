@@ -85,14 +85,26 @@ def _record_payload(record: Attendance, use_now_when_open: bool = False) -> dict
 
 def _payroll_payload(staff: User, records: list[Attendance]) -> dict:
     total_working_hours = _total_hours(records)
-    hourly_pay = float(staff.hourly_pay or 0)
+    total_working_days = round(total_working_hours / 8.0, 2)
+    hourly_pay = float(getattr(staff, "hourly_pay", 0) or 0)
+    daily_pay = float(getattr(staff, "daily_pay", 0) or (hourly_pay * 8.0))
+    pay_type = getattr(staff, "pay_type", "hourly") or "hourly"
+
+    if pay_type == "daily":
+        total_payroll = round(total_working_days * daily_pay, 2)
+    else:
+        total_payroll = round(total_working_hours * hourly_pay, 2)
+
     return {
         "staff_id": staff.id,
         "staff_name": staff.name,
         "employee_id": staff.employee_id,
         "hourly_pay": hourly_pay,
+        "daily_pay": daily_pay,
+        "pay_type": pay_type,
         "total_working_hours": total_working_hours,
-        "total_payroll": round(total_working_hours * hourly_pay, 2),
+        "total_working_days": total_working_days,
+        "total_payroll": total_payroll,
     }
 
 
@@ -105,11 +117,28 @@ def update_hourly_pay(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    if payload.hourly_pay < 0:
+    if payload.hourly_pay is not None and payload.hourly_pay < 0:
         raise HTTPException(status_code=400, detail="Hourly pay cannot be negative")
+    if payload.daily_pay is not None and payload.daily_pay < 0:
+        raise HTTPException(status_code=400, detail="Daily pay cannot be negative")
 
     staff = _staff_for_admin(db, staff_id, current_admin)
-    staff.hourly_pay = payload.hourly_pay
+
+    if payload.pay_type:
+        if payload.pay_type not in ["hourly", "daily"]:
+            raise HTTPException(status_code=400, detail="pay_type must be 'hourly' or 'daily'")
+        staff.pay_type = payload.pay_type
+
+    if payload.daily_pay is not None:
+        staff.daily_pay = payload.daily_pay
+        if payload.hourly_pay is None:
+            staff.hourly_pay = round(payload.daily_pay / 8.0, 2)
+
+    if payload.hourly_pay is not None:
+        staff.hourly_pay = payload.hourly_pay
+        if payload.daily_pay is None:
+            staff.daily_pay = round(payload.hourly_pay * 8.0, 2)
+
     db.commit()
     db.refresh(staff)
 
@@ -241,12 +270,6 @@ def get_staff_monthly_attendance(
     records = _attendance_query(db, staff).filter(
         Attendance.date.like(f"{month_prefix}%"),
     ).all()
-    total_hours = _total_hours(records)
-    hourly_pay = float(staff.hourly_pay or 0)
-    return {
-        "staff_id": staff.id,
-        "month": month_prefix,
-        "hourly_pay": hourly_pay,
-        "total_working_hours": total_hours,
-        "total_payroll": round(total_hours * hourly_pay, 2),
-    }
+    payload = _payroll_payload(staff, records)
+    payload["month"] = month_prefix
+    return payload
