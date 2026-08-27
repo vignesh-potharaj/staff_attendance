@@ -96,6 +96,8 @@ async def force_register_tenant(payload: ForceRegisterTenantRequest, db: Session
         user.tenant_id = tenant.id
         user.status = UserStatus.ACTIVE
         user.is_email_verified = 1
+        user.failed_login_attempts = 0
+        user.locked_until = None
 
     db.commit()
     db.refresh(tenant)
