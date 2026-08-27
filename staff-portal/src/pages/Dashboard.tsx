@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Bell, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  getNotificationPermission,
+  requestNotificationPermission,
+  scheduleShiftReminders,
+} from '../services/notificationService';
 
 interface AttendanceRecord {
   duration_hours: number;
@@ -29,6 +34,12 @@ const Dashboard: React.FC = () => {
   const [today, setToday] = useState<AttendanceRecord | null>(null);
   const [monthly, setMonthly] = useState<MonthlySummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(getNotificationPermission());
+
+  const handleEnableNotifications = async () => {
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -43,6 +54,22 @@ const Dashboard: React.FC = () => {
         ]);
         setToday(todayRes.data);
         setMonthly(monthlyRes.data);
+
+        // Fetch today's roaster to schedule shift reminders
+        const todayDate = new Date().toISOString().split('T')[0];
+        try {
+          const roasterRes = await api.get('/roaster/staff/my-roaster', {
+            params: { start_date: todayDate, end_date: todayDate }
+          });
+          if (Array.isArray(roasterRes.data) && roasterRes.data.length > 0) {
+            const todayRoster = roasterRes.data[0];
+            if (!todayRoster.is_leave && !todayRoster.is_week_off) {
+              scheduleShiftReminders(todayRoster.start_time, todayRoster.end_time);
+            }
+          }
+        } catch {
+          // Roaster fetch is optional
+        }
       } catch {
         console.error('Failed to load dashboard data');
       } finally {
@@ -55,9 +82,28 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="text-center sm:text-left">
-        <p className="text-sm font-semibold text-blue-600">Staff Dashboard</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Welcome, {user?.name}</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="text-center sm:text-left">
+          <p className="text-sm font-semibold text-blue-600">Staff Dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Welcome, {user?.name}</h1>
+        </div>
+
+        {notifPermission === 'default' && (
+          <button
+            onClick={handleEnableNotifications}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg font-medium text-sm transition-colors"
+          >
+            <Bell className="w-4 h-4 text-blue-600" />
+            Enable Shift & Check-in Reminders
+          </button>
+        )}
+
+        {notifPermission === 'granted' && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium self-start sm:self-center">
+            <Bell className="w-3.5 h-3.5 text-emerald-600" />
+            Notifications Active
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

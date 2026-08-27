@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
+import { sendInstantNotification } from '../services/notificationService';
 
 const MarkAttendance: React.FC = () => {
   const navigate = useNavigate();
@@ -75,9 +76,22 @@ const MarkAttendance: React.FC = () => {
       formData.append('photo', file);
 
       const endpoint = action === 'check-in' ? '/attendance/mark' : '/attendance/check-out';
-      await api.post(endpoint, formData, {
+      const response = await api.post(endpoint, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+
+      const attStatus = response.data?.status || 'recorded';
+      if (action === 'check-in') {
+        sendInstantNotification(
+          'Check-In Successful ✅',
+          `Your check-in has been recorded (${attStatus}).`
+        );
+      } else {
+        sendInstantNotification(
+          'Check-Out Successful 🏁',
+          'Your check-out has been recorded successfully.'
+        );
+      }
 
       setSuccess(true);
     } catch (err: unknown) {
