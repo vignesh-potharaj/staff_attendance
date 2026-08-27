@@ -141,7 +141,7 @@ export const subscribeUserToPush = async (apiClient: { get: Function; post: Func
       const convertedKey = urlBase64ToUint8Array(publicKey);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedKey,
+        applicationServerKey: convertedKey as any,
       });
     }
 
