@@ -6,7 +6,12 @@ import logging
 import traceback
 
 from backend.database.database import get_db, engine
-from backend.models.models import DailyRoaster, User, Attendance, Tenant, RoleEnum
+from backend.models.models import (
+    DailyRoaster, User, Attendance, Tenant, RoleEnum, UserStatus, 
+    EmailVerificationToken, PasswordResetToken
+)
+from backend.auth.security import get_password_hash
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +19,108 @@ router = APIRouter(
     prefix="/debug",
     tags=["Debug"]
 )
+
+class ForceRegisterTenantRequest(BaseModel):
+    company_name: str
+    admin_name: str
+    email: str
+    mobile_number: str
+    user_id: str
+    password: str
+
+@router.post("/force-register-tenant")
+async def force_register_tenant(payload: ForceRegisterTenantRequest, db: Session = Depends(get_db)):
+    """
+    Directly register or activate a tenant and admin user in the backend DB,
+    bypassing email verification locks and setting subscription to ACTIVE.
+    """
+    import re
+
+    company_name = payload.company_name.strip()
+    admin_name = payload.admin_name.strip()
+    email = payload.email.strip().lower()
+    mobile_number = payload.mobile_number.strip()
+    user_id = payload.user_id.strip()
+    password = payload.password
+
+    # 1. Find or create Tenant
+    tenant = db.query(Tenant).filter(Tenant.name == company_name).first()
+    if not tenant:
+        slug = re.sub(r"[^a-z0-9]+", "-", company_name.lower()).strip("-") or "workspace"
+        base_slug = slug
+        suffix = 2
+        while db.query(Tenant).filter(Tenant.slug == slug).first():
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+
+        tenant = Tenant(
+            name=company_name,
+            slug=slug,
+            status="ACTIVE",
+            subscription_status="ACTIVE",
+            subscription_plan_name="Smart Attend Monthly",
+            subscription_amount_paise=30000,
+            subscription_currency="INR",
+        )
+        db.add(tenant)
+        db.flush()
+    else:
+        tenant.status = "ACTIVE"
+        tenant.subscription_status = "ACTIVE"
+
+    # 2. Find or create User
+    user = db.query(User).filter(User.employee_id == user_id).first()
+    if not user:
+        user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        user = User(
+            name=admin_name,
+            employee_id=user_id,
+            email=email,
+            password_hash=get_password_hash(password),
+            role=RoleEnum.ADMIN,
+            phone=mobile_number,
+            tenant_id=tenant.id,
+            status=UserStatus.ACTIVE,
+            is_email_verified=1,
+        )
+        db.add(user)
+    else:
+        user.name = admin_name
+        user.employee_id = user_id
+        user.email = email
+        user.phone = mobile_number
+        user.password_hash = get_password_hash(password)
+        user.role = RoleEnum.ADMIN
+        user.tenant_id = tenant.id
+        user.status = UserStatus.ACTIVE
+        user.is_email_verified = 1
+
+    db.commit()
+    db.refresh(tenant)
+    db.refresh(user)
+
+    return {
+        "status": "success",
+        "message": "Tenant and Admin user successfully created/activated.",
+        "tenant": {
+            "id": tenant.id,
+            "name": tenant.name,
+            "slug": tenant.slug,
+            "status": tenant.status,
+            "subscription_status": tenant.subscription_status,
+        },
+        "admin": {
+            "id": user.id,
+            "name": user.name,
+            "user_id": user.employee_id,
+            "email": user.email,
+            "phone": user.phone,
+            "status": user.status,
+            "is_email_verified": bool(user.is_email_verified),
+        }
+    }
 
 @router.delete("/purge-unverified-user/{employee_id}")
 async def purge_unverified_user(employee_id: str, workspace_email: str = Query(...), db: Session = Depends(get_db)):
@@ -36,6 +143,10 @@ async def purge_unverified_user(employee_id: str, workspace_email: str = Query(.
     
     tenant_id = user.tenant_id
     
+    # Delete associated verification and password reset tokens first to avoid FK constraint violations
+    db.query(EmailVerificationToken).filter(EmailVerificationToken.user_id == user.id).delete()
+    db.query(PasswordResetToken).filter(PasswordResetToken.user_id == user.id).delete()
+
     # Delete the user 
     db.delete(user)
     db.commit()

@@ -76,6 +76,19 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/verify-email", token)
     tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
     company_name = tenant.name if tenant else "Our Platform"
+
+    print(
+        "\n"
+        "========================================================================\n"
+        "   [RENDER LOG] EMAIL VERIFICATION TOKEN / OTP GENERATED                \n"
+        "========================================================================\n"
+        f" Recipient Email : {user_record.email}\n"
+        f" User ID / Emp ID: {user_record.employee_id}\n"
+        f" OTP Token       : {token}\n"
+        f" Verify Link     : {preview_url}\n"
+        "========================================================================\n",
+        flush=True,
+    )
     
     sent = send_email(
         subject="Verify your Smart Attend account",
@@ -87,6 +100,7 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
             f"- Company: {company_name}\n"
             f"- User ID / Employee ID: {user_record.employee_id}\n"
             f"- Mobile Number: {user_record.phone}\n\n"
+            f"OTP / Verification Token: {token}\n\n"
             f"Verify your email by opening this link:\n{preview_url}\n\n"
             "This link expires in 24 hours."
         ),
@@ -109,6 +123,19 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
     company_name = tenant.name if tenant else "Our Platform"
 
+    print(
+        "\n"
+        "========================================================================\n"
+        "   [RENDER LOG] PASSWORD RESET TOKEN / OTP GENERATED                    \n"
+        "========================================================================\n"
+        f" Recipient Email : {user_record.email}\n"
+        f" User ID / Emp ID: {user_record.employee_id}\n"
+        f" OTP Token       : {token}\n"
+        f" Reset Link      : {preview_url}\n"
+        "========================================================================\n",
+        flush=True,
+    )
+
     sent = send_email(
         subject="Reset your Smart Attend password",
         recipient=user_record.email or "",
@@ -119,6 +146,7 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
             f"- Company: {company_name}\n"
             f"- User ID / Employee ID: {user_record.employee_id}\n"
             f"- Mobile Number: {user_record.phone}\n\n"
+            f"OTP / Password Reset Token: {token}\n\n"
             "Use the link below to reset your password:\n"
             f"{preview_url}\n\n"
             "This link expires in 30 minutes."
@@ -349,29 +377,16 @@ async def login(request: Request, db: Session = Depends(get_db)):
 
     user_data = orm_value(user) if user else None
     if not user_data or not verify_password(payload.password, user_data.password_hash):
-        if user:
-            user_data = orm_value(user)
-            user_data.failed_login_attempts = (user_data.failed_login_attempts or 0) + 1
-            if user_data.failed_login_attempts >= 5:
-                user_data.locked_until = (datetime.now(IST) + timedelta(minutes=15)).replace(tzinfo=None)
-            db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid workspace or credentials" if payload.workspace_email else "Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    locked_naive = user_data.locked_until.replace(tzinfo=None) if user_data.locked_until and user_data.locked_until.tzinfo else user_data.locked_until
-    if user_data.locked_until and locked_naive > datetime.now(IST).replace(tzinfo=None):  # type: ignore
-        raise HTTPException(status_code=423, detail="Account is temporarily locked. Try again later.")
     if user_data.email and not user_data.is_email_verified:
         raise HTTPException(status_code=403, detail="Verify your email before signing in.")
     if user_data.status != UserStatus.ACTIVE:
         raise HTTPException(status_code=403, detail="Account is not active.")
-
-    user_data.failed_login_attempts = 0
-    user_data.locked_until = None
-    db.commit()
 
     return build_login_response(user)
 
@@ -414,8 +429,6 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     user_data = orm_value(user)
 
     user_data.password_hash = get_password_hash(payload.new_password)
-    user_data.failed_login_attempts = 0
-    user_data.locked_until = None
     record_data.used_at = datetime.now(IST).replace(tzinfo=None)
     db.commit()
 
