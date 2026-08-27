@@ -1,13 +1,13 @@
 {
-  "name": "Smart Staff Attendance",
-  "short_name": "SmartStaff",
-  "description": "Staff Portal for Smart Staff Attendance System.",
-  "id": "com.smart.attendance.staff",
+  "name": "Smart Staff (DEV)",
+  "short_name": "Smart (DEV)",
+  "description": "Staff Portal (DEV/Test) for Smart Staff Attendance System.",
+  "id": "com.smart.attendance.staff.dev",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#7c3aed",
   "categories": ["business", "productivity"],
   "icons": [
     {
