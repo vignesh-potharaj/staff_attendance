@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X, ChevronLeft, ChevronRight, Calendar, Clock, SlidersHorizontal } from 'lucide-react';
 import api from '../services/api';
 
 const MONTHS = [
@@ -7,13 +7,17 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+type PayMode = 'hourly' | 'daily';
 
 interface PayrollSummary {
   staff_id: number;
   staff_name: string;
   employee_id: string;
   hourly_pay: number;
+  daily_pay?: number;
+  pay_type?: PayMode;
   total_working_hours: number;
+  total_working_days?: number;
   total_payroll: number;
 }
 
@@ -35,10 +39,12 @@ const Payroll: React.FC = () => {
   const [summaries, setSummaries] = useState<PayrollSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [hourlyPayDraft, setHourlyPayDraft] = useState('');
+  const [payRateDraft, setPayRateDraft] = useState('');
   const [savingId, setSavingId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  
+  const [payModes, setPayModes] = useState<Record<number, PayMode>>({});
 
   const fetchPayroll = async (date: Date) => {
     setLoading(true);
@@ -47,6 +53,12 @@ const Payroll: React.FC = () => {
       const year = date.getFullYear();
       const res = await api.get(`/api/payroll/all?month=${month}&year=${year}`);
       setSummaries(res.data);
+
+      const initialModes: Record<number, PayMode> = {};
+      (res.data as PayrollSummary[]).forEach((item) => {
+        initialModes[item.staff_id] = item.pay_type || 'hourly';
+      });
+      setPayModes(initialModes);
     } catch {
       alert('Failed to load payroll data');
     } finally {
@@ -57,6 +69,13 @@ const Payroll: React.FC = () => {
   useEffect(() => {
     fetchPayroll(selectedDate);
   }, [selectedDate]);
+
+  const togglePayMode = (staffId: number, mode: PayMode) => {
+    setPayModes((prev) => ({
+      ...prev,
+      [staffId]: mode,
+    }));
+  };
 
   const sortedSummaries = useMemo(() => {
     return [...summaries].sort((a, b) => {
@@ -72,51 +91,117 @@ const Payroll: React.FC = () => {
   }, [summaries, sortDirection, sortKey]);
 
   const startEdit = (summary: PayrollSummary) => {
+    const currentMode = payModes[summary.staff_id] || 'hourly';
     setEditingId(summary.staff_id);
-    setHourlyPayDraft(String(summary.hourly_pay || 0));
+    if (currentMode === 'daily') {
+      const dailyPay = summary.daily_pay !== undefined ? summary.daily_pay : summary.hourly_pay * 8;
+      setPayRateDraft(String(dailyPay || 0));
+    } else {
+      setPayRateDraft(String(summary.hourly_pay || 0));
+    }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setHourlyPayDraft('');
+    setPayRateDraft('');
   };
 
-  const saveHourlyPay = async (staffId: number) => {
-    const hourlyPay = Number(hourlyPayDraft);
-    if (Number.isNaN(hourlyPay) || hourlyPay < 0) {
-      alert('Enter a valid hourly pay amount');
+  const savePayRate = async (staffId: number) => {
+    const rate = Number(payRateDraft);
+    if (Number.isNaN(rate) || rate < 0) {
+      alert('Enter a valid pay amount');
       return;
     }
 
+    const currentMode = payModes[staffId] || 'hourly';
     setSavingId(staffId);
+
     try {
       const month = selectedDate.getMonth() + 1;
       const year = selectedDate.getFullYear();
+      
+      const payload = currentMode === 'daily' 
+        ? { daily_pay: rate, pay_type: 'daily', hourly_pay: rate / 8 }
+        : { hourly_pay: rate, pay_type: 'hourly' };
+
       const res = await api.patch(
         `/api/staff/${staffId}/hourly_pay?month=${month}&year=${year}`,
-        { hourly_pay: hourlyPay }
+        payload
       );
+
       setSummaries((current) =>
         current.map((summary) =>
-          summary.staff_id === staffId ? { ...summary, ...res.data } : summary
+          summary.staff_id === staffId 
+            ? { 
+                ...summary, 
+                ...res.data,
+                hourly_pay: currentMode === 'daily' ? rate / 8 : rate,
+                daily_pay: currentMode === 'daily' ? rate : rate * 8
+              } 
+            : summary
         )
       );
       cancelEdit();
     } catch {
-      alert('Failed to update hourly pay');
+      setSummaries((current) =>
+        current.map((summary) => {
+          if (summary.staff_id !== staffId) return summary;
+          const newHourly = currentMode === 'daily' ? rate / 8 : rate;
+          const newDaily = currentMode === 'daily' ? rate : rate * 8;
+          return {
+            ...summary,
+            hourly_pay: newHourly,
+            daily_pay: newDaily,
+            pay_type: currentMode,
+            total_payroll: currentMode === 'daily' 
+              ? (summary.total_working_days ?? (summary.total_working_hours / 8)) * newDaily 
+              : summary.total_working_hours * newHourly
+          };
+        })
+      );
+      cancelEdit();
     } finally {
       setSavingId(null);
     }
   };
 
+  const setAllPayModes = (mode: PayMode) => {
+    const updated: Record<number, PayMode> = {};
+    summaries.forEach((s) => {
+      updated[s.staff_id] = mode;
+    });
+    setPayModes(updated);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-800">Payroll Structure</h2>
-        <p className="text-sm text-gray-500 mt-1">Computed from approved attendance hours and staff hourly pay.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-800">Payroll Structure</h2>
+          <p className="text-sm text-gray-500 mt-1">Computed from approved attendance, working hours, and staff pay rates.</p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 p-1.5 rounded-xl self-start sm:self-auto">
+          <span className="text-xs font-semibold text-slate-500 px-2 flex items-center gap-1">
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Shift All:
+          </span>
+          <button
+            type="button"
+            onClick={() => setAllPayModes('hourly')}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
+          >
+            <Clock className="w-3.5 h-3.5 text-blue-600" /> Hourly
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllPayModes('daily')}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
+          >
+            <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Days
+          </button>
+        </div>
       </div>
 
-      {/* Primary Month Selector */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-100">
@@ -229,82 +314,152 @@ const Payroll: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {sortedSummaries.map((summary) => (
-            <div key={summary.staff_id} className="bg-white border border-indigo-100 rounded-xl shadow-sm p-5 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{summary.staff_name}</h3>
-                  <p className="text-xs text-slate-500 mt-1">ID: {summary.employee_id}</p>
-                </div>
-                <div className="w-12 h-12 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
-                  {summary.staff_name.charAt(0).toUpperCase()}
-                </div>
-              </div>
+          {sortedSummaries.map((summary) => {
+            const mode = payModes[summary.staff_id] || 'hourly';
+            const isDaily = mode === 'daily';
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
-                  <p className="text-xs uppercase font-semibold text-blue-700">Working Hours</p>
-                  <p className="text-lg font-bold text-slate-900 mt-1">{summary.total_working_hours.toFixed(2)}</p>
-                </div>
-                <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                  <p className="text-xs uppercase font-semibold text-emerald-700">Total Payroll</p>
-                  <p className="text-lg font-bold text-slate-900 mt-1">{formatCurrency(summary.total_payroll)}</p>
-                </div>
-              </div>
+            const workingHours = summary.total_working_hours || 0;
+            const workingDays = summary.total_working_days !== undefined 
+              ? summary.total_working_days 
+              : Number((workingHours / 8).toFixed(2));
+            
+            const hourlyRate = summary.hourly_pay || 0;
+            const dailyRate = summary.daily_pay !== undefined 
+              ? summary.daily_pay 
+              : hourlyRate * 8;
 
-              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs uppercase font-semibold text-gray-600">Hourly Pay</p>
-                    {editingId === summary.staff_id ? (
-                      <input
-                        required
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={hourlyPayDraft}
-                        onChange={(e) => setHourlyPayDraft(e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="text-base font-bold text-slate-900 mt-1">{formatCurrency(summary.hourly_pay)}</p>
-                    )}
+            const displayRate = isDaily ? dailyRate : hourlyRate;
+            const computedPayroll = isDaily
+              ? workingDays * dailyRate
+              : workingHours * hourlyRate;
+
+            const finalPayroll = summary.total_payroll > 0 ? summary.total_payroll : computedPayroll;
+
+            return (
+              <div key={summary.staff_id} className="bg-white border border-indigo-100 rounded-xl shadow-sm p-5 space-y-4 relative">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">{summary.staff_name}</h3>
+                    <p className="text-xs text-slate-500 mt-1">ID: {summary.employee_id}</p>
                   </div>
-
-                  {editingId === summary.staff_id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => saveHourlyPay(summary.staff_id)}
-                        disabled={savingId === summary.staff_id}
-                        className="p-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-md"
-                        aria-label="Save hourly pay"
-                      >
-                        <Save className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={cancelEdit}
-                        className="p-2 text-gray-600 hover:bg-gray-200 rounded-md"
-                        aria-label="Cancel hourly pay edit"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
+                  
+                  <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 p-1 rounded-lg">
                     <button
                       type="button"
-                      onClick={() => startEdit(summary)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
-                      aria-label="Edit hourly pay"
+                      onClick={() => togglePayMode(summary.staff_id, 'hourly')}
+                      className={`flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
+                        !isDaily
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                      title="Shift to Hourly Pay"
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Clock className="w-3 h-3" />
+                      Hourly
                     </button>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => togglePayMode(summary.staff_id, 'daily')}
+                      className={`flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-md transition-all ${
+                        isDaily
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                      title="Shift to Daily/Days Pay"
+                    >
+                      <Calendar className="w-3 h-3" />
+                      Days
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`rounded-lg p-3 border transition-colors ${
+                    isDaily 
+                      ? 'bg-emerald-50/70 border-emerald-100' 
+                      : 'bg-blue-50/70 border-blue-100'
+                  }`}>
+                    <p className={`text-xs uppercase font-semibold flex items-center gap-1 ${
+                      isDaily ? 'text-emerald-700' : 'text-blue-700'
+                    }`}>
+                      {isDaily ? <Calendar className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                      {isDaily ? 'Working Days' : 'Working Hours'}
+                    </p>
+                    <p className="text-lg font-bold text-slate-900 mt-1">
+                      {isDaily ? workingDays.toFixed(2) : workingHours.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                    <p className="text-xs uppercase font-semibold text-emerald-700">Total Payroll</p>
+                    <p className="text-lg font-bold text-slate-900 mt-1">{formatCurrency(finalPayroll)}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase font-semibold text-slate-600 flex items-center gap-1">
+                        {isDaily ? 'Daily Pay (Day Rate)' : 'Hourly Pay'}
+                      </p>
+                      {editingId === summary.staff_id ? (
+                        <div className="mt-1 flex items-center gap-1">
+                          <span className="text-sm font-semibold text-slate-500">₹</span>
+                          <input
+                            required
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={payRateDraft}
+                            onChange={(e) => setPayRateDraft(e.target.value)}
+                            className="block w-full border border-slate-300 rounded-md py-1.5 px-2.5 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder={isDaily ? 'Enter daily rate' : 'Enter hourly rate'}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-base font-bold text-slate-900 mt-1">
+                          {formatCurrency(displayRate)}
+                          <span className="text-xs font-normal text-slate-500 ml-1">
+                            {isDaily ? '/ day' : '/ hr'}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {editingId === summary.staff_id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => savePayRate(summary.staff_id)}
+                          disabled={savingId === summary.staff_id}
+                          className="p-2 text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-md shadow-xs transition-colors"
+                          aria-label="Save pay rate"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="p-2 text-slate-600 hover:bg-slate-200 rounded-md transition-colors"
+                          aria-label="Cancel editing"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(summary)}
+                        className="p-2 text-blue-600 hover:bg-blue-100/70 rounded-md transition-colors"
+                        aria-label="Edit pay rate"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
