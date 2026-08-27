@@ -76,6 +76,19 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
     preview_url = build_preview_url("/verify-email", token)
     tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
     company_name = tenant.name if tenant else "Our Platform"
+
+    print(
+        "\n"
+        "========================================================================\n"
+        "   [RENDER LOG] EMAIL VERIFICATION TOKEN / OTP GENERATED                \n"
+        "========================================================================\n"
+        f" Recipient Email : {user_record.email}\n"
+        f" User ID / Emp ID: {user_record.employee_id}\n"
+        f" OTP Token       : {token}\n"
+        f" Verify Link     : {preview_url}\n"
+        "========================================================================\n",
+        flush=True,
+    )
     
     sent = send_email(
         subject="Verify your Smart Attend account",
@@ -87,6 +100,7 @@ def issue_verification_token(db: Session, user: User) -> tuple[bool, str]:
             f"- Company: {company_name}\n"
             f"- User ID / Employee ID: {user_record.employee_id}\n"
             f"- Mobile Number: {user_record.phone}\n\n"
+            f"OTP / Verification Token: {token}\n\n"
             f"Verify your email by opening this link:\n{preview_url}\n\n"
             "This link expires in 24 hours."
         ),
@@ -109,6 +123,19 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
     tenant = db.query(Tenant).filter(Tenant.id == user_record.tenant_id).first()
     company_name = tenant.name if tenant else "Our Platform"
 
+    print(
+        "\n"
+        "========================================================================\n"
+        "   [RENDER LOG] PASSWORD RESET TOKEN / OTP GENERATED                    \n"
+        "========================================================================\n"
+        f" Recipient Email : {user_record.email}\n"
+        f" User ID / Emp ID: {user_record.employee_id}\n"
+        f" OTP Token       : {token}\n"
+        f" Reset Link      : {preview_url}\n"
+        "========================================================================\n",
+        flush=True,
+    )
+
     sent = send_email(
         subject="Reset your Smart Attend password",
         recipient=user_record.email or "",
@@ -119,6 +146,7 @@ def issue_password_reset_token(db: Session, user: User) -> tuple[bool, str]:
             f"- Company: {company_name}\n"
             f"- User ID / Employee ID: {user_record.employee_id}\n"
             f"- Mobile Number: {user_record.phone}\n\n"
+            f"OTP / Password Reset Token: {token}\n\n"
             "Use the link below to reset your password:\n"
             f"{preview_url}\n\n"
             "This link expires in 30 minutes."

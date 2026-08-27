@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import smtplib
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -119,6 +120,21 @@ def _send_via_brevo(subject: str, recipient: str, plain_text: str) -> bool:
 
 
 def send_email(subject: str, recipient: str, plain_text: str) -> bool:
+    # Print immediately to stdout with flush=True so Render logs capture it regardless of stream buffering
+    print(
+        "\n"
+        "========================================================================\n"
+        "   [RENDER LOG] EMAIL / OTP / TOKEN DISPATCH                            \n"
+        "========================================================================\n"
+        f" Recipient : {recipient}\n"
+        f" Subject   : {subject}\n"
+        "------------------------------------------------------------------------\n"
+        f" Content:\n{plain_text}\n"
+        "========================================================================\n",
+        flush=True,
+    )
+    sys.stdout.flush()
+
     success = False
 
     if _brevo_configured():
@@ -188,23 +204,41 @@ def send_email(subject: str, recipient: str, plain_text: str) -> bool:
         logger.warning("   Skipping email send to %s", recipient)
         success = False
 
-    # If the email failed to send, output a prominent log fallback so developers/admins can retrieve the contents (tokens/links/etc)
+    # If email delivery failed or email service is down, print high-visibility FALLBACK block to stdout & logger
     if not success:
         logger.warning(
             "\n"
             "========================================================================\n"
-            "SYSTEM FALLBACK LOG: EMAIL DELIVERY FAILED OR NOT CONFIGURED\n"
+            "   [RENDER LOG - EMAIL SERVICE DOWN / FALLBACK OTP LOG]                \n"
             "========================================================================\n"
-            "Recipient: %s\n"
-            "Subject:   %s\n"
+            " ATTENTION: Email service is down or unconfigured.                       \n"
+            " Retrieve OTP / Token / Verification link directly from Render logs:   \n"
+            " Recipient: %s\n"
+            " Subject  : %s\n"
             "------------------------------------------------------------------------\n"
-            "Email Body:\n"
+            " Email Body / OTP Details:\n"
             "%s\n"
             "========================================================================",
             recipient,
             subject,
             plain_text,
         )
+        print(
+            "\n"
+            "========================================================================\n"
+            "   [RENDER LOG - EMAIL SERVICE DOWN / FALLBACK OTP LOG]                \n"
+            "========================================================================\n"
+            " ATTENTION: Email service is down or unconfigured.                       \n"
+            " Retrieve OTP / Token / Verification link directly from Render logs:   \n"
+            f" Recipient: {recipient}\n"
+            f" Subject  : {subject}\n"
+            "------------------------------------------------------------------------\n"
+            " Email Body / OTP Details:\n"
+            f"{plain_text}\n"
+            "========================================================================\n",
+            flush=True,
+        )
+        sys.stdout.flush()
 
     return success
 
