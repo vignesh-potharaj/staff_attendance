@@ -177,7 +177,21 @@ def mark_attendance(
     db.add(new_attendance)
     db.commit()
     db.refresh(new_attendance)
-    
+
+    # Trigger admin alert push notification if LATE
+    if status == AttendanceStatus.LATE:
+        try:
+            from backend.services.push_service import send_push_to_tenant_admins
+            send_push_to_tenant_admins(
+                db=db,
+                tenant_id=current_user.tenant_id,
+                title="Late Check-in Alert ⚠️",
+                body=f"Staff member {current_user.name} ({current_user.employee_id}) checked in LATE for today.",
+                url="/admin/attendance"
+            )
+        except Exception as push_err:
+            logger.warning(f"Failed to send admin push alert for late check-in: {push_err}")
+
     return new_attendance
 
 @router.post("/check-out", response_model=AttendanceResponse)
@@ -229,7 +243,20 @@ def check_out_attendance(
     setattr(existing, 'check_out_photo_url', check_out_photo_url)
     db.commit()
     db.refresh(existing)
-    
+
+    # Trigger admin alert push notification on check-out
+    try:
+        from backend.services.push_service import send_push_to_tenant_admins
+        send_push_to_tenant_admins(
+            db=db,
+            tenant_id=current_user.tenant_id,
+            title="Check-Out Alert 🏁",
+            body=f"{current_user.name} ({current_user.employee_id}) completed check-out for today.",
+            url="/admin/attendance"
+        )
+    except Exception as push_err:
+        logger.warning(f"Failed to send admin push alert for check-out: {push_err}")
+
     return existing
 
 @router.get("/history", response_model=List[AttendanceResponse])

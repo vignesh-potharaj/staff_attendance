@@ -143,9 +143,23 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                     is_leave=1 if schedule.is_leave else 0,
                     is_week_off=1 if schedule.is_week_off else 0
                 )
-                db.add(new_record)
-        
         db.commit()
+
+        # Trigger Web Push notification to affected staff users
+        from backend.services.push_service import send_push_to_user
+        for schedule in schedules:
+            try:
+                shift_desc = "On Leave" if schedule.is_leave else ("Week Off" if schedule.is_week_off else f"{schedule.start_time or ''} - {schedule.end_time or ''}")
+                send_push_to_user(
+                    db=db,
+                    user_id=schedule.user_id,
+                    title="Shift Schedule Update 📅",
+                    body=f"Your shift schedule for {date} is: {shift_desc}",
+                    url="/staff/dashboard"
+                )
+            except Exception as push_err:
+                logger.warning(f"Failed to send roaster push notification to user {schedule.user_id}: {push_err}")
+
         return {"message": "Roaster updated successfully"}
     except HTTPException:
         raise

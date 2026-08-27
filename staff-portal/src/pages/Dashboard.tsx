@@ -7,6 +7,7 @@ import {
   getNotificationPermission,
   requestNotificationPermission,
   scheduleShiftReminders,
+  subscribeUserToPush,
 } from '../services/notificationService';
 
 interface AttendanceRecord {
@@ -39,6 +40,9 @@ const Dashboard: React.FC = () => {
   const handleEnableNotifications = async () => {
     const perm = await requestNotificationPermission();
     setNotifPermission(perm);
+    if (perm === 'granted') {
+      await subscribeUserToPush(api);
+    }
   };
 
   useEffect(() => {
@@ -48,6 +52,9 @@ const Dashboard: React.FC = () => {
         return;
       }
       try {
+        if (getNotificationPermission() === 'granted') {
+          subscribeUserToPush(api).catch(() => {});
+        }
         const [todayRes, monthlyRes] = await Promise.all([
           api.get(`/api/attendance/staff/${user.id}/today`),
           api.get(`/api/attendance/staff/${user.id}/monthly`),

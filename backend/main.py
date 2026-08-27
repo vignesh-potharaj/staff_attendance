@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from backend.database.database import engine, Base, SessionLocal
 from backend.models import models
-from backend.routers import auth, users, attendance, analytics, roaster, debug, settings, billing, payroll, super_admin_auth, super_admin
+from backend.routers import auth, users, attendance, analytics, roaster, debug, settings, billing, payroll, super_admin_auth, super_admin, notifications
 from backend.auth.security import get_password_hash
 from backend.database.migrations import run_migrations
 
@@ -100,6 +100,7 @@ app.include_router(users.router)
 app.include_router(attendance.router)
 app.include_router(analytics.router)
 app.include_router(roaster.router)
+app.include_router(notifications.router)
 app.include_router(debug.router)
 app.include_router(settings.router)
 app.include_router(billing.router)

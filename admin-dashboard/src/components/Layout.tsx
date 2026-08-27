@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LayoutDashboard, Users, FileText, LogOut, Calendar, Menu, X, Settings, CreditCard, IndianRupee } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, Calendar, Menu, X, Settings, CreditCard, IndianRupee, Megaphone } from 'lucide-react';
+import { AnnouncementsModal } from './AnnouncementsModal';
 
 const Layout: React.FC = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isAnnounceModalOpen, setIsAnnounceModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -91,19 +93,35 @@ const Layout: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center shrink-0">
+        <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between shrink-0">
+          <div className="flex items-center">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 mr-4 text-gray-600 hover:bg-gray-100 rounded-md lg:hidden"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <h2 className="text-xl lg:text-2xl font-semibold text-gray-800 truncate">Admin Portal</h2>
+          </div>
+
           <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 mr-4 text-gray-600 hover:bg-gray-100 rounded-md lg:hidden"
+            onClick={() => setIsAnnounceModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors"
           >
-            <Menu className="w-6 h-6" />
+            <Megaphone className="w-4 h-4" />
+            <span>Broadcast Announcement</span>
           </button>
-          <h2 className="text-xl lg:text-2xl font-semibold text-gray-800 truncate">Admin Portal</h2>
         </header>
+
         <div className="flex-1 p-4 md:p-8 overflow-y-auto">
           <Outlet />
         </div>
       </main>
+
+      <AnnouncementsModal
+        isOpen={isAnnounceModalOpen}
+        onClose={() => setIsAnnounceModalOpen(false)}
+      />
     </div>
   );
 };

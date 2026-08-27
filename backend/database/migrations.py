@@ -272,6 +272,27 @@ def run_migrations():
             "super_admin_audit_logs table ensured",
         )
 
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+
+    if "push_subscriptions" not in tables:
+        push_datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        id_definition = "id SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "id INTEGER PRIMARY KEY"
+        _execute_migration(
+            "CREATE TABLE push_subscriptions ("
+            f"{id_definition}, "
+            "user_id INTEGER NOT NULL, "
+            "tenant_id INTEGER NULL, "
+            "endpoint TEXT NOT NULL UNIQUE, "
+            "p256dh TEXT NOT NULL, "
+            "auth TEXT NOT NULL, "
+            f"created_at {push_datetime_type} NULL, "
+            "FOREIGN KEY(user_id) REFERENCES users (id), "
+            "FOREIGN KEY(tenant_id) REFERENCES tenants (id)"
+            ")",
+            "push_subscriptions table ensured",
+        )
+
     if "tenants" in tables and "users" in tables:
         try:
             with engine.begin() as conn:
