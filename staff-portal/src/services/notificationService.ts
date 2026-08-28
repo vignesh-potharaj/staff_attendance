@@ -126,42 +126,55 @@ export const subscribeUserToPush = async (apiClient: { get: Function; post: Func
 
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      console.warn('ServiceWorker or PushManager not supported on this browser.');
       return false;
     }
 
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
 
-    if (!subscription) {
-      const keyRes = await apiClient.get('/notifications/vapid-public-key');
-      const publicKey = keyRes.data.publicKey;
+    const keyRes = await apiClient.get('/notifications/vapid-public-key');
+    const publicKey = keyRes.data?.publicKey;
 
-      if (!publicKey) return false;
-
-      const convertedKey = urlBase64ToUint8Array(publicKey);
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedKey as any,
-      });
+    if (!publicKey) {
+      console.warn('No VAPID public key returned from backend.');
+      return false;
     }
 
-    const subJson = subscription.toJSON();
-    if (subJson.endpoint && subJson.keys) {
-      await apiClient.post('/notifications/subscribe', {
-        endpoint: subJson.endpoint,
-        keys: {
-          p256dh: subJson.keys.p256dh,
-          auth: subJson.keys.auth,
-        },
-      });
-      console.log('✅ Web Push subscription synced with backend.');
-      return true;
+    const convertedKey = urlBase64ToUint8Array(publicKey);
+
+    // If no subscription exists or old subscription fails, attempt subscribe
+    if (!subscription) {
+      try {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedKey as any,
+        });
+      } catch (subErr) {
+        console.warn('Push subscription creation failed:', subErr);
+      }
+    }
+
+    if (subscription) {
+      const subJson = subscription.toJSON();
+      if (subJson.endpoint && subJson.keys) {
+        await apiClient.post('/notifications/subscribe', {
+          endpoint: subJson.endpoint,
+          keys: {
+            p256dh: subJson.keys.p256dh,
+            auth: subJson.keys.auth,
+          },
+        });
+        console.log('✅ Web Push subscription synced with backend successfully.');
+        return true;
+      }
     }
   } catch (err) {
-    console.warn('Web Push subscription failed:', err);
+    console.error('❌ Web Push subscription failed:', err);
   }
   return false;
 };
+
 
 export const triggerDelayedTestNotification = (delayMs: number = 3000): void => {
   setTimeout(() => {

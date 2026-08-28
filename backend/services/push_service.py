@@ -15,13 +15,14 @@ logger = logging.getLogger(__name__)
 # Default persistent VAPID keys for development/production fallback if env vars not set
 DEFAULT_VAPID_PUBLIC_KEY = os.getenv(
     "VAPID_PUBLIC_KEY",
-    "BEl62iUYgUivxIkv69yViEuiBIa40yYVE54911v0lB6p477g6g12_g-j_38947g8g127634g78_g234781283g"
+    "BC2cwmWaCscRctR2z-RIUJTO-I8dHomSJkmapegSkIvFUjmWvPDQSC5btCIbdqaoEZeX-dHIaNj8kpKo4oP-nRI"
 )
 DEFAULT_VAPID_PRIVATE_KEY = os.getenv(
     "VAPID_PRIVATE_KEY",
-    "a8716238471263487123648712634871"
+    "Iyzy8YIjmnsjk3i7WtyRODauDzWyueLOz1VYaRtkJpA"
 )
 VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL", "mailto:support@smartattend.com")
+
 
 
 def get_vapid_public_key() -> str:
