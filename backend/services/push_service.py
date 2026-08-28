@@ -38,7 +38,7 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: Op
         payload = json.dumps({
             "title": title,
             "body": body,
-            "icon": "/icons/icon-192x192.png",
+            "icon": "/icons/icon-192.png",
             "badge": "/favicon.svg",
             "tag": "smart-attend-push",
             "data": {"url": url or "/"}

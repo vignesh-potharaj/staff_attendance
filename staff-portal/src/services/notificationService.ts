@@ -33,7 +33,7 @@ export const sendInstantNotification = async (
 
   const defaultOptions: NotificationOptions = {
     body,
-    icon: '/icons/icon-192x192.png',
+    icon: '/icons/icon-192.png',
     badge: '/favicon.svg',
     tag: 'smart-attend-instant',
     data: { url: '/staff/dashboard' },

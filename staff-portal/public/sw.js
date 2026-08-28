@@ -1,9 +1,11 @@
-const CACHE_NAME = 'smart-attend-v2';
+const CACHE_NAME = 'smart-attend-v3';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-192x192.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -47,23 +49,8 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
       return response || fetch(event.request).catch((err) => {
-        // Only return an offline indicator if this is a navigate request or static asset
-        // Don't return 503 for API calls as it hides real CORS/Error issues
-        const isApi = event.request.url.includes('/attendance/') || 
-                      event.request.url.includes('/auth/') || 
-                      event.request.url.includes('/users/') || 
-                      event.request.url.includes('/roaster/') || 
-                      event.request.url.includes('/analytics/');
-        
-        if (isApi) {
-            throw err; // Let the real error reach the application
-        }
-
-        console.error('Fetch failed for non-API:', err);
-        return new Response('Network error or offline', { 
-            status: 503, 
-            statusText: 'Service Unavailable' 
-        });
+        console.error('[SW] Fetch failed for URL:', url, err);
+        throw err;
       });
     })
   );
@@ -82,7 +69,7 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/icons/icon-192x192.png',
+    icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/favicon.svg',
     tag: data.tag || 'smart-attend-push',
     data: data.data || { url: '/' },

@@ -82,11 +82,9 @@ self.addEventListener('fetch', (event) => {
     caches.match(request).then((response) => {
       return response || fetch(request).catch((err) => {
         console.error('[SW] Fetch failed for asset:', url, err);
-        return new Response('Offline', {
-          status: 503,
-          statusText: 'Service Unavailable'
-        });
+        throw err;
       });
     })
   );
+
 });
