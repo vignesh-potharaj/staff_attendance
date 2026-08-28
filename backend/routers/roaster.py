@@ -7,7 +7,7 @@ import logging
 from backend.database.database import get_db
 from backend.models.models import DailyRoaster, User
 from backend.schemas.schemas import DailyRoasterCreate, DailyRoasterResponse
-from backend.auth.dependencies import get_current_admin
+from backend.auth.dependencies import get_current_admin, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -166,3 +166,59 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
     except Exception as e:
         logger.error(f"Error updating roaster for date {date}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error updating roaster: {str(e)}")
+
+
+@router.get("/staff/my-roaster")
+def get_my_roaster(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get current logged-in staff member's roaster schedules for optional date range (YYYY-MM-DD).
+    """
+    try:
+        query = db.query(DailyRoaster).filter(
+            DailyRoaster.user_id == current_user.id,
+            DailyRoaster.tenant_id == current_user.tenant_id,
+        )
+        if start_date:
+            query = query.filter(DailyRoaster.date >= start_date)
+        if end_date:
+            query = query.filter(DailyRoaster.date <= end_date)
+
+        records = query.all()
+
+        result = []
+        for record in records:
+            try:
+                if record.start_time is not None:
+                    start_str = record.start_time.isoformat() if hasattr(record.start_time, 'isoformat') else str(record.start_time)
+                else:
+                    start_str = None
+
+                if record.end_time is not None:
+                    end_str = record.end_time.isoformat() if hasattr(record.end_time, 'isoformat') else str(record.end_time)
+                else:
+                    end_str = None
+            except Exception as e:
+                logger.warning(f"Error converting time fields: {e}")
+                start_str = str(record.start_time) if record.start_time is not None else None
+                end_str = str(record.end_time) if record.end_time is not None else None
+
+            result.append({
+                "id": record.id,
+                "user_id": record.user_id,
+                "date": record.date,
+                "start_time": start_str,
+                "end_time": end_str,
+                "is_leave": bool(record.is_leave) if record.is_leave is not None else False,
+                "is_week_off": bool(record.is_week_off) if record.is_week_off is not None else False,
+            })
+
+        return result
+    except Exception as e:
+        logger.error(f"Error fetching staff my-roaster: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error fetching staff roaster: {str(e)}")
+
