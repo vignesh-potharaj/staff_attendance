@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Building2, CalendarCheck, Calendar, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,8 +12,11 @@ interface AttendanceRecord {
 
 interface MonthlySummary {
   total_working_hours: number;
+  total_working_days?: number;
   total_payroll: number;
   hourly_pay: number;
+  daily_pay?: number;
+  pay_type?: 'hourly' | 'daily';
 }
 
 const formatCurrency = (value: number) =>
@@ -53,6 +56,19 @@ const Dashboard: React.FC = () => {
     fetchDashboard();
   }, [user?.id]);
 
+  const activePayType = monthly?.pay_type || user?.pay_type || 'hourly';
+  const isDaily = activePayType === 'daily';
+
+  const workingHours = monthly?.total_working_hours || 0;
+  const workingDays = monthly?.total_working_days !== undefined
+    ? monthly.total_working_days
+    : Number((workingHours / 8.0).toFixed(2));
+
+  const hourlyRate = monthly?.hourly_pay !== undefined ? monthly.hourly_pay : (user?.hourly_pay || 0);
+  const dailyRate = monthly?.daily_pay !== undefined 
+    ? monthly.daily_pay 
+    : (user?.daily_pay !== undefined ? user.daily_pay : hourlyRate * 8.0);
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="text-center sm:text-left">
@@ -69,12 +85,37 @@ const Dashboard: React.FC = () => {
           <p className="text-2xl font-bold text-slate-900 mt-2">{loading ? '...' : (today?.duration_hours || 0).toFixed(2)}</p>
         </div>
 
+        {/* Dynamic Metric Card: Working Days vs Working Hours */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-            <Clock className="w-6 h-6" />
+          <div className={`w-11 h-11 rounded-lg flex items-center justify-center mb-4 ${
+            isDaily ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+          }`}>
+            {isDaily ? <Calendar className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
           </div>
-          <p className="text-sm font-semibold text-slate-500">This Month's Total Hours</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{loading ? '...' : (monthly?.total_working_hours || 0).toFixed(2)}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-500">
+              {isDaily ? "This Month's Working Days" : "This Month's Total Hours"}
+            </p>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              isDaily ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'
+            }`}>
+              {isDaily ? 'Daily Mode' : 'Hourly Mode'}
+            </span>
+          </div>
+          <p className="text-2xl font-bold text-slate-900 mt-2">
+            {loading 
+              ? '...' 
+              : isDaily 
+                ? `${workingDays.toFixed(2)} Days`
+                : `${workingHours.toFixed(2)} Hours`
+            }
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            {isDaily 
+              ? `Day Rate: ${formatCurrency(dailyRate)} / day`
+              : `Hourly Rate: ${formatCurrency(hourlyRate)} / hr`
+            }
+          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">

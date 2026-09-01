@@ -9,6 +9,8 @@ export interface User {
   email?: string;
   phone?: string;
   hourly_pay?: number;
+  daily_pay?: number;
+  pay_type?: 'hourly' | 'daily';
   tenant_id?: number;
   tenant_name?: string;
   tenant_slug?: string;
