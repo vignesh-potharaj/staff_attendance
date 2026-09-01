@@ -6,6 +6,7 @@ import {
   subscribeUserToPush 
 } from '../services/notificationService';
 import api from '../services/api';
+import { openAndroidBatterySettings } from './BatteryPermissionModal';
 
 export const NotificationPermissionBanner: React.FC = () => {
   const [permission, setPermission] = useState<NotificationPermission>('granted');
@@ -73,6 +74,12 @@ export const NotificationPermissionBanner: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={openAndroidBatterySettings}
+            className="px-3 py-1 bg-slate-900 text-amber-300 rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1 shadow-sm"
+          >
+            <span>Battery Settings</span>
+          </button>
           <button
             onClick={() => setShowModal(true)}
             className="px-3 py-1 bg-slate-950 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1 shadow-sm"
