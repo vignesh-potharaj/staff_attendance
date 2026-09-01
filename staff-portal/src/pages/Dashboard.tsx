@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Bell, BellOff, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,6 +47,26 @@ const Dashboard: React.FC = () => {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [pushLogs, setPushLogs] = useState<string[]>([]);
   const isDevBranch = import.meta.env.VITE_APP_ENV === 'development' || import.meta.env.DEV;
+
+  // Dynamically sync permission state when window regains focus or visibility changes
+  useEffect(() => {
+    const syncPermission = () => {
+      const current = getNotificationPermission();
+      setNotifPermission(current);
+    };
+
+    syncPermission();
+
+    window.addEventListener('focus', syncPermission);
+    document.addEventListener('visibilitychange', syncPermission);
+    const interval = setInterval(syncPermission, 2000);
+
+    return () => {
+      window.removeEventListener('focus', syncPermission);
+      document.removeEventListener('visibilitychange', syncPermission);
+      clearInterval(interval);
+    };
+  }, []);
 
   const addLog = (msg: string) => {
     const timeStr = new Date().toLocaleTimeString();
@@ -221,6 +241,13 @@ const Dashboard: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium">
               <Bell className="w-3.5 h-3.5 text-emerald-600" />
               Notifications Active
+            </div>
+          )}
+
+          {notifPermission === 'denied' && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold">
+              <BellOff className="w-3.5 h-3.5 text-amber-600" />
+              Notifications Blocked in Settings
             </div>
           )}
 
