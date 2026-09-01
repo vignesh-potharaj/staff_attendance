@@ -7,17 +7,46 @@ interface BatteryPermissionModalProps {
 }
 
 export const openAndroidBatterySettings = () => {
-  try {
-    // Attempt 1: Direct Ignore Battery Optimization Settings Intent for Android
-    window.location.href = 'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end';
-  } catch (err) {
-    try {
-      // Attempt 2: Application Details Settings Intent
-      window.location.href = 'intent:#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;end';
-    } catch {
-      console.warn('Could not launch system settings intent directly.');
-    }
+  if (typeof window === 'undefined') return;
+
+  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+  const isAndroid = /android/i.test(ua);
+
+  if (isIOS) {
+    alert("iPhone / iOS Settings Guide:\n\nGo to Settings → Notifications → Smart Admin (or Safari) → Turn ON 'Allow Notifications'.");
+    return;
   }
+
+  if (!isAndroid) {
+    alert("To allow background alerts, check your device's System Notification & Battery settings.");
+    return;
+  }
+
+  // Multi-tier Android Intent Fallback Stack:
+  // Works across Samsung (OneUI), Vivo (Funtouch), Oppo/Realme (ColorOS), Xiaomi/Redmi (MIUI), Nokia, Lava, OnePlus, Google Pixel
+  const intents = [
+    'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end',
+    'intent:#Intent;action=android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS;end',
+    'intent:#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;end',
+    'intent:#Intent;action=android.settings.SETTINGS;end'
+  ];
+
+  let i = 0;
+  const tryIntent = () => {
+    if (i < intents.length) {
+      try {
+        const targetIntent = intents[i];
+        i++;
+        window.location.href = targetIntent;
+      } catch (err) {
+        console.warn(`Intent attempt ${i} failed:`, err);
+        tryIntent();
+      }
+    }
+  };
+
+  tryIntent();
 };
 
 export const BatteryPermissionModal: React.FC<BatteryPermissionModalProps> = ({ isOpen, onClose }) => {
