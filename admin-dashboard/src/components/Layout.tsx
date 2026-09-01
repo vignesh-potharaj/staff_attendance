@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LayoutDashboard, Users, FileText, LogOut, Calendar, Menu, X, Settings, CreditCard, IndianRupee, Megaphone } from 'lucide-react';
 import { AnnouncementsModal } from './AnnouncementsModal';
 import { NotificationPermissionBanner } from './NotificationPermissionBanner';
+import { PwaInstallBanner } from './PwaInstallBanner';
 
 const Layout: React.FC = () => {
   const { logout, user } = useAuth();
@@ -28,6 +29,7 @@ const Layout: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
+      <PwaInstallBanner />
       <NotificationPermissionBanner />
       <div className="flex flex-1 min-h-0 overflow-hidden">
 

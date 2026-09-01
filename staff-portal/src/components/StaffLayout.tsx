@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BarChart3, Building2, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationPermissionBanner } from './NotificationPermissionBanner';
+import { PwaInstallBanner } from './PwaInstallBanner';
 
 const navItems = [
   { to: '/staff/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -29,6 +30,7 @@ const StaffLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      <PwaInstallBanner />
       <NotificationPermissionBanner />
 
       <button
