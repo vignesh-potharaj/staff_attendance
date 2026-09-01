@@ -83,9 +83,34 @@ def _record_payload(record: Attendance, use_now_when_open: bool = False) -> dict
     }
 
 
+import csv
+import io
+
+from fastapi.responses import Response
+
+def _calculate_working_days(records: Iterable[Attendance]) -> float:
+    # Group duration by date to handle half-day and overtime rules
+    daily_durations: dict[str, float] = {}
+    for record in records:
+        d = record.date
+        daily_durations[d] = daily_durations.get(d, 0.0) + _duration_hours(record)
+
+    total_days = 0.0
+    for d, hours in daily_durations.items():
+        if hours <= 0:
+            continue
+        elif hours < 4.0:
+            total_days += 0.5  # Half-day rule (< 4 hours worked)
+        elif hours <= 12.0:
+            total_days += 1.0  # Standard full day (4 - 12 hours worked)
+        else:
+            total_days += round(hours / 8.0, 2)  # Overtime shift calculation
+    return round(total_days, 2)
+
+
 def _payroll_payload(staff: User, records: list[Attendance]) -> dict:
     total_working_hours = _total_hours(records)
-    total_working_days = round(total_working_hours / 8.0, 2)
+    total_working_days = _calculate_working_days(records)
     hourly_pay = float(getattr(staff, "hourly_pay", 0) or 0)
     daily_pay = float(getattr(staff, "daily_pay", 0) or (hourly_pay * 8.0))
     pay_type = getattr(staff, "pay_type", "hourly") or "hourly"
@@ -273,3 +298,79 @@ def get_staff_monthly_attendance(
     payload = _payroll_payload(staff, records)
     payload["month"] = month_prefix
     return payload
+
+
+@router.get("/payroll/export/csv")
+def export_payroll_csv(
+    month: int = None,
+    year: int = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin),
+):
+    if month is None or year is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Both 'month' and 'year' query parameters are required"
+        )
+    try:
+        month = int(month)
+        year = int(year)
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail="'month' and 'year' must be valid integers"
+        )
+
+    if not (1 <= month <= 12):
+        raise HTTPException(
+            status_code=400,
+            detail="'month' must be between 1 and 12"
+        )
+
+    staff_members = db.query(User).filter(
+        User.tenant_id == current_admin.tenant_id,
+        User.role == RoleEnum.STAFF,
+    ).order_by(User.name.asc()).all()
+
+    month_prefix = f"{year:04d}-{month:02d}"
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # CSV Header with Pay Type, Pay Rate, Working Hours, Working Days, and Total Payroll
+    writer.writerow([
+        "Employee Name",
+        "Employee ID",
+        "Pay Type",
+        "Pay Rate (INR)",
+        "Working Hours",
+        "Working Days",
+        "Total Payroll (INR)",
+    ])
+
+    for staff in staff_members:
+        records = _attendance_query(db, staff).filter(
+            Attendance.date.like(f"{month_prefix}%")
+        ).all()
+        p = _payroll_payload(staff, records)
+        pay_type_label = "Daily" if p["pay_type"] == "daily" else "Hourly"
+        pay_rate = p["daily_pay"] if p["pay_type"] == "daily" else p["hourly_pay"]
+        
+        writer.writerow([
+            p["staff_name"],
+            p["employee_id"],
+            pay_type_label,
+            f"INR {pay_rate:.2f}",
+            f"{p['total_working_hours']:.2f}",
+            f"{p['total_working_days']:.2f}",
+            f"INR {p['total_payroll']:.2f}",
+        ])
+
+    csv_content = output.getvalue()
+    filename = f"Payroll_Report_{year:04d}_{month:02d}.csv"
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

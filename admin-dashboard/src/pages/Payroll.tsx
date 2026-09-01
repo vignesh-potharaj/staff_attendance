@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X, ChevronLeft, ChevronRight, Calendar, Clock, SlidersHorizontal } from 'lucide-react';
+import { ArrowDownAZ, ArrowDownWideNarrow, IndianRupee, Pencil, Save, X, ChevronLeft, ChevronRight, Calendar, Clock, SlidersHorizontal, Download } from 'lucide-react';
 import api from '../services/api';
 
 const MONTHS = [
@@ -173,6 +173,25 @@ const Payroll: React.FC = () => {
     setPayModes(updated);
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const month = selectedDate.getMonth() + 1;
+      const year = selectedDate.getFullYear();
+      const res = await api.get(`/api/payroll/export/csv?month=${month}&year=${year}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payroll_Report_${year}_${String(month).padStart(2, '0')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Failed to export payroll report CSV');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -181,23 +200,37 @@ const Payroll: React.FC = () => {
           <p className="text-sm text-gray-500 mt-1">Computed from approved attendance, working hours, and staff pay rates.</p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 p-1.5 rounded-xl self-start sm:self-auto">
-          <span className="text-xs font-semibold text-slate-500 px-2 flex items-center gap-1">
-            <SlidersHorizontal className="w-3.5 h-3.5" /> Shift All:
-          </span>
+        <div className="flex items-center gap-3 self-start sm:self-auto">
+          {/* Shift All Control */}
+          <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 p-1.5 rounded-xl">
+            <span className="text-xs font-semibold text-slate-500 px-2 flex items-center gap-1">
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Shift All:
+            </span>
+            <button
+              type="button"
+              onClick={() => setAllPayModes('hourly')}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
+            >
+              <Clock className="w-3.5 h-3.5 text-blue-600" /> Hourly
+            </button>
+            <button
+              type="button"
+              onClick={() => setAllPayModes('daily')}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
+            >
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Days
+            </button>
+          </div>
+
+          {/* Export CSV Button */}
           <button
             type="button"
-            onClick={() => setAllPayModes('hourly')}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-xs transition-all"
+            title="Export Payroll Report CSV"
           >
-            <Clock className="w-3.5 h-3.5 text-blue-600" /> Hourly
-          </button>
-          <button
-            type="button"
-            onClick={() => setAllPayModes('daily')}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all text-slate-700 hover:bg-white hover:shadow-xs"
-          >
-            <Calendar className="w-3.5 h-3.5 text-emerald-600" /> Days
+            <Download className="w-4 h-4" />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
