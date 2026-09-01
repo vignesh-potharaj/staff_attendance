@@ -35,12 +35,13 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: Op
     try:
         from pywebpush import webpush, WebPushException
 
+        import time
         payload = json.dumps({
             "title": title,
             "body": body,
             "icon": "/icons/icon-192.png",
             "badge": "/favicon.svg",
-            "tag": "smart-attend-push",
+            "tag": f"smart-attend-{int(time.time() * 1000)}",
             "data": {"url": url or "/"}
         })
 
@@ -56,7 +57,11 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: Op
             subscription_info=subscription_info,
             data=payload,
             vapid_private_key=DEFAULT_VAPID_PRIVATE_KEY,
-            vapid_claims={"sub": VAPID_CLAIMS_EMAIL}
+            vapid_claims={"sub": VAPID_CLAIMS_EMAIL},
+            headers={
+                "Urgency": "high",
+                "TTL": "86400"
+            }
         )
         status_code = getattr(response, "status_code", 201)
         logger.info(f"✅ Web Push sent to user ID {subscription.user_id} (Endpoint ID {subscription.id}, Status: {status_code}): '{title}'")
