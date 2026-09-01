@@ -1,5 +1,6 @@
 import React from 'react';
 import { Battery, ExternalLink, X, Settings } from 'lucide-react';
+import { requestIgnoreBatteryOptimizations } from '../native/batteryPlugin';
 
 interface BatteryPermissionModalProps {
   isOpen: boolean;
@@ -7,13 +8,17 @@ interface BatteryPermissionModalProps {
 }
 
 export const openAndroidBatterySettings = () => {
-  const a = document.createElement('a');
-  a.href = 'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end';
-  a.click();
+  requestIgnoreBatteryOptimizations();
 };
 
 export const BatteryPermissionModal: React.FC<BatteryPermissionModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
+
+  const handleOpenBatterySettings = (e: React.MouseEvent) => {
+    e.preventDefault();
+    requestIgnoreBatteryOptimizations();
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -44,16 +49,15 @@ export const BatteryPermissionModal: React.FC<BatteryPermissionModalProps> = ({ 
         </div>
 
         <div className="flex flex-col gap-2.5 pt-2">
-          {/* Primary Direct Android Battery Intent Link */}
-          <a
-            href="intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end"
-            onClick={onClose}
-            className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm active:scale-95 text-center"
+          {/* Primary Direct Android Battery Intent Link / Plugin Trigger */}
+          <button
+            onClick={handleOpenBatterySettings}
+            className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm active:scale-95 text-center cursor-pointer"
           >
             <Battery className="w-4 h-4 text-slate-950" />
             <span>YES, OPEN BATTERY SETTINGS</span>
             <ExternalLink className="w-4 h-4" />
-          </a>
+          </button>
 
           {/* Secondary Direct App Info Intent Link */}
           <a
