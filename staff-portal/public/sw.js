@@ -111,7 +111,8 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: data.icon || '/icons/icon-192.png',
     badge: data.badge || '/favicon.svg',
-    tag: data.tag || 'smart-attend-push',
+    tag: data.tag || `smart-attend-${Date.now()}`,
+    renotify: true,
     data: data.data || { url: '/' },
     vibrate: [200, 100, 200],
   };
