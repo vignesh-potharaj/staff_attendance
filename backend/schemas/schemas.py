@@ -109,6 +109,8 @@ class UserBase(BaseModel):
     hourly_pay: float = 0
     daily_pay: float = 0
     pay_type: str = "hourly"
+    default_shift_start: Optional[str] = "09:00:00"
+    default_shift_end: Optional[str] = "18:00:00"
 
 class UserCreate(UserBase):
     password: str
@@ -121,6 +123,8 @@ class UserUpdate(BaseModel):
     hourly_pay: Optional[float] = None
     daily_pay: Optional[float] = None
     pay_type: Optional[str] = None
+    default_shift_start: Optional[str] = None
+    default_shift_end: Optional[str] = None
 
 class HourlyPayUpdate(BaseModel):
     hourly_pay: Optional[float] = None

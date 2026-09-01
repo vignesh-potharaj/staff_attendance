@@ -155,10 +155,17 @@ def mark_attendance(
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
     else:
-        # Default behavior if no roaster entry exists: assume 10:00 AM start
+        # Default behavior if no roaster entry exists: use staff member's default_shift_start
         now_time = datetime.now(IST).time()
         current_date = datetime.now(IST).date()
-        default_start = datetime.combine(current_date, datetime.strptime("10:00", "%H:%M").time())
+        shift_start_str = getattr(current_user, 'default_shift_start', '09:00:00') or '09:00:00'
+        try:
+            parts = shift_start_str.split(':')
+            start_time_val = datetime.strptime(f"{int(parts[0]):02d}:{int(parts[1]):02d}", "%H:%M").time()
+        except Exception:
+            start_time_val = datetime.strptime("09:00", "%H:%M").time()
+        
+        default_start = datetime.combine(current_date, start_time_val)
         allowed_time = (default_start + timedelta(minutes=15)).time()
         if now_time > allowed_time:
             status = AttendanceStatus.LATE

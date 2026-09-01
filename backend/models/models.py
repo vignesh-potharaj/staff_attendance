@@ -119,6 +119,8 @@ class User(Base):
     hourly_pay = Column(Float, default=0, nullable=False)
     daily_pay = Column(Float, default=0, nullable=False)
     pay_type = Column(String, default="hourly", nullable=False)
+    default_shift_start = Column(String, default="09:00:00", nullable=True)
+    default_shift_end = Column(String, default="18:00:00", nullable=True)
     status = Column(SQLEnum(UserStatus), default=UserStatus.PENDING_VERIFICATION)
     is_email_verified = Column(Integer, default=0)
     failed_login_attempts = Column(Integer, default=0)

@@ -11,6 +11,8 @@ interface User {
   hourly_pay: number;
   daily_pay?: number;
   pay_type?: 'hourly' | 'daily';
+  default_shift_start?: string;
+  default_shift_end?: string;
 }
 
 const Users: React.FC = () => {
@@ -28,7 +30,9 @@ const Users: React.FC = () => {
     password: '',
     pay_type: 'hourly' as 'hourly' | 'daily',
     hourly_pay: '0',
-    daily_pay: '0'
+    daily_pay: '0',
+    default_shift_start: '09:00',
+    default_shift_end: '18:00'
   });
 
   const fetchUsers = async () => {
@@ -50,6 +54,8 @@ const Users: React.FC = () => {
     setEditingUser(user);
     const hourly = user.hourly_pay || 0;
     const daily = user.daily_pay !== undefined ? user.daily_pay : hourly * 8;
+    const start = user.default_shift_start ? user.default_shift_start.slice(0, 5) : '09:00';
+    const end = user.default_shift_end ? user.default_shift_end.slice(0, 5) : '18:00';
     setFormData({
       name: user.name,
       employee_id: user.employee_id,
@@ -58,7 +64,9 @@ const Users: React.FC = () => {
       password: '',
       pay_type: user.pay_type || 'hourly',
       hourly_pay: String(hourly),
-      daily_pay: String(daily)
+      daily_pay: String(daily),
+      default_shift_start: start,
+      default_shift_end: end
     });
     setShowModal(true);
   };
@@ -132,7 +140,9 @@ const Users: React.FC = () => {
         password: '',
         pay_type: 'hourly',
         hourly_pay: '0',
-        daily_pay: '0'
+        daily_pay: '0',
+        default_shift_start: '09:00',
+        default_shift_end: '18:00'
       });
       fetchUsers();
     } catch {
@@ -155,7 +165,9 @@ const Users: React.FC = () => {
               password: '',
               pay_type: 'hourly',
               hourly_pay: '0',
-              daily_pay: '0'
+              daily_pay: '0',
+              default_shift_start: '09:00',
+              default_shift_end: '18:00'
             });
             setShowModal(true);
           }}
@@ -243,6 +255,21 @@ const Users: React.FC = () => {
                     </p>
                   </div>
 
+                  {/* Default Working Shift Card Display */}
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase text-slate-500 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-indigo-600" /> Default Working Shift
+                      </p>
+                      <p className="text-sm font-bold text-slate-900 mt-1">
+                        {(user.default_shift_start || '09:00').slice(0, 5)} – {(user.default_shift_end || '18:00').slice(0, 5)}
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-600 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                      Standard Schedule
+                    </span>
+                  </div>
+
                   {/* Actions */}
                   <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                     <button 
@@ -318,6 +345,38 @@ const Users: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Phone</label>
                 <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+              </div>
+
+              {/* Default Working Shift Inputs */}
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+                <label className="block text-xs font-semibold text-slate-700 uppercase flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" /> Default Working Shift
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-[11px] font-medium text-slate-500">Start Time</span>
+                    <input
+                      type="time"
+                      required
+                      className="mt-0.5 block w-full border border-gray-300 rounded-md py-1.5 px-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
+                      value={formData.default_shift_start}
+                      onChange={e => setFormData({ ...formData, default_shift_start: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-medium text-slate-500">End Time</span>
+                    <input
+                      type="time"
+                      required
+                      className="mt-0.5 block w-full border border-gray-300 rounded-md py-1.5 px-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
+                      value={formData.default_shift_end}
+                      onChange={e => setFormData({ ...formData, default_shift_end: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-500 italic leading-snug">
+                  Roster overrides apply strictly for that day. Next day automatically reverts to this default shift.
+                </p>
               </div>
 
               {/* Default Pay Type Selector */}

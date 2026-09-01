@@ -20,41 +20,51 @@ router = APIRouter(
 def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_admin)):
     """
     Get the roaster schedules for a specific date (YYYY-MM-DD).
-    Returns empty list if no records found for that date.
+    If a specific date override exists in DailyRoaster, returns the override.
+    Otherwise, automatically falls back to the staff member's Default Working Shift.
     """
     try:
         records = db.query(DailyRoaster).filter(
             DailyRoaster.date == date,
             DailyRoaster.tenant_id == current_user.tenant_id,
         ).all()
-        
-        # Convert records to dict for clean JSON serialization
+        existing_map = {r.user_id: r for r in records}
+
+        from backend.models.models import RoleEnum
+        staff_members = db.query(User).filter(
+            User.tenant_id == current_user.tenant_id,
+            User.role == RoleEnum.STAFF,
+        ).order_by(User.name.asc()).all()
+
         result = []
-        for record in records:
-            try:
-                # Handle time serialization
-                if record.start_time is not None:
-                    start_str = record.start_time.isoformat() if hasattr(record.start_time, 'isoformat') else str(record.start_time)
-                else:
-                    start_str = None
-                    
-                if record.end_time is not None:
-                    end_str = record.end_time.isoformat() if hasattr(record.end_time, 'isoformat') else str(record.end_time)
-                else:
-                    end_str = None
-            except Exception as e:
-                logger.warning(f"Error converting time fields: {e}, using string representation")
-                start_str = str(record.start_time) if record.start_time is not None else None
-                end_str = str(record.end_time) if record.end_time is not None else None
-            
+        for staff in staff_members:
+            if staff.id in existing_map:
+                record = existing_map[staff.id]
+                start_str = record.start_time.isoformat() if hasattr(record.start_time, 'isoformat') and record.start_time else (str(record.start_time) if record.start_time is not None else None)
+                end_str = record.end_time.isoformat() if hasattr(record.end_time, 'isoformat') and record.end_time else (str(record.end_time) if record.end_time is not None else None)
+                is_leave = bool(record.is_leave) if record.is_leave is not None else False
+                is_week_off = bool(record.is_week_off) if record.is_week_off is not None else False
+                record_id = record.id
+                is_default_shift = False
+            else:
+                start_str = getattr(staff, 'default_shift_start', '09:00:00') or '09:00:00'
+                end_str = getattr(staff, 'default_shift_end', '18:00:00') or '18:00:00'
+                is_leave = False
+                is_week_off = False
+                record_id = None
+                is_default_shift = True
+
             result.append({
-                "id": record.id,
-                "user_id": record.user_id,
-                "date": record.date,
+                "id": record_id,
+                "user_id": staff.id,
+                "staff_name": staff.name,
+                "employee_id": staff.employee_id,
+                "date": date,
                 "start_time": start_str,
                 "end_time": end_str,
-                "is_leave": bool(record.is_leave) if record.is_leave is not None else False,
-                "is_week_off": bool(record.is_week_off) if record.is_week_off is not None else False,
+                "is_leave": is_leave,
+                "is_week_off": is_week_off,
+                "is_default_shift": is_default_shift,
             })
         
         logger.info(f"Returned {len(result)} roaster records for date {date}")

@@ -121,6 +121,16 @@ def run_migrations():
                 "ALTER TABLE users ADD COLUMN pay_type VARCHAR DEFAULT 'hourly' NOT NULL",
                 "pay_type column ensured on users",
             )
+        if "default_shift_start" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN default_shift_start VARCHAR DEFAULT '09:00:00'",
+                "default_shift_start column ensured on users",
+            )
+        if "default_shift_end" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN default_shift_end VARCHAR DEFAULT '18:00:00'",
+                "default_shift_end column ensured on users",
+            )
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}
