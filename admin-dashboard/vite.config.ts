@@ -14,17 +14,35 @@ function dynamicPwaManifestPlugin() {
         description: "Admin Hub for Smart Staff Attendance System.",
         id: isDev ? "com.smart.attendance.admin.dev" : "com.smart.attendance.admin",
         start_url: "/",
+        scope: "/",
         display: "standalone",
+        display_override: ["standalone", "minimal-ui", "window-controls-overlay"],
         orientation: "portrait",
         background_color: "#ffffff",
         theme_color: isDev ? "#d97706" : "#4f46e5",
-        categories: ["business", "productivity"],
+        categories: ["business", "productivity", "utilities"],
+        dir: "ltr",
+        lang: "en-US",
+        prefer_related_applications: false,
+        launch_handler: {
+          client_mode: ["navigate-existing", "auto"]
+        },
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable any" }
+          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+        ],
+        screenshots: [
+          { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Login Screen" },
+          { src: "/screenshots/dashboard.png", sizes: "1000x1000", type: "image/png", form_factor: "wide", label: "Admin Dashboard Overview" },
+          { src: "/screenshots/attendance.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Attendance Management" },
+          { src: "/screenshots/users.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "User Administration" }
         ],
         shortcuts: [
-          { name: "Attendance Records", url: "/attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
+          { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+          { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
         ]
       };
 
@@ -44,13 +62,35 @@ function dynamicPwaManifestPlugin() {
             description: "Admin Hub for Smart Staff Attendance System.",
             id: isDev ? "com.smart.attendance.admin.dev" : "com.smart.attendance.admin",
             start_url: "/",
+            scope: "/",
             display: "standalone",
+            display_override: ["standalone", "minimal-ui", "window-controls-overlay"],
             orientation: "portrait",
             background_color: "#ffffff",
             theme_color: isDev ? "#d97706" : "#4f46e5",
-            categories: ["business", "productivity"],
+            categories: ["business", "productivity", "utilities"],
+            dir: "ltr",
+            lang: "en-US",
+            prefer_related_applications: false,
+            launch_handler: {
+              client_mode: ["navigate-existing", "auto"]
+            },
             icons: [
-              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" }
+              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+            ],
+            screenshots: [
+              { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Login Screen" },
+              { src: "/screenshots/dashboard.png", sizes: "1000x1000", type: "image/png", form_factor: "wide", label: "Admin Dashboard Overview" },
+              { src: "/screenshots/attendance.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Attendance Management" },
+              { src: "/screenshots/users.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "User Administration" }
+            ],
+            shortcuts: [
+              { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+              { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
             ]
           };
           res.setHeader('Content-Type', 'application/json');

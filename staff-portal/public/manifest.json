@@ -4,11 +4,19 @@
   "description": "Staff Portal for Smart Staff Attendance System.",
   "id": "com.smart.attendance.staff",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "window-controls-overlay"],
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "utilities"],
+  "dir": "ltr",
+  "lang": "en-US",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -17,10 +25,28 @@
       "purpose": "any"
     },
     {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "screenshots": [
@@ -29,22 +55,30 @@
       "sizes": "1000x1000",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Staff Login"
+      "label": "Staff Portal Login"
     },
     {
       "src": "/screenshots/login_mobile.png",
       "sizes": "375x812",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Staff Mobile Portal"
+      "label": "Staff Mobile Portal Dashboard"
     }
   ],
   "shortcuts": [
     {
       "name": "Mark Attendance",
-      "url": "/",
+      "short_name": "Mark",
+      "description": "Quickly mark your staff attendance",
+      "url": "/staff/mark-attendance",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Attendance History",
+      "short_name": "History",
+      "description": "View past attendance records",
+      "url": "/staff/attendance-history",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
-
 }
