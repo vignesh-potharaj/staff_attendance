@@ -58,12 +58,16 @@ self.addEventListener('fetch', (event) => {
 
 // Web Push Event Handler
 self.addEventListener('push', (event) => {
+  console.log('[SW Push] 🔔 Push event received at Service Worker');
   let data = { title: 'Smart Attend Notification', body: 'You have a new update.' };
+
   if (event.data) {
     try {
       data = event.data.json();
+      console.log('[SW Push] Parsed push JSON payload:', data);
     } catch (e) {
       data.body = event.data.text();
+      console.log('[SW Push] Parsed push text payload:', data.body);
     }
   }
 
@@ -76,8 +80,24 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
   };
 
+  // Show OS System Notification
   event.waitUntil(
     self.registration.showNotification(data.title, options)
+      .then(() => console.log('[SW Push] ✅ showNotification displayed successfully:', data.title))
+      .catch((err) => console.error('[SW Push Error] ❌ showNotification failed:', err))
+  );
+
+  // Broadcast to active browser tabs for in-app UI toasts & console logging
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        client.postMessage({
+          type: 'PUSH_NOTIFICATION_RECEIVED',
+          data: data,
+          timestamp: new Date().toISOString()
+        });
+      }
+    })
   );
 });
 

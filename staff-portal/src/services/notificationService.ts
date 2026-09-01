@@ -119,64 +119,155 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
-export const subscribeUserToPush = async (apiClient: { get: Function; post: Function }): Promise<boolean> => {
-  if (!isNotificationSupported() || getNotificationPermission() !== 'granted') {
-    return false;
+export const subscribeUserToPush = async (
+  apiClient: { get: Function; post: Function },
+  forceRefresh: boolean = false
+): Promise<{ success: boolean; message: string; endpoint?: string }> => {
+  const perm = getNotificationPermission();
+  console.log(`[Push Diagnostic] 🔍 Initiating push subscription. Permission state: '${perm}'`);
+
+  if (!isNotificationSupported()) {
+    const msg = 'Notification API is not supported in this browser.';
+    console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
+    return { success: false, message: msg };
+  }
+
+  if (perm !== 'granted') {
+    const msg = `Notification permission is '${perm}'. User must allow notifications.`;
+    console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
+    return { success: false, message: msg };
   }
 
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      console.warn('ServiceWorker or PushManager not supported on this browser.');
-      return false;
+      const msg = 'ServiceWorker or PushManager is not supported in this browser.';
+      console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
+      return { success: false, message: msg };
     }
 
+    console.log('[Push Diagnostic] ⏳ Waiting for ServiceWorker registration...');
     const registration = await navigator.serviceWorker.ready;
-    let subscription = await registration.pushManager.getSubscription();
+    console.log('[Push Diagnostic] ✅ ServiceWorker ready. Active worker scope:', registration.scope);
 
+    let existingSub = await registration.pushManager.getSubscription();
+
+    if (existingSub && forceRefresh) {
+      console.log('[Push Diagnostic] 🔄 Force refresh requested. Unsubscribing stale endpoint...');
+      try {
+        await existingSub.unsubscribe();
+        console.log('[Push Diagnostic] 🗑️ Stale subscription unsubscribed.');
+        existingSub = null;
+      } catch (unsubErr) {
+        console.warn('[Push Diagnostic] Failed to unsubscribe stale push endpoint:', unsubErr);
+      }
+    }
+
+    console.log('[Push Diagnostic] 🔑 Fetching VAPID public key from /notifications/vapid-public-key...');
     const keyRes = await apiClient.get('/notifications/vapid-public-key');
     const publicKey = keyRes.data?.publicKey;
 
     if (!publicKey) {
-      console.warn('No VAPID public key returned from backend.');
-      return false;
+      const msg = 'Backend returned empty VAPID public key.';
+      console.error(`[Push Diagnostic] ❌ ${msg}`);
+      return { success: false, message: msg };
     }
 
+    console.log(`[Push Diagnostic] 🔑 Received VAPID Public Key (${publicKey.length} chars):`, publicKey);
     const convertedKey = urlBase64ToUint8Array(publicKey);
 
-    // If no subscription exists or old subscription fails, attempt subscribe
+    let subscription = existingSub;
+
     if (!subscription) {
+      console.log('[Push Diagnostic] 📲 Calling PushManager.subscribe()...');
       try {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedKey as any,
         });
-      } catch (subErr) {
-        console.warn('Push subscription creation failed:', subErr);
+        console.log('[Push Diagnostic] 🎉 PushManager.subscribe() succeeded!');
+      } catch (subErr: any) {
+        console.error('[Push Diagnostic] ❌ PushManager.subscribe() threw an error:', subErr);
+
+        // If subscription failed due to key mismatch or corrupt state, attempt 1 reset retry
+        if (existingSub) {
+          try {
+            console.log('[Push Diagnostic] Attempting emergency un-register retry...');
+            await existingSub.unsubscribe();
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertedKey as any,
+            });
+            console.log('[Push Diagnostic] 🎉 Emergency retry PushManager.subscribe() succeeded!');
+          } catch (retryErr) {
+            console.error('[Push Diagnostic] ❌ Emergency retry failed:', retryErr);
+          }
+        }
       }
     }
 
-    if (subscription) {
-      const subJson = subscription.toJSON();
-      if (subJson.endpoint && subJson.keys) {
-        await apiClient.post('/notifications/subscribe', {
-          endpoint: subJson.endpoint,
-          keys: {
-            p256dh: subJson.keys.p256dh,
-            auth: subJson.keys.auth,
-          },
-        });
-        console.log('✅ Web Push subscription synced with backend successfully.');
-        return true;
-      }
+    if (!subscription) {
+      const msg = 'Browser failed to create Web Push subscription endpoint.';
+      console.error(`[Push Diagnostic] ❌ ${msg}`);
+      return { success: false, message: msg };
     }
-  } catch (err) {
-    console.error('❌ Web Push subscription failed:', err);
+
+    const subJson = subscription.toJSON();
+    if (!subJson.endpoint || !subJson.keys) {
+      const msg = 'Push subscription JSON missing endpoint or keys.';
+      console.error(`[Push Diagnostic] ❌ ${msg}`, subJson);
+      return { success: false, message: msg };
+    }
+
+    console.log('[Push Diagnostic] 🚀 Syncing push subscription keys with backend POST /notifications/subscribe...');
+    const syncRes = await apiClient.post('/notifications/subscribe', {
+      endpoint: subJson.endpoint,
+      keys: {
+        p256dh: subJson.keys.p256dh,
+        auth: subJson.keys.auth,
+      },
+    });
+
+    console.log('[Push Diagnostic] ✅ Push subscription synced successfully with backend!', syncRes.data);
+    return {
+      success: true,
+      message: 'Subscribed and synced with backend successfully!',
+      endpoint: subJson.endpoint
+    };
+  } catch (err: any) {
+    const errorMsg = err?.message || String(err);
+    console.error('❌ [Push Diagnostic Error] Unexpected failure during push subscription:', err);
+    return { success: false, message: `Subscription failed: ${errorMsg}` };
   }
-  return false;
 };
 
+export const getNotificationDebugInfo = async (): Promise<{
+  supported: boolean;
+  permission: NotificationPermission;
+  hasServiceWorker: boolean;
+  activeEndpoint: string | null;
+}> => {
+  const supported = isNotificationSupported();
+  const permission = getNotificationPermission();
+  const hasServiceWorker = typeof window !== 'undefined' && 'serviceWorker' in navigator;
+  let activeEndpoint: string | null = null;
+
+  if (hasServiceWorker && 'PushManager' in window) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const sub = await registration.pushManager.getSubscription();
+      if (sub?.endpoint) {
+        activeEndpoint = sub.endpoint;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return { supported, permission, hasServiceWorker, activeEndpoint };
+};
 
 export const triggerDelayedTestNotification = (delayMs: number = 3000): void => {
+  console.log(`[Push Diagnostic] 🧪 Scheduling delayed test notification in ${delayMs}ms...`);
   setTimeout(() => {
     sendInstantNotification(
       '🧪 Test Push Notification!',
@@ -188,3 +279,4 @@ export const triggerDelayedTestNotification = (delayMs: number = 3000): void => 
     );
   }, delayMs);
 };
+

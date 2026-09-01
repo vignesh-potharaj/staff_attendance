@@ -38,13 +38,44 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(getNotificationPermission());
   const [testCountdown, setTestCountdown] = useState<number | null>(null);
+  const [inAppToast, setInAppToast] = useState<{ title: string; body: string; time: string } | null>(null);
+  const [syncStatus, setSyncStatus] = useState<{ loading: boolean; message: string | null; error: boolean }>({
+    loading: false,
+    message: null,
+    error: false,
+  });
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [pushLogs, setPushLogs] = useState<string[]>([]);
   const isDevBranch = import.meta.env.VITE_APP_ENV === 'development' || import.meta.env.DEV;
 
+  const addLog = (msg: string) => {
+    const timeStr = new Date().toLocaleTimeString();
+    setPushLogs((prev) => [`[${timeStr}] ${msg}`, ...prev.slice(0, 19)]);
+  };
+
+  const handleForcePushSync = async () => {
+    setSyncStatus({ loading: true, message: 'Syncing push subscription with backend...', error: false });
+    addLog('Initiating force push subscription sync...');
+
+    const res = await subscribeUserToPush(api, true);
+    setSyncStatus({
+      loading: false,
+      message: res.message,
+      error: !res.success,
+    });
+    addLog(res.success ? `✅ Sync Success: ${res.message}` : `❌ Sync Failed: ${res.message}`);
+    setNotifPermission(getNotificationPermission());
+  };
+
   const handleEnableNotifications = async () => {
+    addLog('Requesting notification permission...');
     const perm = await requestNotificationPermission();
     setNotifPermission(perm);
     if (perm === 'granted') {
-      await subscribeUserToPush(api);
+      addLog('Permission granted! Syncing push endpoint...');
+      await handleForcePushSync();
+    } else {
+      addLog(`Permission result: '${perm}'`);
     }
   };
 
@@ -55,6 +86,7 @@ const Dashboard: React.FC = () => {
     }
 
     setTestCountdown(3);
+    addLog('🧪 Triggered 3s delayed test notification. Exit or minimize app now!');
     triggerDelayedTestNotification(3000);
 
     const interval = setInterval(() => {
@@ -67,11 +99,34 @@ const Dashboard: React.FC = () => {
       });
     }, 1000);
 
-    // Try to blur window or instruct user to minimize app
     setTimeout(() => {
       try { window.blur(); } catch {}
     }, 500);
   };
+
+  // Listen for Service Worker postMessage event when a push notification arrives
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleSwMessage = (event: MessageEvent) => {
+        if (event.data?.type === 'PUSH_NOTIFICATION_RECEIVED') {
+          const payload = event.data.data;
+          const timeStr = new Date().toLocaleTimeString();
+          console.log('🔔 [App Window] Received push notification message from SW:', payload);
+          setInAppToast({
+            title: payload?.title || 'Push Notification',
+            body: payload?.body || 'New alert received',
+            time: timeStr,
+          });
+          addLog(`🔔 Push Received: "${payload?.title || 'Alert'}" - ${payload?.body || ''}`);
+        }
+      };
+
+      navigator.serviceWorker.addEventListener('message', handleSwMessage);
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -81,7 +136,13 @@ const Dashboard: React.FC = () => {
       }
       try {
         if (getNotificationPermission() === 'granted') {
-          subscribeUserToPush(api).catch(() => {});
+          subscribeUserToPush(api).then((res) => {
+            if (res.success) {
+              addLog('Auto-synced push subscription on startup.');
+            }
+          }).catch((err) => {
+            addLog(`Auto-sync warning: ${err}`);
+          });
         }
         const [todayRes, monthlyRes] = await Promise.all([
           api.get(`/api/attendance/staff/${user.id}/today`),
@@ -117,29 +178,122 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      {/* Real-time In-App Push Banner Toast */}
+      {inAppToast && (
+        <div className="p-4 bg-blue-600 text-white rounded-2xl shadow-xl flex items-center justify-between animate-bounce border-2 border-white/20">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-xl shrink-0">
+              🔔
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-200">Live Push Received ({inAppToast.time})</p>
+              <p className="text-base font-extrabold">{inAppToast.title}</p>
+              <p className="text-xs text-blue-100 mt-0.5">{inAppToast.body}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setInAppToast(null)}
+            className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold text-white transition-colors"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="text-center sm:text-left">
           <p className="text-sm font-semibold text-blue-600">Staff Dashboard</p>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Welcome, {user?.name}</h1>
         </div>
 
-        {notifPermission === 'default' && (
-          <button
-            onClick={handleEnableNotifications}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg font-medium text-sm transition-colors"
-          >
-            <Bell className="w-4 h-4 text-blue-600" />
-            Enable Shift & Check-in Reminders
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {notifPermission === 'default' && (
+            <button
+              onClick={handleEnableNotifications}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg font-medium text-sm transition-colors"
+            >
+              <Bell className="w-4 h-4 text-blue-600" />
+              Enable Shift & Check-in Reminders
+            </button>
+          )}
 
-        {notifPermission === 'granted' && (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium self-start sm:self-center">
-            <Bell className="w-3.5 h-3.5 text-emerald-600" />
-            Notifications Active
-          </div>
-        )}
+          {notifPermission === 'granted' && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-medium">
+              <Bell className="w-3.5 h-3.5 text-emerald-600" />
+              Notifications Active
+            </div>
+          )}
+
+          <button
+            onClick={() => setShowDiagnostics(!showDiagnostics)}
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200"
+          >
+            {showDiagnostics ? 'Hide Push Debugger' : '🛠️ Push Debugger'}
+          </button>
+        </div>
       </div>
+
+      {/* Push Notification Diagnostic & Repair Card */}
+      {showDiagnostics && (
+        <div className="p-5 bg-slate-900 text-slate-100 rounded-2xl shadow-xl space-y-4 border border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🛠️</span>
+              <h3 className="text-base font-bold text-white">Push Notification Diagnostics & Repair</h3>
+            </div>
+            <button
+              onClick={handleForcePushSync}
+              disabled={syncStatus.loading}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+            >
+              {syncStatus.loading ? 'Syncing...' : '🔄 Force Re-Sync Push Subscription'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+              <p className="text-slate-400 font-bold uppercase text-[10px]">Permission State</p>
+              <p className={`text-sm font-extrabold mt-1 capitalize ${notifPermission === 'granted' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {notifPermission}
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+              <p className="text-slate-400 font-bold uppercase text-[10px]">Service Worker</p>
+              <p className="text-sm font-extrabold mt-1 text-emerald-400">
+                {'serviceWorker' in navigator ? 'Active' : 'Not Supported'}
+              </p>
+            </div>
+
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+              <p className="text-slate-400 font-bold uppercase text-[10px]">Environment</p>
+              <p className="text-sm font-extrabold mt-1 text-purple-400">
+                {isDevBranch ? 'Development (DEV)' : 'Production'}
+              </p>
+            </div>
+          </div>
+
+          {syncStatus.message && (
+            <div className={`p-3 rounded-xl text-xs font-semibold ${syncStatus.error ? 'bg-red-950/80 border border-red-800 text-red-300' : 'bg-emerald-950/80 border border-emerald-800 text-emerald-300'}`}>
+              {syncStatus.message}
+            </div>
+          )}
+
+          {/* Diagnostic Console Output Box */}
+          <div className="space-y-1.5">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Diagnostic Console Logs</p>
+            <div className="p-3 bg-black/90 rounded-xl font-mono text-[11px] text-emerald-400 max-h-40 overflow-y-auto space-y-1 border border-slate-800">
+              {pushLogs.length === 0 ? (
+                <p className="text-slate-500 italic">No diagnostic events recorded yet. Click "Force Re-Sync" or "Test Push Notification" above.</p>
+              ) : (
+                pushLogs.map((log, i) => (
+                  <p key={i} className="leading-relaxed">{log}</p>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDevBranch && (
         <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3">
