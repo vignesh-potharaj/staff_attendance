@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, BellOff, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Battery, Bell, BellOff, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { BatteryPermissionModal } from '../components/BatteryPermissionModal';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -45,6 +46,7 @@ const Dashboard: React.FC = () => {
     error: false,
   });
   const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [showBatteryModal, setShowBatteryModal] = useState(false);
   const [pushLogs, setPushLogs] = useState<string[]>([]);
   const isDevBranch = import.meta.env.VITE_APP_ENV === 'development' || import.meta.env.DEV;
 
@@ -252,6 +254,14 @@ const Dashboard: React.FC = () => {
           )}
 
           <button
+            onClick={() => setShowBatteryModal(true)}
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-lg text-xs transition-all shadow-sm active:scale-95"
+          >
+            <Battery className="w-4 h-4 text-slate-950" />
+            <span>⚡ Battery Settings (Closed-App Alerts)</span>
+          </button>
+
+          <button
             onClick={() => setShowDiagnostics(!showDiagnostics)}
             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200"
           >
@@ -259,6 +269,32 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Prominent Battery Optimization Action Card */}
+      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl shrink-0">
+            <Battery className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm sm:text-base text-white">Closed-App Notifications Setup</h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Allow background activity in phone battery settings to get shift alerts when app is closed.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowBatteryModal(true)}
+          className="w-full sm:w-auto px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-95 shrink-0"
+        >
+          <span>YES, OPEN BATTERY SETTINGS</span>
+        </button>
+      </div>
+
+      <BatteryPermissionModal
+        isOpen={showBatteryModal}
+        onClose={() => setShowBatteryModal(false)}
+      />
 
       {/* Push Notification Diagnostic & Repair Card */}
       {showDiagnostics && (
