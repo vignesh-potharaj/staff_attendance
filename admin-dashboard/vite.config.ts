@@ -7,6 +7,7 @@ function dynamicPwaManifestPlugin() {
     generateBundle(this: any) {
       const isDev = process.env.VITE_APP_ENV === 'development' || 
                     process.env.VERCEL_ENV === 'preview';
+      const iconPrefix = isDev ? 'dev-icon' : 'icon';
 
       const manifestData = {
         name: isDev ? "Smart Admin (DEV)" : "Smart Attendance Admin",
@@ -28,11 +29,11 @@ function dynamicPwaManifestPlugin() {
           client_mode: ["navigate-existing", "auto"]
         },
         icons: [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+          { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "maskable" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any maskable" }
         ],
         screenshots: [
           { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Login Screen" },
@@ -41,8 +42,8 @@ function dynamicPwaManifestPlugin() {
           { src: "/screenshots/users.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "User Administration" }
         ],
         shortcuts: [
-          { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-          { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
+          { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] },
+          { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] }
         ]
       };
 
@@ -56,6 +57,7 @@ function dynamicPwaManifestPlugin() {
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url === '/manifest.json') {
           const isDev = process.env.VITE_APP_ENV !== 'production';
+          const iconPrefix = isDev ? 'dev-icon' : 'icon';
           const manifestData = {
             name: isDev ? "Smart Admin (DEV)" : "Smart Attendance Admin",
             short_name: isDev ? "Admin (DEV)" : "SmartAdmin",
@@ -76,11 +78,11 @@ function dynamicPwaManifestPlugin() {
               client_mode: ["navigate-existing", "auto"]
             },
             icons: [
-              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+              { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+              { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "maskable" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any maskable" }
             ],
             screenshots: [
               { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Login Screen" },
@@ -89,8 +91,8 @@ function dynamicPwaManifestPlugin() {
               { src: "/screenshots/users.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "User Administration" }
             ],
             shortcuts: [
-              { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-              { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
+              { name: "Attendance Records", short_name: "Attendance", description: "View daily staff attendance records", url: "/attendance", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] },
+              { name: "User Management", short_name: "Users", description: "Manage registered staff members", url: "/users", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] }
             ]
           };
           res.setHeader('Content-Type', 'application/json');

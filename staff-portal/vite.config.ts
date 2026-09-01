@@ -8,6 +8,7 @@ function dynamicPwaManifestPlugin() {
     generateBundle(this: any) {
       const isDev = process.env.VITE_APP_ENV === 'development' || 
                     process.env.VERCEL_ENV === 'preview';
+      const iconPrefix = isDev ? 'dev-icon' : 'icon';
 
       const manifestData = {
         name: isDev ? "Smart Staff (DEV)" : "Smart Staff Attendance",
@@ -29,19 +30,19 @@ function dynamicPwaManifestPlugin() {
           client_mode: ["navigate-existing", "auto"]
         },
         icons: [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+          { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "maskable" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any maskable" }
         ],
         screenshots: [
           { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Staff Login" },
           { src: "/screenshots/login_mobile.png", sizes: "375x812", type: "image/png", form_factor: "narrow", label: "Staff Mobile Portal" }
         ],
         shortcuts: [
-          { name: "Mark Attendance", short_name: "Mark", description: "Quickly mark staff attendance", url: "/staff/mark-attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-          { name: "Attendance History", short_name: "History", description: "View past attendance records", url: "/staff/attendance-history", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
+          { name: "Mark Attendance", short_name: "Mark", description: "Quickly mark staff attendance", url: "/staff/mark-attendance", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] },
+          { name: "Attendance History", short_name: "History", description: "View past attendance records", url: "/staff/attendance-history", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] }
         ]
       };
 
@@ -55,6 +56,7 @@ function dynamicPwaManifestPlugin() {
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url === '/manifest.json') {
           const isDev = process.env.VITE_APP_ENV !== 'production';
+          const iconPrefix = isDev ? 'dev-icon' : 'icon';
           const manifestData = {
             name: isDev ? "Smart Staff (DEV)" : "Smart Staff Attendance",
             short_name: isDev ? "Smart (DEV)" : "SmartStaff",
@@ -75,19 +77,19 @@ function dynamicPwaManifestPlugin() {
               client_mode: ["navigate-existing", "auto"]
             },
             icons: [
-              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-              { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-              { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+              { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "any" },
+              { src: `/icons/${iconPrefix}-192.png`, sizes: "192x192", type: "image/png", purpose: "maskable" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "maskable" },
+              { src: `/icons/${iconPrefix}-512.png`, sizes: "512x512", type: "image/png", purpose: "any maskable" }
             ],
             screenshots: [
               { src: "/screenshots/login.png", sizes: "1000x1000", type: "image/png", form_factor: "narrow", label: "Staff Login" },
               { src: "/screenshots/login_mobile.png", sizes: "375x812", type: "image/png", form_factor: "narrow", label: "Staff Mobile Portal" }
             ],
             shortcuts: [
-              { name: "Mark Attendance", short_name: "Mark", description: "Quickly mark staff attendance", url: "/staff/mark-attendance", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-              { name: "Attendance History", short_name: "History", description: "View past attendance records", url: "/staff/attendance-history", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] }
+              { name: "Mark Attendance", short_name: "Mark", description: "Quickly mark staff attendance", url: "/staff/mark-attendance", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] },
+              { name: "Attendance History", short_name: "History", description: "View past attendance records", url: "/staff/attendance-history", icons: [{ src: `/icons/${iconPrefix}-192.png`, sizes: "192x192" }] }
             ]
           };
           res.setHeader('Content-Type', 'application/json');
