@@ -167,8 +167,8 @@ const Dashboard: React.FC = () => {
           });
         }
         const [todayRes, monthlyRes] = await Promise.all([
-          api.get(`/api/attendance/staff/${user.id}/today`),
-          api.get(`/api/attendance/staff/${user.id}/monthly`),
+          api.get(`/attendance/staff/${user.id}/today`),
+          api.get(`/attendance/staff/${user.id}/monthly`),
         ]);
         setToday(todayRes.data);
         setMonthly(monthlyRes.data);
@@ -247,10 +247,14 @@ const Dashboard: React.FC = () => {
           )}
 
           {notifPermission === 'denied' && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold">
+            <button
+              onClick={handleEnableNotifications}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+              title="Click to sync notification permissions with browser/app"
+            >
               <BellOff className="w-3.5 h-3.5 text-amber-600" />
-              Notifications Blocked in Settings
-            </div>
+              <span>Notifications Blocked (Click to Sync)</span>
+            </button>
           )}
 
           <button

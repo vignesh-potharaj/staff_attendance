@@ -36,7 +36,7 @@ const History: React.FC = () => {
         return;
       }
       try {
-        const response = await api.get(`/api/attendance/staff/${user.id}`);
+        const response = await api.get(`/attendance/staff/${user.id}`);
         setRecords(response.data);
       } catch {
         console.error('Failed to fetch history');
