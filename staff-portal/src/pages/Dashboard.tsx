@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BatteryPermissionModal } from '../components/BatteryPermissionModal';
+import { checkNativeNotificationPermission, checkNativeBatteryOptimizationStatus } from '../native/batteryPlugin';
 import {
   getNotificationPermission,
   requestNotificationPermission,
@@ -47,13 +48,22 @@ const Dashboard: React.FC = () => {
   });
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [showBatteryModal, setShowBatteryModal] = useState(false);
+  const [isBatteryIgnored, setIsBatteryIgnored] = useState<boolean>(false);
   const [pushLogs, setPushLogs] = useState<string[]>([]);
   const isDevBranch = import.meta.env.VITE_APP_ENV === 'development' || import.meta.env.DEV;
 
   // Dynamically sync permission state when window regains focus or visibility changes
   useEffect(() => {
-    const syncPermission = () => {
-      const current = getNotificationPermission();
+    const syncPermission = async () => {
+      let current = getNotificationPermission();
+      try {
+        const nativePerm = await checkNativeNotificationPermission();
+        if (nativePerm === 'granted') {
+          current = 'granted';
+        }
+        const batteryStatus = await checkNativeBatteryOptimizationStatus();
+        setIsBatteryIgnored(batteryStatus);
+      } catch {}
       setNotifPermission(current);
     };
 
@@ -157,7 +167,8 @@ const Dashboard: React.FC = () => {
         return;
       }
       try {
-        if (getNotificationPermission() === 'granted') {
+        const nativePerm = await checkNativeNotificationPermission();
+        if (getNotificationPermission() === 'granted' || nativePerm === 'granted') {
           subscribeUserToPush(api).then((res) => {
             if (res.success) {
               addLog('Auto-synced push subscription on startup.');
@@ -274,8 +285,9 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Prominent Battery Optimization Action Card */}
-      <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Prominent Battery Optimization Action Card - Auto-hidden once unrestricted */}
+      {!isBatteryIgnored && (
+        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 rounded-2xl shadow-lg border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl shrink-0">
             <Battery className="w-6 h-6" />
@@ -294,6 +306,7 @@ const Dashboard: React.FC = () => {
           <span>YES, OPEN BATTERY SETTINGS</span>
         </button>
       </div>
+      )}
 
       <BatteryPermissionModal
         isOpen={showBatteryModal}

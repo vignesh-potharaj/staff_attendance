@@ -2,6 +2,8 @@ import { registerPlugin, Capacitor } from '@capacitor/core';
 
 export interface BatteryOptimizationPlugin {
   requestIgnoreBatteryOptimizations(): Promise<{ status: string }>;
+  checkNotificationPermission(): Promise<{ granted: boolean; permission: 'granted' | 'denied' }>;
+  isBatteryOptimizationIgnored(): Promise<{ isIgnored: boolean }>;
 }
 
 const BatteryOptimization = registerPlugin<BatteryOptimizationPlugin>('BatteryOptimization');
@@ -16,10 +18,37 @@ export const requestIgnoreBatteryOptimizations = async (): Promise<boolean> => {
     }
   }
   
-  // Fallback for Web/PWA or if native call fails
+  // Fallback for Web/PWA
   const a = document.createElement('a');
   a.href = 'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end';
   a.click();
+  return false;
+};
+
+export const checkNativeNotificationPermission = async (): Promise<'granted' | 'denied' | 'default'> => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await BatteryOptimization.checkNotificationPermission();
+      return res.permission;
+    } catch (err) {
+      console.warn('Native notification permission check error:', err);
+    }
+  }
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    return Notification.permission;
+  }
+  return 'denied';
+};
+
+export const checkNativeBatteryOptimizationStatus = async (): Promise<boolean> => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await BatteryOptimization.isBatteryOptimizationIgnored();
+      return res.isIgnored;
+    } catch {
+      return false;
+    }
+  }
   return false;
 };
 

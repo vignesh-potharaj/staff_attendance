@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
+import androidx.core.app.NotificationManagerCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -51,6 +52,39 @@ public class BatteryOptimizationPlugin extends Plugin {
             } catch (Exception ex) {
                 call.reject("Failed to request battery optimization prompt: " + ex.getMessage());
             }
+        }
+    }
+
+    @PluginMethod
+    public void checkNotificationPermission(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            boolean enabled = NotificationManagerCompat.from(getContext()).areNotificationsEnabled();
+            ret.put("granted", enabled);
+            ret.put("permission", enabled ? "granted" : "denied");
+            call.resolve(ret);
+        } catch (Exception e) {
+            ret.put("granted", false);
+            ret.put("permission", "denied");
+            call.resolve(ret);
+        }
+    }
+
+    @PluginMethod
+    public void isBatteryOptimizationIgnored(PluginCall call) {
+        JSObject ret = new JSObject();
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PowerManager pm = (PowerManager) getContext().getSystemService(Context.POWER_SERVICE);
+                boolean isIgnored = pm != null && pm.isIgnoringBatteryOptimizations(getContext().getPackageName());
+                ret.put("isIgnored", isIgnored);
+            } else {
+                ret.put("isIgnored", true);
+            }
+            call.resolve(ret);
+        } catch (Exception e) {
+            ret.put("isIgnored", false);
+            call.resolve(ret);
         }
     }
 }
