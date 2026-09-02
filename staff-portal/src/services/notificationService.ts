@@ -1,5 +1,5 @@
 /**
- * Browser Notification & Native Capacitor Push Notification Helper Service
+ * Browser Notification & WebPush VAPID Helper Service (Web PWA + Capacitor Native)
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -134,61 +134,22 @@ export const subscribeUserToPush = async (
   apiClient: { get: Function; post: Function },
   forceRefresh: boolean = false
 ): Promise<{ success: boolean; message: string; endpoint?: string }> => {
-  console.log(`[Push Diagnostic] 🔍 Initiating push subscription on ${Capacitor.isNativePlatform() ? 'Native Android' : 'Web/PWA'}`);
+  console.log(`[Push Diagnostic] 🔍 Initiating WebPush VAPID subscription on ${Capacitor.isNativePlatform() ? 'Native Android App' : 'Web/PWA'}`);
 
-  // 1. Native Capacitor Android FCM Registration
+  // Request native permission first if on Capacitor Android
   if (Capacitor.isNativePlatform()) {
     try {
       let permStatus = await PushNotifications.checkPermissions();
       if (permStatus.receive !== 'granted') {
-        permStatus = await PushNotifications.requestPermissions();
+        await PushNotifications.requestPermissions();
       }
-
-      if (permStatus.receive === 'granted') {
-        await PushNotifications.register();
-        return new Promise((resolve) => {
-          PushNotifications.addListener('registration', async (token) => {
-            console.log('[Push Diagnostic] 📲 Native FCM Token registered:', token.value);
-            try {
-              await apiClient.post('/notifications/subscribe', {
-                endpoint: `fcm_${token.value}`,
-                keys: { p256dh: 'native_fcm', auth: 'native_fcm' }
-              });
-              resolve({
-                success: true,
-                message: 'Native Android FCM Token registered & synced with backend!',
-                endpoint: token.value
-              });
-            } catch (syncErr: any) {
-              resolve({
-                success: false,
-                message: `Failed to sync native FCM token: ${syncErr?.message || syncErr}`
-              });
-            }
-          });
-
-          PushNotifications.addListener('registrationError', (err) => {
-            console.error('[Push Diagnostic] Native FCM registration error:', err);
-            resolve({ success: false, message: `Native FCM Registration Error: ${JSON.stringify(err)}` });
-          });
-        });
-      } else {
-        return { success: false, message: 'Native Android notification permission was denied.' };
-      }
-    } catch (nativeErr: any) {
-      console.warn('[Push Diagnostic] Native push registration failed, falling back to WebPush:', nativeErr);
+    } catch (err) {
+      console.warn('Native permission check exception:', err);
     }
   }
 
-  // 2. Browser WebPush Registration Fallback
   const perm = getNotificationPermission();
-  if (!isNotificationSupported()) {
-    const msg = 'Notification API is not supported in this browser.';
-    console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
-    return { success: false, message: msg };
-  }
-
-  if (perm !== 'granted') {
+  if (perm !== 'granted' && !Capacitor.isNativePlatform()) {
     const msg = `Notification permission is '${perm}'. User must allow notifications.`;
     console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
     return { success: false, message: msg };
@@ -261,7 +222,7 @@ export const subscribeUserToPush = async (
     }
 
     if (!subscription) {
-      const msg = 'Browser failed to create Web Push subscription endpoint.';
+      const msg = 'Browser/App failed to create Web Push subscription endpoint.';
       console.error(`[Push Diagnostic] ❌ ${msg}`);
       return { success: false, message: msg };
     }
@@ -273,8 +234,8 @@ export const subscribeUserToPush = async (
       return { success: false, message: msg };
     }
 
-    console.log('[Push Diagnostic] 🚀 Syncing push subscription keys with backend POST /notifications/subscribe...');
-    const syncRes = await apiClient.post('/notifications/subscribe', {
+    console.log('[Push Diagnostic] 🚀 Syncing VAPID push subscription keys with backend POST /notifications/subscribe...');
+    await apiClient.post('/notifications/subscribe', {
       endpoint: subJson.endpoint,
       keys: {
         p256dh: subJson.keys.p256dh,
@@ -282,10 +243,10 @@ export const subscribeUserToPush = async (
       },
     });
 
-    console.log('[Push Diagnostic] ✅ Push subscription synced successfully with backend!', syncRes.data);
+    console.log('[Push Diagnostic] ✅ WebPush VAPID subscription synced successfully with backend!');
     return {
       success: true,
-      message: 'Subscribed and synced with backend successfully!',
+      message: 'Subscribed and synced WebPush VAPID keys successfully!',
       endpoint: subJson.endpoint
     };
   } catch (err: any) {
