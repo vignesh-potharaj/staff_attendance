@@ -175,8 +175,8 @@ class PushSubscription(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     endpoint = Column(Text, nullable=False, unique=True, index=True)
-    p256dh = Column(Text, nullable=False)
-    auth = Column(Text, nullable=False)
+    p256dh = Column(Text, nullable=True)
+    auth = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     user = relationship("User")

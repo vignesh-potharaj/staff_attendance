@@ -5,6 +5,8 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import MarkAttendance from './pages/MarkAttendance';
 import History from './pages/History';
+import { useEffect } from 'react';
+import { initNativePushListeners } from './services/notificationService';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -20,6 +22,10 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 };
 
 function App() {
+  useEffect(() => {
+    initNativePushListeners();
+  }, []);
+
   return (
     <Router>
       <AuthProvider>

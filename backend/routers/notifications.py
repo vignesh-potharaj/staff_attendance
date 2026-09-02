@@ -25,13 +25,13 @@ router = APIRouter(
 
 
 class PushKeysSchema(BaseModel):
-    p256dh: str
-    auth: str
+    p256dh: Optional[str] = None
+    auth: Optional[str] = None
 
 
 class PushSubscribeRequest(BaseModel):
     endpoint: str
-    keys: PushKeysSchema
+    keys: Optional[PushKeysSchema] = None
 
 
 class PushUnsubscribeRequest(BaseModel):
@@ -56,28 +56,30 @@ def subscribe_web_push(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Register or update a user's browser Web Push subscription."""
+    """Register or update a user's browser Web Push subscription or native FCM token."""
     user_record = current_user
     endpoint = payload.endpoint.strip()
+    p256dh = payload.keys.p256dh if payload.keys and payload.keys.p256dh else "native_fcm"
+    auth = payload.keys.auth if payload.keys and payload.keys.auth else "native_fcm"
 
     existing = db.query(PushSubscription).filter(PushSubscription.endpoint == endpoint).first()
     if existing:
         existing.user_id = user_record.id
         existing.tenant_id = user_record.tenant_id
-        existing.p256dh = payload.keys.p256dh
-        existing.auth = payload.keys.auth
+        existing.p256dh = p256dh
+        existing.auth = auth
     else:
         new_sub = PushSubscription(
             user_id=user_record.id,
             tenant_id=user_record.tenant_id,
             endpoint=endpoint,
-            p256dh=payload.keys.p256dh,
-            auth=payload.keys.auth
+            p256dh=p256dh,
+            auth=auth
         )
         db.add(new_sub)
 
     db.commit()
-    logger.info(f"✅ Web Push subscription saved for user ID {user_record.id}")
+    logger.info(f"✅ Push subscription saved for user ID {user_record.id}")
     return {"status": "success", "message": "Subscribed to push notifications successfully."}
 
 

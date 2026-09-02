@@ -1,17 +1,32 @@
 /**
- * Browser Notification & Service Worker Notification Helper Service
+ * Browser Notification & Native Capacitor Push Notification Helper Service
  */
 
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
+
 export const isNotificationSupported = (): boolean => {
+  if (Capacitor.isNativePlatform()) return true;
   return typeof window !== 'undefined' && 'Notification' in window;
 };
 
 export const getNotificationPermission = (): NotificationPermission => {
   if (!isNotificationSupported()) return 'denied';
-  return Notification.permission;
+  if (typeof window !== 'undefined' && 'Notification' in window) {
+    return Notification.permission;
+  }
+  return 'default';
 };
 
 export const requestNotificationPermission = async (): Promise<NotificationPermission> => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const res = await PushNotifications.requestPermissions();
+      return res.receive === 'granted' ? 'granted' : 'denied';
+    } catch {
+      return 'denied';
+    }
+  }
   if (!isNotificationSupported()) return 'denied';
   try {
     const permission = await Notification.requestPermission();
@@ -27,9 +42,7 @@ export const sendInstantNotification = async (
   body: string,
   options?: NotificationOptions
 ): Promise<void> => {
-  if (!isNotificationSupported() || getNotificationPermission() !== 'granted') {
-    return;
-  }
+  if (!isNotificationSupported()) return;
 
   const defaultOptions: NotificationOptions = {
     body,
@@ -61,9 +74,7 @@ let shiftStartTimeout: number | null = null;
 let shiftEndTimeout: number | null = null;
 
 export const scheduleShiftReminders = (startTimeStr?: string | null, endTimeStr?: string | null): void => {
-  if (!isNotificationSupported() || getNotificationPermission() !== 'granted') {
-    return;
-  }
+  if (!isNotificationSupported()) return;
 
   if (shiftStartTimeout) clearTimeout(shiftStartTimeout);
   if (shiftEndTimeout) clearTimeout(shiftEndTimeout);
@@ -123,9 +134,54 @@ export const subscribeUserToPush = async (
   apiClient: { get: Function; post: Function },
   forceRefresh: boolean = false
 ): Promise<{ success: boolean; message: string; endpoint?: string }> => {
-  const perm = getNotificationPermission();
-  console.log(`[Push Diagnostic] 🔍 Initiating push subscription. Permission state: '${perm}'`);
+  console.log(`[Push Diagnostic] 🔍 Initiating push subscription on ${Capacitor.isNativePlatform() ? 'Native Android' : 'Web/PWA'}`);
 
+  // 1. Native Capacitor Android FCM Registration
+  if (Capacitor.isNativePlatform()) {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive !== 'granted') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+
+      if (permStatus.receive === 'granted') {
+        await PushNotifications.register();
+        return new Promise((resolve) => {
+          PushNotifications.addListener('registration', async (token) => {
+            console.log('[Push Diagnostic] 📲 Native FCM Token registered:', token.value);
+            try {
+              await apiClient.post('/notifications/subscribe', {
+                endpoint: `fcm_${token.value}`,
+                keys: { p256dh: 'native_fcm', auth: 'native_fcm' }
+              });
+              resolve({
+                success: true,
+                message: 'Native Android FCM Token registered & synced with backend!',
+                endpoint: token.value
+              });
+            } catch (syncErr: any) {
+              resolve({
+                success: false,
+                message: `Failed to sync native FCM token: ${syncErr?.message || syncErr}`
+              });
+            }
+          });
+
+          PushNotifications.addListener('registrationError', (err) => {
+            console.error('[Push Diagnostic] Native FCM registration error:', err);
+            resolve({ success: false, message: `Native FCM Registration Error: ${JSON.stringify(err)}` });
+          });
+        });
+      } else {
+        return { success: false, message: 'Native Android notification permission was denied.' };
+      }
+    } catch (nativeErr: any) {
+      console.warn('[Push Diagnostic] Native push registration failed, falling back to WebPush:', nativeErr);
+    }
+  }
+
+  // 2. Browser WebPush Registration Fallback
+  const perm = getNotificationPermission();
   if (!isNotificationSupported()) {
     const msg = 'Notification API is not supported in this browser.';
     console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
@@ -188,7 +244,6 @@ export const subscribeUserToPush = async (
       } catch (subErr: any) {
         console.error('[Push Diagnostic] ❌ PushManager.subscribe() threw an error:', subErr);
 
-        // If subscription failed due to key mismatch or corrupt state, attempt 1 reset retry
         if (existingSub) {
           try {
             console.log('[Push Diagnostic] Attempting emergency un-register retry...');
@@ -240,30 +295,19 @@ export const subscribeUserToPush = async (
   }
 };
 
-export const getNotificationDebugInfo = async (): Promise<{
-  supported: boolean;
-  permission: NotificationPermission;
-  hasServiceWorker: boolean;
-  activeEndpoint: string | null;
-}> => {
-  const supported = isNotificationSupported();
-  const permission = getNotificationPermission();
-  const hasServiceWorker = typeof window !== 'undefined' && 'serviceWorker' in navigator;
-  let activeEndpoint: string | null = null;
-
-  if (hasServiceWorker && 'PushManager' in window) {
+export const initNativePushListeners = (): void => {
+  if (Capacitor.isNativePlatform()) {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      const sub = await registration.pushManager.getSubscription();
-      if (sub?.endpoint) {
-        activeEndpoint = sub.endpoint;
-      }
-    } catch {
-      // Ignore
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('🔔 Native Push Notification Received:', notification);
+      });
+      PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+        console.log('🔔 Native Push Action Performed:', notification);
+      });
+    } catch (err) {
+      console.warn('Failed to initialize native push listeners:', err);
     }
   }
-
-  return { supported, permission, hasServiceWorker, activeEndpoint };
 };
 
 export const triggerDelayedTestNotification = (delayMs: number = 3000): void => {
@@ -271,7 +315,7 @@ export const triggerDelayedTestNotification = (delayMs: number = 3000): void => 
   setTimeout(() => {
     sendInstantNotification(
       '🧪 Test Push Notification!',
-      'This is a delayed test notification received from Smart Staff (DEV).',
+      'This is a delayed test notification received from Smart Staff.',
       {
         tag: 'delayed-test-notification',
         data: { url: '/staff/dashboard' }
@@ -279,4 +323,3 @@ export const triggerDelayedTestNotification = (delayMs: number = 3000): void => 
     );
   }, delayMs);
 };
-
