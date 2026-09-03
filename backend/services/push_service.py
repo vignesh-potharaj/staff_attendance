@@ -41,7 +41,9 @@ def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, 
 
     headers = {
         "Authorization": f"key={FCM_SERVER_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "TTL": "86400",
+        "Urgency": "high"
     }
 
     # Attempt 1: Direct Token WebPush Endpoint (Supported on all Firebase projects)
