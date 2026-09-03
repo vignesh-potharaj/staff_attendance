@@ -1,5 +1,5 @@
 /**
- * Browser Notification & WebPush VAPID Helper Service (Web PWA + Capacitor Native)
+ * Option 2: Dual-Platform Notification Service (WebPush VAPID for PWA + Native FCM for Android APK)
  */
 
 import { Capacitor } from '@capacitor/core';
@@ -134,107 +134,148 @@ export const subscribeUserToPush = async (
   apiClient: { get: Function; post: Function },
   forceRefresh: boolean = false
 ): Promise<{ success: boolean; message: string; endpoint?: string }> => {
-  console.log(`[Push Diagnostic] 🔍 Initiating WebPush VAPID subscription on ${Capacitor.isNativePlatform() ? 'Native Android App' : 'Web/PWA'}`);
+  console.log(`[Push Service Option 2] 🔍 Initiating subscription on ${Capacitor.isNativePlatform() ? 'Native Android App (FCM Token)' : 'Web PWA (VAPID Keys)'}`);
 
-  // Request native permission first if on Capacitor Android
+  // -------------------------------------------------------------
+  // PATHWAY 1: NATIVE ANDROID APK (FCM TOKEN REGISTRATION)
+  // -------------------------------------------------------------
   if (Capacitor.isNativePlatform()) {
     try {
       let permStatus = await PushNotifications.checkPermissions();
       if (permStatus.receive !== 'granted') {
-        await PushNotifications.requestPermissions();
+        permStatus = await PushNotifications.requestPermissions();
       }
-    } catch (err) {
-      console.warn('Native permission check exception:', err);
+
+      if (permStatus.receive === 'granted') {
+        await PushNotifications.register();
+        return new Promise((resolve) => {
+          PushNotifications.addListener('registration', async (token) => {
+            console.log('[Push Service] 📲 Native FCM Token registered:', token.value);
+            try {
+              await apiClient.post('/notifications/subscribe', {
+                endpoint: `fcm_${token.value}`,
+                keys: { p256dh: 'native_fcm', auth: 'native_fcm' }
+              });
+              resolve({
+                success: true,
+                message: 'Native Android FCM Token registered & synced with backend!',
+                endpoint: token.value
+              });
+            } catch (syncErr: any) {
+              resolve({
+                success: false,
+                message: `Failed to sync native FCM token: ${syncErr?.message || syncErr}`
+              });
+            }
+          });
+
+          PushNotifications.addListener('registrationError', (err) => {
+            console.error('[Push Service] Native FCM registration error:', err);
+            resolve({ success: false, message: `Native FCM Error: ${JSON.stringify(err)}` });
+          });
+        });
+      } else {
+        return { success: false, message: 'Native Android notification permission was denied.' };
+      }
+    } catch (nativeErr: any) {
+      console.warn('[Push Service] Native FCM registration exception:', nativeErr);
+      return { success: false, message: `Native FCM registration exception: ${nativeErr?.message || nativeErr}` };
     }
   }
 
+  // -------------------------------------------------------------
+  // PATHWAY 2: WEB PWA BROWSER (VAPID WEBPUSH REGISTRATION)
+  // -------------------------------------------------------------
   const perm = getNotificationPermission();
-  if (perm !== 'granted' && !Capacitor.isNativePlatform()) {
+  if (!isNotificationSupported()) {
+    const msg = 'Notification API is not supported in this browser.';
+    console.warn(`[Push Service] ⚠️ ${msg}`);
+    return { success: false, message: msg };
+  }
+
+  if (perm !== 'granted') {
     const msg = `Notification permission is '${perm}'. User must allow notifications.`;
-    console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
+    console.warn(`[Push Service] ⚠️ ${msg}`);
     return { success: false, message: msg };
   }
 
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
       const msg = 'ServiceWorker or PushManager is not supported in this browser.';
-      console.warn(`[Push Diagnostic] ⚠️ ${msg}`);
+      console.warn(`[Push Service] ⚠️ ${msg}`);
       return { success: false, message: msg };
     }
 
-    console.log('[Push Diagnostic] ⏳ Waiting for ServiceWorker registration...');
+    console.log('[Push Service] ⏳ Waiting for ServiceWorker registration...');
     const registration = await navigator.serviceWorker.ready;
-    console.log('[Push Diagnostic] ✅ ServiceWorker ready. Active worker scope:', registration.scope);
+    console.log('[Push Service] ✅ ServiceWorker ready. Scope:', registration.scope);
 
     let existingSub = await registration.pushManager.getSubscription();
 
     if (existingSub && forceRefresh) {
-      console.log('[Push Diagnostic] 🔄 Force refresh requested. Unsubscribing stale endpoint...');
+      console.log('[Push Service] 🔄 Force refresh requested. Unsubscribing stale endpoint...');
       try {
         await existingSub.unsubscribe();
-        console.log('[Push Diagnostic] 🗑️ Stale subscription unsubscribed.');
         existingSub = null;
       } catch (unsubErr) {
-        console.warn('[Push Diagnostic] Failed to unsubscribe stale push endpoint:', unsubErr);
+        console.warn('[Push Service] Failed to unsubscribe stale push endpoint:', unsubErr);
       }
     }
 
-    console.log('[Push Diagnostic] 🔑 Fetching VAPID public key from /notifications/vapid-public-key...');
+    console.log('[Push Service] 🔑 Fetching VAPID public key from /notifications/vapid-public-key...');
     const keyRes = await apiClient.get('/notifications/vapid-public-key');
     const publicKey = keyRes.data?.publicKey;
 
     if (!publicKey) {
       const msg = 'Backend returned empty VAPID public key.';
-      console.error(`[Push Diagnostic] ❌ ${msg}`);
+      console.error(`[Push Service] ❌ ${msg}`);
       return { success: false, message: msg };
     }
 
-    console.log(`[Push Diagnostic] 🔑 Received VAPID Public Key (${publicKey.length} chars):`, publicKey);
+    console.log(`[Push Service] 🔑 Received VAPID Public Key (${publicKey.length} chars):`, publicKey);
     const convertedKey = urlBase64ToUint8Array(publicKey);
 
     let subscription = existingSub;
 
     if (!subscription) {
-      console.log('[Push Diagnostic] 📲 Calling PushManager.subscribe()...');
+      console.log('[Push Service] 📲 Calling PushManager.subscribe()...');
       try {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedKey as any,
         });
-        console.log('[Push Diagnostic] 🎉 PushManager.subscribe() succeeded!');
+        console.log('[Push Service] 🎉 PushManager.subscribe() succeeded!');
       } catch (subErr: any) {
-        console.error('[Push Diagnostic] ❌ PushManager.subscribe() threw an error:', subErr);
+        console.error('[Push Service] ❌ PushManager.subscribe() threw an error:', subErr);
 
         if (existingSub) {
           try {
-            console.log('[Push Diagnostic] Attempting emergency un-register retry...');
             await existingSub.unsubscribe();
             subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: convertedKey as any,
             });
-            console.log('[Push Diagnostic] 🎉 Emergency retry PushManager.subscribe() succeeded!');
           } catch (retryErr) {
-            console.error('[Push Diagnostic] ❌ Emergency retry failed:', retryErr);
+            console.error('[Push Service] ❌ Emergency retry failed:', retryErr);
           }
         }
       }
     }
 
     if (!subscription) {
-      const msg = 'Browser/App failed to create Web Push subscription endpoint.';
-      console.error(`[Push Diagnostic] ❌ ${msg}`);
+      const msg = 'Browser failed to create Web Push subscription endpoint.';
+      console.error(`[Push Service] ❌ ${msg}`);
       return { success: false, message: msg };
     }
 
     const subJson = subscription.toJSON();
     if (!subJson.endpoint || !subJson.keys) {
       const msg = 'Push subscription JSON missing endpoint or keys.';
-      console.error(`[Push Diagnostic] ❌ ${msg}`, subJson);
+      console.error(`[Push Service] ❌ ${msg}`, subJson);
       return { success: false, message: msg };
     }
 
-    console.log('[Push Diagnostic] 🚀 Syncing VAPID push subscription keys with backend POST /notifications/subscribe...');
+    console.log('[Push Service] 🚀 Syncing WebPush VAPID keys with backend POST /notifications/subscribe...');
     await apiClient.post('/notifications/subscribe', {
       endpoint: subJson.endpoint,
       keys: {
@@ -243,7 +284,7 @@ export const subscribeUserToPush = async (
       },
     });
 
-    console.log('[Push Diagnostic] ✅ WebPush VAPID subscription synced successfully with backend!');
+    console.log('[Push Service] ✅ WebPush VAPID subscription synced successfully with backend!');
     return {
       success: true,
       message: 'Subscribed and synced WebPush VAPID keys successfully!',
@@ -251,7 +292,7 @@ export const subscribeUserToPush = async (
     };
   } catch (err: any) {
     const errorMsg = err?.message || String(err);
-    console.error('❌ [Push Diagnostic Error] Unexpected failure during push subscription:', err);
+    console.error('❌ [Push Service Error] Unexpected failure during push subscription:', err);
     return { success: false, message: `Subscription failed: ${errorMsg}` };
   }
 };
@@ -272,7 +313,7 @@ export const initNativePushListeners = (): void => {
 };
 
 export const triggerDelayedTestNotification = (delayMs: number = 3000): void => {
-  console.log(`[Push Diagnostic] 🧪 Scheduling delayed test notification in ${delayMs}ms...`);
+  console.log(`[Push Service] 🧪 Scheduling delayed test notification in ${delayMs}ms...`);
   setTimeout(() => {
     sendInstantNotification(
       '🧪 Test Push Notification!',

@@ -1,10 +1,11 @@
 """
-Web Push Notification Service using VAPID and pywebpush
+Option 2: Dual-Platform Push Notification Service (pywebpush VAPID + Native Google FCM)
 """
 
 import os
 import json
 import logging
+import requests
 from typing import Optional, List
 from sqlalchemy.orm import Session
 
@@ -22,7 +23,7 @@ DEFAULT_VAPID_PRIVATE_KEY = os.getenv(
     "Iyzy8YIjmnsjk3i7WtyRODauDzWyueLOz1VYaRtkJpA"
 )
 VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL", "mailto:support@smartattend.com")
-
+FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "")
 
 
 def get_vapid_public_key() -> str:
@@ -30,8 +31,64 @@ def get_vapid_public_key() -> str:
     return DEFAULT_VAPID_PUBLIC_KEY
 
 
+def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, url: Optional[str] = None, db: Optional[Session] = None) -> bool:
+    """Send High-Priority Native Push notification directly to Android APK via Google FCM API."""
+    raw_token = subscription.endpoint.replace("fcm_", "").strip()
+    
+    if not FCM_SERVER_KEY:
+        logger.warning(f"⚠️ FCM_SERVER_KEY not set on backend (Render). Native FCM push skipped for token: {raw_token[:15]}...")
+        return False
+
+    fcm_url = "https://fcm.googleapis.com/fcm/send"
+    headers = {
+        "Authorization": f"key={FCM_SERVER_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "to": raw_token,
+        "priority": "high",
+        "notification": {
+            "title": title,
+            "body": body,
+            "sound": "default",
+            "badge": "1"
+        },
+        "data": {
+            "title": title,
+            "body": body,
+            "url": url or "/staff/dashboard"
+        }
+    }
+
+    try:
+        res = requests.post(fcm_url, json=payload, headers=headers, timeout=10)
+        if res.status_code == 200:
+            res_json = res.json()
+            if res_json.get("success") == 1:
+                logger.info(f"✅ Native FCM Push delivered to user ID {subscription.user_id} (Token: {raw_token[:15]}...): '{title}'")
+                return True
+            else:
+                logger.warning(f"⚠️ FCM delivery rejected: {res_json}")
+                if "NotRegistered" in str(res_json) and db is not None:
+                    db.delete(subscription)
+                    db.commit()
+                return False
+        else:
+            logger.warning(f"⚠️ FCM API returned HTTP {res.status_code}: {res.text}")
+            return False
+    except Exception as err:
+        logger.error(f"❌ Failed to dispatch Native FCM push: {err}")
+        return False
+
+
 def send_web_push(subscription: PushSubscription, title: str, body: str, url: Optional[str] = None, db: Optional[Session] = None) -> bool:
-    """Send Web Push notification to a single PushSubscription endpoint via pywebpush."""
+    """Send Push notification to a single PushSubscription endpoint (Routes to FCM for Native APK or pywebpush for PWA)."""
+    
+    # Pathway 1: Native FCM Token (Android APK)
+    if subscription.p256dh == "native_fcm" or subscription.endpoint.startswith("fcm_"):
+        return send_native_fcm_push(subscription, title, body, url, db=db)
+
+    # Pathway 2: WebPush VAPID (PWA Browser)
     try:
         from pywebpush import webpush, WebPushException
 
@@ -87,9 +144,8 @@ def send_web_push(subscription: PushSubscription, title: str, body: str, url: Op
         return False
 
 
-
 def send_push_to_user(db: Session, user_id: int, title: str, body: str, url: Optional[str] = None) -> int:
-    """Send push notification to all active browser subscriptions of a specific user."""
+    """Send push notification to all active subscriptions of a specific user."""
     subs = db.query(PushSubscription).filter(PushSubscription.user_id == user_id).all()
     count = 0
     for sub in subs:
@@ -132,4 +188,3 @@ def broadcast_push_to_tenant(db: Session, tenant_id: Optional[int], title: str, 
         if send_web_push(sub, title, body, url, db=db):
             count += 1
     return count
-
