@@ -1,5 +1,5 @@
 """
-Option 2: Dual-Platform Push Notification Service (pywebpush VAPID + Native Google FCM)
+Option 2: Dual-Platform Push Notification Service (pywebpush VAPID + Firebase Admin SDK FCM)
 """
 
 import os
@@ -23,7 +23,23 @@ DEFAULT_VAPID_PRIVATE_KEY = os.getenv(
     "Iyzy8YIjmnsjk3i7WtyRODauDzWyueLOz1VYaRtkJpA"
 )
 VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL", "mailto:support@smartattend.com")
-FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "")
+
+# Initialize Firebase Admin SDK if service account JSON is provided in env
+FIREBASE_SERVICE_ACCOUNT_JSON = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+firebase_app_initialized = False
+
+if FIREBASE_SERVICE_ACCOUNT_JSON:
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, messaging
+        if not firebase_admin._apps:
+            service_account_info = json.loads(FIREBASE_SERVICE_ACCOUNT_JSON)
+            cred = credentials.Certificate(service_account_info)
+            firebase_admin.initialize_app(cred)
+        firebase_app_initialized = True
+        logger.info("✅ Firebase Admin SDK initialized successfully.")
+    except Exception as init_err:
+        logger.warning(f"⚠️ Failed to initialize Firebase Admin SDK: {init_err}")
 
 
 def get_vapid_public_key() -> str:
@@ -32,65 +48,35 @@ def get_vapid_public_key() -> str:
 
 
 def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, url: Optional[str] = None, db: Optional[Session] = None) -> bool:
-    """Send High-Priority Native Push notification directly to Android APK via VAPID-signed FCM Gateway."""
+    """Send High-Priority Native Push notification directly to Android APK via Google FCM Admin SDK."""
     raw_token = subscription.endpoint.replace("fcm_", "").strip()
-    fcm_endpoint = f"https://fcm.googleapis.com/fcm/send/{raw_token}"
 
-    try:
-        from pywebpush import webpush
-
-        import time
-        payload = json.dumps({
-            "title": title,
-            "body": body,
-            "icon": "/icons/icon-192.png",
-            "badge": "/favicon.svg",
-            "tag": f"smart-attend-{int(time.time() * 1000)}",
-            "data": {"url": url or "/"}
-        })
-
-        # Provide valid VAPID keys if subscription has dummy native_fcm keys
-        p256dh = subscription.p256dh if (subscription.p256dh and subscription.p256dh != "native_fcm") else "BC2cwmWaCscRctR2z-RIUJTO-I8dHomSJkmapegSkIvFUjmWvPDQSC5btCIbdqaoEZeX-dHIaNj8kpKo4oP-nRI"
-        auth = subscription.auth if (subscription.auth and subscription.auth != "native_fcm") else "Iyzy8YIjmnsjk3i7WtyRODauDzWyueLOz1VYaRtkJpA"
-
-        subscription_info = {
-            "endpoint": fcm_endpoint,
-            "keys": {
-                "p256dh": p256dh,
-                "auth": auth
-            }
-        }
-
-        response = webpush(
-            subscription_info=subscription_info,
-            data=payload,
-            vapid_private_key=DEFAULT_VAPID_PRIVATE_KEY,
-            vapid_claims={"sub": VAPID_CLAIMS_EMAIL},
-            headers={
-                "Urgency": "high",
-                "TTL": "86400"
-            }
-        )
-        status_code = getattr(response, "status_code", 201)
-        logger.info(f"✅ Native FCM Push delivered via VAPID JWT to user ID {subscription.user_id} (Status: {status_code}): '{title}'")
-        return True
-    except Exception as exc:
-        status_code = None
-        response_text = str(exc)
-        if hasattr(exc, "response") and getattr(exc, "response") is not None:
-            status_code = getattr(exc.response, "status_code", None)
-            response_text = getattr(exc.response, "text", str(exc))
-
-        logger.warning(f"⚠️ Native FCM Push delivery failed for token {raw_token[:15]}... (HTTP {status_code}): {response_text}")
-
-        # Prune expired or invalid subscriptions
-        if status_code in (404, 410) and db is not None:
-            try:
-                db.delete(subscription)
-                db.commit()
-            except Exception:
-                pass
-
+    if firebase_app_initialized:
+        try:
+            from firebase_admin import messaging
+            message = messaging.Message(
+                notification=messaging.Notification(title=title, body=body),
+                data={"title": str(title), "body": str(body), "url": str(url or "/staff/dashboard")},
+                token=raw_token,
+                android=messaging.AndroidConfig(priority="high"),
+            )
+            msg_id = messaging.send(message)
+            logger.info(f"✅ Native FCM push sent via Firebase Admin SDK ({msg_id}) to user ID {subscription.user_id} ({raw_token[:15]}...)")
+            return True
+        except Exception as e:
+            err_str = str(e)
+            logger.error(f"❌ Native FCM Push failed for user ID {subscription.user_id}: {err_str}")
+            if "Requested entity was not found" in err_str or "unregistered" in err_str.lower() or "404" in err_str:
+                if db is not None:
+                    try:
+                        logger.info(f"🗑️ Auto-pruning unregistered FCM token for user ID {subscription.user_id}")
+                        db.delete(subscription)
+                        db.commit()
+                    except Exception:
+                        pass
+            return False
+    else:
+        logger.warning(f"⚠️ FIREBASE_SERVICE_ACCOUNT_JSON env var not set on Render. Native FCM push skipped for user ID {subscription.user_id}.")
         return False
 
 
