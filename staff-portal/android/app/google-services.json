@@ -1,8 +1,8 @@
 {
   "project_info": {
     "project_number": "123456789012",
-    "project_id": "smart-staff-app",
-    "storage_bucket": "smart-staff-app.appspot.com"
+    "project_id": "smart-staff-app-b3757",
+    "storage_bucket": "smart-staff-app-b3757.appspot.com"
   },
   "client": [
     {
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDummyKeyForSmartStaffNativePush"
+          "current_key": "AIzaSyAlGHHzMSqS_zw7exky417BdKI06dZsFSc"
         }
       ],
       "services": {
