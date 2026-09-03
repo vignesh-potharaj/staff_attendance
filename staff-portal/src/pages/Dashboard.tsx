@@ -167,16 +167,16 @@ const Dashboard: React.FC = () => {
         return;
       }
       try {
-        const nativePerm = await checkNativeNotificationPermission();
-        if (getNotificationPermission() === 'granted' || nativePerm === 'granted') {
-          subscribeUserToPush(api).then((res) => {
-            if (res.success) {
-              addLog('Auto-synced push subscription on startup.');
-            }
-          }).catch((err) => {
-            addLog(`Auto-sync warning: ${err}`);
-          });
-        }
+        // Automatically request permission and sync push subscription on startup
+        subscribeUserToPush(api).then((res) => {
+          if (res.success) {
+            addLog('Auto-synced push subscription on startup.');
+          } else {
+            addLog(`Push sync notice: ${res.message}`);
+          }
+        }).catch((err) => {
+          addLog(`Auto-sync warning: ${err}`);
+        });
         const [todayRes, monthlyRes] = await Promise.all([
           api.get(`/attendance/staff/${user.id}/today`),
           api.get(`/attendance/staff/${user.id}/monthly`),
