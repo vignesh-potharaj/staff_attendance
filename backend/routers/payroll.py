@@ -14,6 +14,79 @@ router = APIRouter(prefix="/api", tags=["Payroll"])
 PAYROLL_STATUSES = {AttendanceStatus.PRESENT, AttendanceStatus.LATE}
 
 
+@router.get("/attendance/staff/{staff_id}")
+@router.get("/api/attendance/staff/{staff_id}")
+def get_staff_attendance_history(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
+    
+    records = db.query(Attendance).filter(Attendance.user_id == staff_id).order_by(Attendance.check_in_time.desc()).all()
+    return records
+
+
+@router.get("/attendance/staff/{staff_id}/today")
+@router.get("/api/attendance/staff/{staff_id}/today")
+def get_staff_today_attendance(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
+    
+    now = datetime.now(IST)
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999).replace(tzinfo=None)
+
+    record = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.check_in_time >= start_of_day,
+        Attendance.check_in_time <= end_of_day
+    ).first()
+
+    if not record:
+        return {"status": "NOT_CHECKED_IN", "hours": 0.0}
+
+    return {
+        "status": record.status,
+        "check_in_time": record.check_in_time.isoformat() if record.check_in_time else None,
+        "check_out_time": record.check_out_time.isoformat() if record.check_out_time else None,
+        "hours": _duration_hours(record, use_now_when_open=True)
+    }
+
+
+@router.get("/attendance/staff/{staff_id}/monthly")
+@router.get("/api/attendance/staff/{staff_id}/monthly")
+def get_staff_monthly_attendance_summary(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
+
+    now = datetime.now(IST)
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    
+    records = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.check_in_time >= start_of_month
+    ).all()
+
+    total_hours = sum(_duration_hours(r) for r in records)
+    present_days = sum(1 for r in records if r.status in (AttendanceStatus.PRESENT, AttendanceStatus.LATE))
+
+    return {
+        "total_hours": round(total_hours, 2),
+        "present_days": present_days,
+        "records_count": len(records)
+    }
+
+
 def _duration_hours(record: Attendance, use_now_when_open: bool = False) -> float:
     check_in = getattr(record, "check_in_time", None)
     check_out = getattr(record, "check_out_time", None)

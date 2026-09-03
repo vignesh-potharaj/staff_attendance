@@ -39,12 +39,41 @@ def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, 
         logger.warning(f"⚠️ FCM_SERVER_KEY not set on backend (Render). Native FCM push skipped for token: {raw_token[:15]}...")
         return False
 
-    fcm_url = "https://fcm.googleapis.com/fcm/send"
     headers = {
         "Authorization": f"key={FCM_SERVER_KEY}",
         "Content-Type": "application/json"
     }
-    payload = {
+
+    # Attempt 1: Direct Token WebPush Endpoint (Supported on all Firebase projects)
+    fcm_direct_url = f"https://fcm.googleapis.com/fcm/send/{raw_token}"
+    direct_payload = {
+        "title": title,
+        "body": body,
+        "notification": {
+            "title": title,
+            "body": body,
+            "sound": "default"
+        },
+        "data": {
+            "title": title,
+            "body": body,
+            "url": url or "/staff/dashboard"
+        }
+    }
+
+    try:
+        res = requests.post(fcm_direct_url, json=direct_payload, headers=headers, timeout=10)
+        if res.status_code in (200, 201):
+            logger.info(f"✅ Native FCM Push delivered via Direct Endpoint to user ID {subscription.user_id} (Token: {raw_token[:15]}...): '{title}'")
+            return True
+        else:
+            logger.warning(f"⚠️ Direct FCM API returned HTTP {res.status_code}, trying Legacy Broadcast API...")
+    except Exception as err:
+        logger.warning(f"⚠️ Direct FCM Push exception: {err}, trying Legacy API...")
+
+    # Attempt 2: Legacy Broadcast API (For projects with Legacy FCM Server Key)
+    legacy_url = "https://fcm.googleapis.com/fcm/send"
+    legacy_payload = {
         "to": raw_token,
         "priority": "high",
         "notification": {
@@ -61,20 +90,20 @@ def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, 
     }
 
     try:
-        res = requests.post(fcm_url, json=payload, headers=headers, timeout=10)
-        if res.status_code == 200:
-            res_json = res.json()
-            if res_json.get("success") == 1:
-                logger.info(f"✅ Native FCM Push delivered to user ID {subscription.user_id} (Token: {raw_token[:15]}...): '{title}'")
+        res_legacy = requests.post(legacy_url, json=legacy_payload, headers=headers, timeout=10)
+        if res_legacy.status_code in (200, 201):
+            res_json = res_legacy.json() if res_legacy.headers.get("content-type", "").startswith("application/json") else {}
+            if res_json.get("success") == 1 or "multicast_id" in res_json:
+                logger.info(f"✅ Native FCM Push delivered via Legacy API to user ID {subscription.user_id}")
                 return True
             else:
-                logger.warning(f"⚠️ FCM delivery rejected: {res_json}")
-                if "NotRegistered" in str(res_json) and db is not None:
+                logger.warning(f"⚠️ Legacy FCM delivery response: {res_legacy.text}")
+                if "NotRegistered" in res_legacy.text and db is not None:
                     db.delete(subscription)
                     db.commit()
                 return False
         else:
-            logger.warning(f"⚠️ FCM API returned HTTP {res.status_code}: {res.text}")
+            logger.warning(f"⚠️ Legacy FCM API returned HTTP {res_legacy.status_code}")
             return False
     except Exception as err:
         logger.error(f"❌ Failed to dispatch Native FCM push: {err}")
