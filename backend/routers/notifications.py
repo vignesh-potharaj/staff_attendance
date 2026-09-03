@@ -79,7 +79,7 @@ def subscribe_web_push(
         db.add(new_sub)
 
     db.commit()
-    logger.info(f"✅ Push subscription saved for user ID {user_record.id}")
+    logger.info(f"✅ Push subscription saved for user ID {user_record.id} (Endpoint: {endpoint[:35]}...)")
     return {"status": "success", "message": "Subscribed to push notifications successfully."}
 
 

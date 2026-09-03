@@ -136,6 +136,11 @@ export const subscribeUserToPush = async (
 ): Promise<{ success: boolean; message: string; endpoint?: string }> => {
   console.log(`[Push Service Option 2] 🔍 Initiating subscription on ${Capacitor.isNativePlatform() ? 'Native Android App (FCM Token)' : 'Web PWA (VAPID Keys)'}`);
 
+  // Clear stale cached token if force refresh is requested
+  if (forceRefresh) {
+    localStorage.removeItem('cached_fcm_token');
+  }
+
   // -------------------------------------------------------------
   // PATHWAY 1: NATIVE ANDROID APK (FCM TOKEN REGISTRATION)
   // -------------------------------------------------------------
@@ -147,26 +152,6 @@ export const subscribeUserToPush = async (
       }
 
       if (permStatus.receive === 'granted') {
-        // Check if we have a cached FCM token
-        const cachedToken = localStorage.getItem('cached_fcm_token');
-        if (cachedToken && !forceRefresh) {
-          console.log('[Push Service] 📲 Syncing cached Native FCM Token with backend:', cachedToken);
-          try {
-            await apiClient.post('/notifications/subscribe', {
-              endpoint: `fcm_${cachedToken}`,
-              keys: { p256dh: 'native_fcm', auth: 'native_fcm' }
-            });
-            return {
-              success: true,
-              message: 'Native Android FCM Token synced with backend!',
-              endpoint: cachedToken
-            };
-          } catch (syncErr: any) {
-            console.warn('[Push Service] Cached token sync failed:', syncErr);
-          }
-        }
-
-        // Attach listener BEFORE registering
         return new Promise((resolve) => {
           let hasResolved = false;
 
@@ -174,7 +159,7 @@ export const subscribeUserToPush = async (
             PushNotifications.addListener('registration', async (token) => {
               if (hasResolved) return;
               hasResolved = true;
-              console.log('[Push Service] 📲 Native FCM Token registered:', token.value);
+              console.log('[Push Service] 📲 FRESH Native FCM Token registered:', token.value);
               localStorage.setItem('cached_fcm_token', token.value);
               try {
                 await apiClient.post('/notifications/subscribe', {
@@ -183,7 +168,7 @@ export const subscribeUserToPush = async (
                 });
                 resolve({
                   success: true,
-                  message: 'Native Android FCM Token registered & synced with backend!',
+                  message: `Native Android FCM Token synced with backend! (${token.value.slice(0, 10)}...)`,
                   endpoint: token.value
                 });
               } catch (syncErr: any) {
@@ -201,37 +186,20 @@ export const subscribeUserToPush = async (
               resolve({ success: false, message: `Native FCM Error: ${JSON.stringify(err)}` });
             });
 
-            // Call register AFTER listeners are attached
+            // Trigger fresh native Android FCM registration
             PushNotifications.register().catch((err) => {
               if (hasResolved) return;
               hasResolved = true;
               resolve({ success: false, message: `Register call error: ${err}` });
             });
 
-            // Safety fallback timeout (5 seconds)
-            setTimeout(async () => {
+            // Timeout safety fallback (6 seconds)
+            setTimeout(() => {
               if (!hasResolved) {
                 hasResolved = true;
-                const fallbackToken = localStorage.getItem('cached_fcm_token');
-                if (fallbackToken) {
-                  try {
-                    await apiClient.post('/notifications/subscribe', {
-                      endpoint: `fcm_${fallbackToken}`,
-                      keys: { p256dh: 'native_fcm', auth: 'native_fcm' }
-                    });
-                    resolve({
-                      success: true,
-                      message: 'Native FCM Token synced (from cache fallback)!',
-                      endpoint: fallbackToken
-                    });
-                  } catch {
-                    resolve({ success: false, message: 'FCM registration timed out.' });
-                  }
-                } else {
-                  resolve({ success: false, message: 'FCM token registration timed out.' });
-                }
+                resolve({ success: false, message: 'Native FCM token registration timed out. Please retry.' });
               }
-            }, 5000);
+            }, 6000);
           });
         });
       } else {
