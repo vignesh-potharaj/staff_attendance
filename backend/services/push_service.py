@@ -67,11 +67,11 @@ def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, 
             logger.info(f"✅ Native FCM Push delivered via Direct Endpoint to user ID {subscription.user_id} (Token: {raw_token[:15]}...): '{title}'")
             return True
         else:
-            logger.warning(f"⚠️ Direct FCM API returned HTTP {res.status_code}, trying Legacy Broadcast API...")
+            logger.warning(f"⚠️ Direct FCM API returned HTTP {res.status_code}: {res.text[:200]}")
     except Exception as err:
-        logger.warning(f"⚠️ Direct FCM Push exception: {err}, trying Legacy API...")
+        logger.warning(f"⚠️ Direct FCM Push exception: {err}")
 
-    # Attempt 2: Legacy Broadcast API (For projects with Legacy FCM Server Key)
+    # Attempt 2: Standard FCM Push API
     legacy_url = "https://fcm.googleapis.com/fcm/send"
     legacy_payload = {
         "to": raw_token,
@@ -94,16 +94,16 @@ def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, 
         if res_legacy.status_code in (200, 201):
             res_json = res_legacy.json() if res_legacy.headers.get("content-type", "").startswith("application/json") else {}
             if res_json.get("success") == 1 or "multicast_id" in res_json:
-                logger.info(f"✅ Native FCM Push delivered via Legacy API to user ID {subscription.user_id}")
+                logger.info(f"✅ Native FCM Push delivered via FCM API to user ID {subscription.user_id}")
                 return True
             else:
-                logger.warning(f"⚠️ Legacy FCM delivery response: {res_legacy.text}")
+                logger.warning(f"⚠️ FCM delivery rejection response: {res_legacy.text[:200]}")
                 if "NotRegistered" in res_legacy.text and db is not None:
                     db.delete(subscription)
                     db.commit()
                 return False
         else:
-            logger.warning(f"⚠️ Legacy FCM API returned HTTP {res_legacy.status_code}")
+            logger.warning(f"⚠️ Legacy FCM API returned HTTP {res_legacy.status_code}: {res_legacy.text[:200]}")
             return False
     except Exception as err:
         logger.error(f"❌ Failed to dispatch Native FCM push: {err}")
