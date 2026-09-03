@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789012",
+    "project_number": "283058133218",
     "project_id": "smart-staff-app-b3757",
-    "storage_bucket": "smart-staff-app-b3757.appspot.com"
+    "storage_bucket": "smart-staff-app-b3757.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789012:android:abcdef1234567890",
+        "mobilesdk_app_id": "1:283058133218:android:fd9ef529defc6edcfc26bb",
         "android_client_info": {
           "package_name": "com.smartstaff.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAlGHHzMSqS_zw7exky417BdKI06dZsFSc"
+          "current_key": "AIzaSyC8QsQv0sxQvwxfa3JEMSZBFryJ1sC56po"
         }
       ],
       "services": {
