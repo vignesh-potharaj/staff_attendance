@@ -32,83 +32,65 @@ def get_vapid_public_key() -> str:
 
 
 def send_native_fcm_push(subscription: PushSubscription, title: str, body: str, url: Optional[str] = None, db: Optional[Session] = None) -> bool:
-    """Send High-Priority Native Push notification directly to Android APK via Google FCM API."""
+    """Send High-Priority Native Push notification directly to Android APK via VAPID-signed FCM Gateway."""
     raw_token = subscription.endpoint.replace("fcm_", "").strip()
-    
-    if not FCM_SERVER_KEY:
-        logger.warning(f"⚠️ FCM_SERVER_KEY not set on backend (Render). Native FCM push skipped for token: {raw_token[:15]}...")
-        return False
-
-    headers = {
-        "Authorization": f"key={FCM_SERVER_KEY}",
-        "Content-Type": "application/json",
-        "TTL": "86400",
-        "Urgency": "high"
-    }
-
-    # Attempt 1: Direct Token WebPush Endpoint (Supported on all Firebase projects)
-    fcm_direct_url = f"https://fcm.googleapis.com/fcm/send/{raw_token}"
-    direct_payload = {
-        "title": title,
-        "body": body,
-        "notification": {
-            "title": title,
-            "body": body,
-            "sound": "default"
-        },
-        "data": {
-            "title": title,
-            "body": body,
-            "url": url or "/staff/dashboard"
-        }
-    }
+    fcm_endpoint = f"https://fcm.googleapis.com/fcm/send/{raw_token}"
 
     try:
-        res = requests.post(fcm_direct_url, json=direct_payload, headers=headers, timeout=10)
-        if res.status_code in (200, 201):
-            logger.info(f"✅ Native FCM Push delivered via Direct Endpoint to user ID {subscription.user_id} (Token: {raw_token[:15]}...): '{title}'")
-            return True
-        else:
-            logger.warning(f"⚠️ Direct FCM API returned HTTP {res.status_code}: {res.text[:200]}")
-    except Exception as err:
-        logger.warning(f"⚠️ Direct FCM Push exception: {err}")
+        from pywebpush import webpush
 
-    # Attempt 2: Standard FCM Push API
-    legacy_url = "https://fcm.googleapis.com/fcm/send"
-    legacy_payload = {
-        "to": raw_token,
-        "priority": "high",
-        "notification": {
+        import time
+        payload = json.dumps({
             "title": title,
             "body": body,
-            "sound": "default",
-            "badge": "1"
-        },
-        "data": {
-            "title": title,
-            "body": body,
-            "url": url or "/staff/dashboard"
+            "icon": "/icons/icon-192.png",
+            "badge": "/favicon.svg",
+            "tag": f"smart-attend-{int(time.time() * 1000)}",
+            "data": {"url": url or "/"}
+        })
+
+        # Provide valid VAPID keys if subscription has dummy native_fcm keys
+        p256dh = subscription.p256dh if (subscription.p256dh and subscription.p256dh != "native_fcm") else "BC2cwmWaCscRctR2z-RIUJTO-I8dHomSJkmapegSkIvFUjmWvPDQSC5btCIbdqaoEZeX-dHIaNj8kpKo4oP-nRI"
+        auth = subscription.auth if (subscription.auth and subscription.auth != "native_fcm") else "Iyzy8YIjmnsjk3i7WtyRODauDzWyueLOz1VYaRtkJpA"
+
+        subscription_info = {
+            "endpoint": fcm_endpoint,
+            "keys": {
+                "p256dh": p256dh,
+                "auth": auth
+            }
         }
-    }
 
-    try:
-        res_legacy = requests.post(legacy_url, json=legacy_payload, headers=headers, timeout=10)
-        if res_legacy.status_code in (200, 201):
-            res_json = res_legacy.json() if res_legacy.headers.get("content-type", "").startswith("application/json") else {}
-            if res_json.get("success") == 1 or "multicast_id" in res_json:
-                logger.info(f"✅ Native FCM Push delivered via FCM API to user ID {subscription.user_id}")
-                return True
-            else:
-                logger.warning(f"⚠️ FCM delivery rejection response: {res_legacy.text[:200]}")
-                if "NotRegistered" in res_legacy.text and db is not None:
-                    db.delete(subscription)
-                    db.commit()
-                return False
-        else:
-            logger.warning(f"⚠️ Legacy FCM API returned HTTP {res_legacy.status_code}: {res_legacy.text[:200]}")
-            return False
-    except Exception as err:
-        logger.error(f"❌ Failed to dispatch Native FCM push: {err}")
+        response = webpush(
+            subscription_info=subscription_info,
+            data=payload,
+            vapid_private_key=DEFAULT_VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": VAPID_CLAIMS_EMAIL},
+            headers={
+                "Urgency": "high",
+                "TTL": "86400"
+            }
+        )
+        status_code = getattr(response, "status_code", 201)
+        logger.info(f"✅ Native FCM Push delivered via VAPID JWT to user ID {subscription.user_id} (Status: {status_code}): '{title}'")
+        return True
+    except Exception as exc:
+        status_code = None
+        response_text = str(exc)
+        if hasattr(exc, "response") and getattr(exc, "response") is not None:
+            status_code = getattr(exc.response, "status_code", None)
+            response_text = getattr(exc.response, "text", str(exc))
+
+        logger.warning(f"⚠️ Native FCM Push delivery failed for token {raw_token[:15]}... (HTTP {status_code}): {response_text}")
+
+        # Prune expired or invalid subscriptions
+        if status_code in (404, 410) and db is not None:
+            try:
+                db.delete(subscription)
+                db.commit()
+            except Exception:
+                pass
+
         return False
 
 
