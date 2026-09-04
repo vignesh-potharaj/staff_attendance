@@ -33,6 +33,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def envName = variant.flavorName == 'staging' ? 'test' : (variant.flavorName == 'production' ? 'production' : 'test')
+            outputFileName = "smart-staff-${envName}-${variant.buildType.name}.apk"
+        }
+    }
 }
 
 repositories {
