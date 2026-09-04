@@ -12,7 +12,6 @@ from backend.database.database import get_db
 from backend.models.models import PushSubscription, User
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.services.push_service import (
-    get_vapid_public_key,
     broadcast_push_to_tenant
 )
 
@@ -42,12 +41,6 @@ class AnnouncementRequest(BaseModel):
     title: str
     message: str
     url: Optional[str] = "/staff/dashboard"
-
-
-@router.get("/vapid-public-key")
-def get_vapid_key():
-    """Return public VAPID key required for Web Push client subscriptions."""
-    return {"publicKey": get_vapid_public_key()}
 
 
 @router.post("/subscribe")

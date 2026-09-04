@@ -1,38 +1,13 @@
 {
   "version": 2,
-  "headers": [
-    {
-      "source": "/(.*)sw\\.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
-      ]
-    },
-    {
-      "source": "/(.*)manifest\\.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
-      ]
-    }
-  ],
   "routes": [
     { "src": "^/staff/assets/(.*)$", "dest": "/staff-portal/dist/assets/$1" },
-    { "src": "^/staff/manifest\\.json$", "dest": "/staff-portal/dist/manifest.json" },
-    { "src": "^/staff/sw\\.js$", "dest": "/staff-portal/dist/sw.js" },
     { "src": "^/staff/favicon\\.svg$", "dest": "/staff-portal/dist/favicon.svg" },
-    { "src": "^/staff/icons/(.*)$", "dest": "/staff-portal/dist/icons/$1" },
-    { "src": "^/staff/screenshots/(.*)$", "dest": "/staff-portal/dist/screenshots/$1" },
     { "src": "^/staff(?:/.*)?$", "dest": "/staff-portal/dist/index.html" },
 
     { "src": "^/assets/(.*)$", "dest": "/admin-dashboard/dist/assets/$1" },
     { "src": "^/favicon\\.svg$", "dest": "/admin-dashboard/dist/favicon.svg" },
-    { "src": "^/manifest\\.json$", "dest": "/admin-dashboard/dist/manifest.json" },
-    { "src": "^/sw\\.js$", "dest": "/admin-dashboard/dist/sw.js" },
-    { "src": "^/icons/(.*)$", "dest": "/admin-dashboard/dist/icons/$1" },
-    { "src": "^/screenshots/(.*)$", "dest": "/admin-dashboard/dist/screenshots/$1" },
 
-    { "src": "^/(?!assets|staff|favicon\\.svg|manifest\\.json|sw\\.js|icons|screenshots)(.*)$", "dest": "/admin-dashboard/dist/index.html" }
+    { "src": "^/(?!assets|staff|favicon\\.svg)(.*)$", "dest": "/admin-dashboard/dist/index.html" }
   ]
 }

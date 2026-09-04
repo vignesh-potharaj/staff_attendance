@@ -136,29 +136,7 @@ const Dashboard: React.FC = () => {
     }, 500);
   };
 
-  // Listen for Service Worker postMessage event when a push notification arrives
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const handleSwMessage = (event: MessageEvent) => {
-        if (event.data?.type === 'PUSH_NOTIFICATION_RECEIVED') {
-          const payload = event.data.data;
-          const timeStr = new Date().toLocaleTimeString();
-          console.log('🔔 [App Window] Received push notification message from SW:', payload);
-          setInAppToast({
-            title: payload?.title || 'Push Notification',
-            body: payload?.body || 'New alert received',
-            time: timeStr,
-          });
-          addLog(`🔔 Push Received: "${payload?.title || 'Alert'}" - ${payload?.body || ''}`);
-        }
-      };
 
-      navigator.serviceWorker.addEventListener('message', handleSwMessage);
-      return () => {
-        navigator.serviceWorker.removeEventListener('message', handleSwMessage);
-      };
-    }
-  }, []);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -330,18 +308,11 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
               <p className="text-slate-400 font-bold uppercase text-[10px]">Permission State</p>
               <p className={`text-sm font-extrabold mt-1 capitalize ${notifPermission === 'granted' ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {notifPermission}
-              </p>
-            </div>
-
-            <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
-              <p className="text-slate-400 font-bold uppercase text-[10px]">Service Worker</p>
-              <p className="text-sm font-extrabold mt-1 text-emerald-400">
-                {'serviceWorker' in navigator ? 'Active' : 'Not Supported'}
               </p>
             </div>
 

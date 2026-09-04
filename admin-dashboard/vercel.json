@@ -1,26 +1,5 @@
 {
-  "headers": [
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
-      ]
-    }
-  ],
   "rewrites": [
-    { "source": "/sw.js", "destination": "/sw.js" },
-    { "source": "/manifest.json", "destination": "/manifest.json" },
-    { "source": "/icons/(.*)", "destination": "/icons/$1" },
-    { "source": "/screenshots/(.*)", "destination": "/screenshots/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

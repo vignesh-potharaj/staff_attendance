@@ -9,11 +9,5 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then(reg => console.log('✅ Admin SW registered successfully with scope:', reg.scope))
-      .catch(err => console.error('❌ Admin SW registration failed:', err));
-  });
-}
+
 

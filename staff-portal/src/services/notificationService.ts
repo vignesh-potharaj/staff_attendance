@@ -46,22 +46,12 @@ export const sendInstantNotification = async (
 
   const defaultOptions: NotificationOptions = {
     body,
-    icon: '/icons/icon-192.png',
+    icon: '/favicon.svg',
     badge: '/favicon.svg',
     tag: 'smart-attend-instant',
     data: { url: '/staff/dashboard' },
     ...options,
   };
-
-  try {
-    if ('serviceWorker' in navigator) {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(title, defaultOptions);
-      return;
-    }
-  } catch (err) {
-    console.warn('Service worker notification failed, falling back to Notification API:', err);
-  }
 
   try {
     new Notification(title, defaultOptions);
@@ -119,31 +109,16 @@ export const scheduleShiftReminders = (startTimeStr?: string | null, endTimeStr?
   }
 };
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 export const subscribeUserToPush = async (
   apiClient: { get: Function; post: Function },
   forceRefresh: boolean = false
 ): Promise<{ success: boolean; message: string; endpoint?: string }> => {
-  console.log(`[Push Service Option 2] 🔍 Initiating subscription on ${Capacitor.isNativePlatform() ? 'Native Android App (FCM Token)' : 'Web PWA (VAPID Keys)'}`);
+  console.log('[Push Service] 🔍 Initiating FCM token registration for Native App');
 
-  // Clear stale cached token if force refresh is requested
   if (forceRefresh) {
     localStorage.removeItem('cached_fcm_token');
   }
 
-  // -------------------------------------------------------------
-  // PATHWAY 1: NATIVE ANDROID APK (FCM TOKEN REGISTRATION)
-  // -------------------------------------------------------------
   if (Capacitor.isNativePlatform()) {
     try {
       let permStatus = await PushNotifications.checkPermissions();
@@ -186,14 +161,12 @@ export const subscribeUserToPush = async (
               resolve({ success: false, message: `Native FCM Error: ${JSON.stringify(err)}` });
             });
 
-            // Trigger fresh native Android FCM registration
             PushNotifications.register().catch((err) => {
               if (hasResolved) return;
               hasResolved = true;
               resolve({ success: false, message: `Register call error: ${err}` });
             });
 
-            // Timeout safety fallback (6 seconds)
             setTimeout(() => {
               if (!hasResolved) {
                 hasResolved = true;
@@ -211,118 +184,7 @@ export const subscribeUserToPush = async (
     }
   }
 
-  // -------------------------------------------------------------
-  // PATHWAY 2: WEB PWA BROWSER (VAPID WEBPUSH REGISTRATION)
-  // -------------------------------------------------------------
-  const perm = getNotificationPermission();
-  if (!isNotificationSupported()) {
-    const msg = 'Notification API is not supported in this browser.';
-    console.warn(`[Push Service] ⚠️ ${msg}`);
-    return { success: false, message: msg };
-  }
-
-  if (perm !== 'granted') {
-    const msg = `Notification permission is '${perm}'. User must allow notifications.`;
-    console.warn(`[Push Service] ⚠️ ${msg}`);
-    return { success: false, message: msg };
-  }
-
-  try {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      const msg = 'ServiceWorker or PushManager is not supported in this browser.';
-      console.warn(`[Push Service] ⚠️ ${msg}`);
-      return { success: false, message: msg };
-    }
-
-    console.log('[Push Service] ⏳ Waiting for ServiceWorker registration...');
-    const registration = await navigator.serviceWorker.ready;
-    console.log('[Push Service] ✅ ServiceWorker ready. Scope:', registration.scope);
-
-    let existingSub = await registration.pushManager.getSubscription();
-
-    if (existingSub && forceRefresh) {
-      console.log('[Push Service] 🔄 Force refresh requested. Unsubscribing stale endpoint...');
-      try {
-        await existingSub.unsubscribe();
-        existingSub = null;
-      } catch (unsubErr) {
-        console.warn('[Push Service] Failed to unsubscribe stale push endpoint:', unsubErr);
-      }
-    }
-
-    console.log('[Push Service] 🔑 Fetching VAPID public key from /notifications/vapid-public-key...');
-    const keyRes = await apiClient.get('/notifications/vapid-public-key');
-    const publicKey = keyRes.data?.publicKey;
-
-    if (!publicKey) {
-      const msg = 'Backend returned empty VAPID public key.';
-      console.error(`[Push Service] ❌ ${msg}`);
-      return { success: false, message: msg };
-    }
-
-    console.log(`[Push Service] 🔑 Received VAPID Public Key (${publicKey.length} chars):`, publicKey);
-    const convertedKey = urlBase64ToUint8Array(publicKey);
-
-    let subscription = existingSub;
-
-    if (!subscription) {
-      console.log('[Push Service] 📲 Calling PushManager.subscribe()...');
-      try {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedKey as any,
-        });
-        console.log('[Push Service] 🎉 PushManager.subscribe() succeeded!');
-      } catch (subErr: any) {
-        console.error('[Push Service] ❌ PushManager.subscribe() threw an error:', subErr);
-
-        if (existingSub) {
-          try {
-            await existingSub.unsubscribe();
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: convertedKey as any,
-            });
-          } catch (retryErr) {
-            console.error('[Push Service] ❌ Emergency retry failed:', retryErr);
-          }
-        }
-      }
-    }
-
-    if (!subscription) {
-      const msg = 'Browser failed to create Web Push subscription endpoint.';
-      console.error(`[Push Service] ❌ ${msg}`);
-      return { success: false, message: msg };
-    }
-
-    const subJson = subscription.toJSON();
-    if (!subJson.endpoint || !subJson.keys) {
-      const msg = 'Push subscription JSON missing endpoint or keys.';
-      console.error(`[Push Service] ❌ ${msg}`, subJson);
-      return { success: false, message: msg };
-    }
-
-    console.log('[Push Service] 🚀 Syncing WebPush VAPID keys with backend POST /notifications/subscribe...');
-    await apiClient.post('/notifications/subscribe', {
-      endpoint: subJson.endpoint,
-      keys: {
-        p256dh: subJson.keys.p256dh,
-        auth: subJson.keys.auth,
-      },
-    });
-
-    console.log('[Push Service] ✅ WebPush VAPID subscription synced successfully with backend!');
-    return {
-      success: true,
-      message: 'Subscribed and synced WebPush VAPID keys successfully!',
-      endpoint: subJson.endpoint
-    };
-  } catch (err: any) {
-    const errorMsg = err?.message || String(err);
-    console.error('❌ [Push Service Error] Unexpected failure during push subscription:', err);
-    return { success: false, message: `Subscription failed: ${errorMsg}` };
-  }
+  return { success: false, message: 'Push notifications are enabled exclusively on the native mobile app.' };
 };
 
 export const initNativePushListeners = (): void => {

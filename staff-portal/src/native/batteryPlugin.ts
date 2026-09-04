@@ -17,11 +17,6 @@ export const requestIgnoreBatteryOptimizations = async (): Promise<boolean> => {
       console.error('Failed to trigger native battery optimization prompt:', err);
     }
   }
-  
-  // Fallback for Web/PWA
-  const a = document.createElement('a');
-  a.href = 'intent:#Intent;action=android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS;end';
-  a.click();
   return false;
 };
 
