@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:testing": "tsc -b && vite build && npx cap sync android",
-    "build:production": "tsc -b && vite build && npx cap sync android",
-    "build:apk:testing": "cd android && .\\gradlew.bat assembleStagingDebug",
-    "build:apk:production": "cd android && .\\gradlew.bat assembleProductionDebug",
+    "build:testing": "tsc -b && npx cross-env VITE_API_URL=https://staff-attendance-185e.onrender.com vite build && npx cap sync android",
+    "build:production": "tsc -b && npx cross-env VITE_API_URL=https://staff-attendance-api.onrender.com vite build && npx cap sync android",
+    "build:apk:testing": "npm run build:testing && cd android && .\\gradlew.bat assembleStagingDebug",
+    "build:apk:production": "npm run build:production && cd android && .\\gradlew.bat assembleProductionDebug",
     "lint": "eslint .",
     "preview": "vite preview"
   },
