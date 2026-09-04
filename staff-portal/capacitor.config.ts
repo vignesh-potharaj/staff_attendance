@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.smartstaff.app',
-  appName: 'Smart Staff',
+  appName: 'Smart Staff (Test)',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

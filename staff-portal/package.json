@@ -6,6 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:testing": "tsc -b && vite build && npx cap sync android",
+    "build:production": "tsc -b && vite build && npx cap sync android",
+    "build:apk:testing": "cd android && .\\gradlew.bat assembleStagingDebug",
+    "build:apk:production": "cd android && .\\gradlew.bat assembleProductionDebug",
     "lint": "eslint .",
     "preview": "vite preview"
   },
