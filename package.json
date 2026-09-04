@@ -9,7 +9,7 @@
     "dev:staff": "powershell -Command \"cd staff-portal; npm run dev\"",
     "dev:super-admin": "powershell -Command \"cd super-admin-dashboard; npm run dev\"",
     "dev": "npm run dev:dashboard",
-    "build": "npm install --prefix admin-dashboard --legacy-peer-deps && npm run build --prefix admin-dashboard && npm install --prefix staff-portal && npm run build --prefix staff-portal && npm install --prefix super-admin-dashboard && npm run build --prefix super-admin-dashboard"
+    "build": "npm install --prefix admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix admin-dashboard && npm install --prefix staff-portal --legacy-peer-deps --no-audit --no-fund && npm run build --prefix staff-portal && npm install --prefix super-admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix super-admin-dashboard"
   },
   "dependencies": {
     "nodemailer": "^7.0.3"
