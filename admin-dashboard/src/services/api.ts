@@ -1,7 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://staff-attendance-api-test.onrender.com',
+  baseURL: import.meta.env.VITE_API_URL || 'https://staff-attendance-185e.onrender.com',
 });
 
 export const getApiErrorMessage = (err: unknown, fallback: string): string => {

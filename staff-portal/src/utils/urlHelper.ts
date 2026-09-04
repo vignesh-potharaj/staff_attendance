@@ -15,6 +15,6 @@ export function resolvePhotoUrl(url: string | null | undefined): string | null {
   }
   
   // Relative path - prepend API base URL
-  const API_BASE = import.meta.env.VITE_API_URL || 'https://staff-attendance-api-test.onrender.com';
+  const API_BASE = import.meta.env.VITE_API_URL || 'https://staff-attendance-185e.onrender.com';
   return `${API_BASE}${url}`;
 }
