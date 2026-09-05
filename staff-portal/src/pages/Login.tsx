@@ -18,12 +18,9 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('user_id', employeeId.trim());
-      formData.append('password', password);
-
-      const response = await api.post('/auth/login', formData, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      const response = await api.post('/auth/login', {
+        user_id: employeeId.trim(),
+        password: password,
       });
       
       const { access_token, user } = response.data;
