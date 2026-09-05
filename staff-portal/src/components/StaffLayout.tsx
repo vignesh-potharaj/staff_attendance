@@ -31,31 +31,39 @@ const StaffLayout: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <NotificationPermissionBanner />
 
-      {/* Top Header Bar for Mobile */}
-      <div className="bg-[#2D3092] text-white fixed top-0 left-0 right-0 z-30 h-16 px-4 flex items-center justify-between border-b-4 border-[#FFCB06] shadow-md">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="p-2 rounded-xl bg-white/10 text-white hover:bg-white/20 flex items-center gap-2 border border-white/20 transition-all"
-          aria-label="Open navigation"
-        >
-          <Menu className="w-6 h-6 text-[#FFCB06]" />
-        </button>
-
-        <div className="flex items-center gap-2">
-          <img 
-            src="/college-logo.png" 
-            alt="College Emblem" 
-            className="h-7 w-auto max-h-7 max-w-[32px] object-contain drop-shadow-sm shrink-0"
-          />
-          <img 
-            src="/ncc-logo.png" 
-            alt="NCC Emblem" 
-            className="h-7 w-auto max-h-7 max-w-[24px] object-contain drop-shadow-sm shrink-0"
-          />
-          <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
+      {/* Top Header Bar with NCC Tri-Color Accent */}
+      <header className="bg-[#2D3092] text-white fixed top-0 left-0 right-0 z-30 shadow-md">
+        <div className="ncc-tricolor-bar">
+          <div className="stripe-red" />
+          <div className="stripe-navy" />
+          <div className="stripe-skyblue" />
         </div>
-      </div>
+
+        <div className="h-16 px-4 flex items-center justify-between border-b-4 border-[#FFCB06]">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="p-2 rounded-xl bg-white/10 text-white hover:bg-white/20 flex items-center gap-2 border border-white/20 transition-all cursor-pointer"
+            aria-label="Open navigation"
+          >
+            <Menu className="w-6 h-6 text-[#FFCB06]" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <img 
+              src="/college-logo.png" 
+              alt="College Emblem" 
+              className="h-7 w-auto max-h-7 max-w-[32px] object-contain drop-shadow-sm shrink-0"
+            />
+            <img 
+              src="/ncc-logo.png" 
+              alt="NCC Emblem" 
+              className="h-7 w-auto max-h-7 max-w-[24px] object-contain drop-shadow-sm shrink-0"
+            />
+            <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
+          </div>
+        </div>
+      </header>
 
       {open && (
         <button
@@ -140,7 +148,7 @@ const StaffLayout: React.FC = () => {
         </div>
       </aside>
 
-      <main className="min-h-screen pt-20 px-4 pb-8">
+      <main className="min-h-screen pt-22 sm:pt-24 px-4 pb-8">
         <Outlet />
       </main>
     </div>
