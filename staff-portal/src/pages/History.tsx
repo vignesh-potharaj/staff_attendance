@@ -90,8 +90,8 @@ const History: React.FC = () => {
               <thead className="bg-slate-100 text-slate-600 uppercase text-xs">
                 <tr>
                   <th className="text-left px-4 py-3">Date</th>
-                  <th className="text-left px-4 py-3">Check-in</th>
-                  <th className="text-left px-4 py-3">Check-out</th>
+                  <th className="text-left px-4 py-3">Fall-In</th>
+                  <th className="text-left px-4 py-3">Visarjan</th>
                   <th className="text-left px-4 py-3">Duration</th>
                   <th className="text-left px-4 py-3">Status</th>
                 </tr>
@@ -136,11 +136,11 @@ const History: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 font-semibold">Check-in</p>
+                    <p className="text-xs text-slate-500 font-semibold">Fall-In</p>
                     <p className="font-bold text-slate-900 mt-1">{formatTime(record.check_in_time)}</p>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 font-semibold">Check-out</p>
+                    <p className="text-xs text-slate-500 font-semibold">Visarjan</p>
                     <p className="font-bold text-slate-900 mt-1">{formatTime(record.check_out_time)}</p>
                   </div>
                 </div>

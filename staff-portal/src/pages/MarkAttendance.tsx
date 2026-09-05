@@ -1,71 +1,75 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
-import { sendInstantNotification } from '../services/notificationService';
+import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 const MarkAttendance: React.FC = () => {
-  const navigate = useNavigate();
   const webcamRef = useRef<Webcam>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-
-  const capture = useCallback(() => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (imageSrc) {
-      setImgSrc(imageSrc);
-    }
-  }, [webcamRef]);
+  const navigate = useNavigate();
 
   const getLocation = () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
-      return;
+    setError('');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (err) => {
+          console.error(err);
+          setError('Location access denied or unavailable. Geofencing requires GPS location.');
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      setError('Geolocation is not supported by your browser.');
     }
+  };
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-      },
-      () => {
-        setError('Unable to retrieve your location. Please enable GPS.');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      }
-    );
+  useEffect(() => {
+    getLocation();
+  }, []);
+
+  const capture = () => {
+    if (webcamRef.current) {
+      const imageSrc = webcamRef.current.getScreenshot();
+      setImgSrc(imageSrc);
+    }
   };
 
   const dataURLtoFile = (dataurl: string, filename: string) => {
     const arr = dataurl.split(',');
-    const match = arr[0].match(/:(.*?);/);
-    const mime = match ? match[1] : 'image/jpeg';
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    while(n--){
-        u8arr[n] = bstr.charCodeAt(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
     }
-    return new File([u8arr], filename, {type:mime});
-  }
+    return new File([u8arr], filename, { type: mime });
+  };
 
   const handleSubmit = async (action: 'check-in' | 'check-out') => {
-    if (!imgSrc || !location) {
-      setError('Please capture a photo and allow location access');
+    if (!imgSrc) {
+      setError('Please capture a photo before submitting.');
+      return;
+    }
+    if (!location) {
+      setError('Location is required. Please allow GPS location.');
       return;
     }
 
     setLoading(true);
-    setError(null);
+    setError('');
 
     try {
       const file = dataURLtoFile(imgSrc, 'attendance_photo.jpg');
@@ -81,21 +85,21 @@ const MarkAttendance: React.FC = () => {
       });
 
       const attStatus = response.data?.status || 'recorded';
-      if (action === 'check-in') {
-        sendInstantNotification(
-          'Check-In Successful ✅',
-          `Your check-in has been recorded (${attStatus}).`
-        );
-      } else {
-        sendInstantNotification(
-          'Check-Out Successful 🏁',
-          'Your check-out has been recorded successfully.'
-        );
+      if ('Notification' in window && Notification.permission === 'granted') {
+        if (action === 'check-in') {
+          new Notification('Fall-In Successful ✅', {
+            body: `Your fall-in has been recorded (${attStatus}).`
+          });
+        } else {
+          new Notification('Visarjan Successful 🏁', {
+            body: 'Your visarjan has been recorded successfully.'
+          });
+        }
       }
 
       setSuccess(true);
     } catch (err: unknown) {
-      setError(getApiErrorMessage(err, `Failed to ${action === 'check-in' ? 'check in' : 'check out'}`));
+      setError(getApiErrorMessage(err, `Failed to ${action === 'check-in' ? 'fall in' : 'complete visarjan'}`));
     } finally {
       setLoading(false);
     }
@@ -108,7 +112,7 @@ const MarkAttendance: React.FC = () => {
           <CheckCircle2 className="w-16 h-16 text-green-600" />
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Success!</h1>
-        <p className="text-gray-600 mb-8">Your action has been recorded successfully.</p>
+        <p className="text-gray-600 mb-8">Your attendance action has been recorded successfully.</p>
         <div className="w-full max-w-xs space-y-3">
           <button
             onClick={() => navigate('/staff/dashboard')}
@@ -208,7 +212,7 @@ const MarkAttendance: React.FC = () => {
               : 'bg-[#2D3092] text-white hover:bg-[#3F43B5] hover:-translate-y-0.5'
             }`}
           >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Check In</>}
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Fall In</>}
           </button>
           
           <button
@@ -220,7 +224,7 @@ const MarkAttendance: React.FC = () => {
               : 'bg-[#EF1C25] text-white hover:bg-[#C7131B] hover:-translate-y-0.5'
             }`}
           >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Check Out</>}
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Visarjan</>}
           </button>
         </div>
       </main>

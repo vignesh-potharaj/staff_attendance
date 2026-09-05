@@ -158,16 +158,16 @@ const Attendance: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Check-in & Check-out Times */}
+                {/* Fall-In & Visarjan Times */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#00AEEF]/10 p-3 rounded-xl border border-[#00AEEF]/30">
-                    <p className="text-xs text-[#00AEEF] font-bold uppercase tracking-wider">Check In Time</p>
+                    <p className="text-xs text-[#00AEEF] font-bold uppercase tracking-wider">Fall-In Time</p>
                     <p className="text-sm font-black text-slate-900 mt-1">
                       {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                   </div>
                   <div className="bg-[#EF1C25]/10 p-3 rounded-xl border border-[#EF1C25]/30">
-                    <p className="text-xs text-[#EF1C25] font-bold uppercase tracking-wider">Check Out Time</p>
+                    <p className="text-xs text-[#EF1C25] font-bold uppercase tracking-wider">Visarjan Time</p>
                     <p className="text-sm font-black text-slate-900 mt-1">
                       {record.check_out_time 
                         ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
@@ -180,9 +180,9 @@ const Attendance: React.FC = () => {
                 <div className="border-t border-slate-100 pt-3 space-y-3">
                   {/* Selfies Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Check-In Selfie */}
+                    {/* Fall-In Selfie */}
                     <div>
-                      <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Check-In Selfie</p>
+                      <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Fall-In Selfie</p>
                       {record.photo_url ? (
                         <a 
                           href={resolvePhotoUrl(record.photo_url) || '#'} 
@@ -192,7 +192,7 @@ const Attendance: React.FC = () => {
                         >
                           <img 
                             src={resolvePhotoUrl(record.photo_url) || ''}
-                            alt="Check-in selfie"
+                            alt="Fall-in selfie"
                             className="w-full h-48 object-cover"
                           />
                         </a>
@@ -206,9 +206,9 @@ const Attendance: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Check-Out Selfie */}
+                    {/* Visarjan Selfie */}
                     <div>
-                      <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Check-Out Selfie</p>
+                      <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Visarjan Selfie</p>
                       {record.check_out_photo_url ? (
                         <a 
                           href={resolvePhotoUrl(record.check_out_photo_url) || '#'} 
@@ -218,7 +218,7 @@ const Attendance: React.FC = () => {
                         >
                           <img 
                             src={resolvePhotoUrl(record.check_out_photo_url) || ''}
-                            alt="Check-out selfie"
+                            alt="Visarjan selfie"
                             className="w-full h-48 object-cover"
                           />
                         </a>
@@ -226,7 +226,7 @@ const Attendance: React.FC = () => {
                         <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
                           <div className="text-center">
                             <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                            <p className="text-xs text-gray-400">Not checked out</p>
+                            <p className="text-xs text-gray-400">Pending Visarjan</p>
                           </div>
                         </div>
                       )}
