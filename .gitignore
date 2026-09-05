@@ -23,6 +23,8 @@ sql_app.db
 *.sqlite3
 
 # Application Data
+static/images/*
+!static/images/.gitkeep
 backend/static/images/*
 !backend/static/images/.gitkeep
 
