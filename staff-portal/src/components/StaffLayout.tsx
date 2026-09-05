@@ -43,9 +43,11 @@ const StaffLayout: React.FC = () => {
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[#EF1C25] border border-[#FFCB06] flex items-center justify-center font-black text-xs text-white shadow-md">
-            NCC
-          </div>
+          <img 
+            src="/ncc-logo.png" 
+            alt="NCC Emblem" 
+            className="w-7 h-9 object-contain drop-shadow-sm"
+          />
           <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
         </div>
       </div>
@@ -74,13 +76,11 @@ const StaffLayout: React.FC = () => {
 
         <div className="p-5 border-b border-white/10 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-[#EF1C25] border-2 border-[#FFCB06] text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="font-black text-base truncate text-white">{user?.name}</p>
-                <p className="text-xs font-bold text-[#00AEEF] truncate">Cadet ID: {user?.employee_id}</p>
+            <div className="flex items-center gap-3">
+              <img src="/ncc-logo.png" alt="NCC Emblem" className="w-8 h-10 object-contain drop-shadow-md" />
+              <div>
+                <span className="font-black text-sm uppercase tracking-wider block text-white">NCC Cadet Portal</span>
+                <span className="text-[10px] font-bold text-[#00AEEF] uppercase tracking-widest">National Cadet Corps</span>
               </div>
             </div>
             <button
@@ -91,6 +91,16 @@ const StaffLayout: React.FC = () => {
             >
               <X className="w-5 h-5" />
             </button>
+          </div>
+
+          <div className="flex items-center gap-3 min-w-0 bg-white/5 p-2.5 rounded-xl border border-white/10">
+            <div className="w-10 h-10 rounded-xl bg-[#EF1C25] border-2 border-[#FFCB06] text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="font-black text-sm truncate text-white">{user?.name}</p>
+              <p className="text-xs font-bold text-[#00AEEF] truncate">Cadet ID: {user?.employee_id}</p>
+            </div>
           </div>
 
           <div className="bg-white/10 border border-white/20 rounded-xl p-3 flex items-center gap-3">

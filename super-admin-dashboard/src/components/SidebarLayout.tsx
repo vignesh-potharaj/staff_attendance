@@ -31,12 +31,10 @@ const SidebarLayout: React.FC = () => {
       >
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-600 p-2 text-white">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
+            <img src="/ncc-logo.png" alt="NCC Emblem" className="w-8 h-10 object-contain drop-shadow-md" />
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Smart Attend</p>
-              <h1 className="text-lg font-bold">Super Admin</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#00AEEF]">NCC HQ</p>
+              <h1 className="text-lg font-bold text-white">Super Admin</h1>
             </div>
           </div>
           <button className="text-slate-400 lg:hidden" onClick={() => setOpen(false)}>

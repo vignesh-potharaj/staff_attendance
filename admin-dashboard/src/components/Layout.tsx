@@ -50,9 +50,11 @@ const Layout: React.FC = () => {
 
         <div className="p-5 flex items-center justify-between space-x-3 border-b border-[#3F43B5]">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-[#EF1C25] border-2 border-[#FFCB06] flex items-center justify-center shadow-lg font-black text-white text-base tracking-tighter">
-              NCC
-            </div>
+            <img 
+              src="/ncc-logo.png" 
+              alt="NCC Emblem" 
+              className="w-10 h-12 object-contain drop-shadow-md"
+            />
             <div>
               <span className="text-lg font-black tracking-wider text-white block leading-none">NCC CADET</span>
               <span className="text-[10px] font-bold tracking-widest text-[#00AEEF] uppercase">Attendance Portal</span>
@@ -115,13 +117,18 @@ const Layout: React.FC = () => {
         </div>
 
         <header className="bg-white border-b border-slate-200 px-4 lg:px-8 py-3.5 flex items-center justify-between shrink-0 shadow-xs">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 mr-3 text-slate-700 hover:bg-slate-100 rounded-lg lg:hidden"
+              className="p-2 -ml-2 mr-1 text-slate-700 hover:bg-slate-100 rounded-lg lg:hidden"
             >
               <Menu className="w-6 h-6" />
             </button>
+            <img 
+              src="/ncc-logo.png" 
+              alt="NCC Emblem" 
+              className="w-8 h-10 object-contain shrink-0"
+            />
             <div>
               <h2 className="text-lg lg:text-xl font-black text-[#2D3092] truncate tracking-tight">NCC Instructor Portal</h2>
               <p className="text-xs text-slate-500 font-medium hidden sm:block">National Cadet Corps Attendance & Roster Management</p>

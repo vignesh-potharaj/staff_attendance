@@ -69,9 +69,11 @@ const Login: React.FC = () => {
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#E52327] border-4 border-[#FFC800] shadow-xl text-white font-black text-2xl tracking-tighter mb-4">
-          NCC
-        </div>
+        <img 
+          src="/ncc-logo.png" 
+          alt="NCC Emblem" 
+          className="w-20 h-24 mx-auto mb-4 object-contain filter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)]"
+        />
         <h2 className="text-3xl font-black text-white tracking-tight">
           NCC INSTRUCTOR PORTAL
         </h2>
