@@ -18,7 +18,7 @@ const Layout: React.FC = () => {
 
   const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { to: '/users', icon: Users, label: 'User Management' },
+    { to: '/users', icon: Users, label: 'Cadet Management' },
     { to: '/roaster', icon: Calendar, label: "Today's Roaster" },
     { to: '/attendance', icon: FileText, label: 'Attendance Records' },
     { to: '/settings', icon: Settings, label: 'Settings' },

@@ -132,7 +132,7 @@ const Users: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet & Instructor Management</h2>
+          <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet Management</h2>
           <p className="text-xs text-slate-500 font-medium">Manage battalion profiles and cadet access credentials</p>
         </div>
         <button
@@ -153,7 +153,7 @@ const Users: React.FC = () => {
           className="bg-[#EF1C25] hover:bg-[#C7131B] text-white font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center space-x-2 border-b-2 border-[#FFCB06] transition-all text-sm"
         >
           <Plus className="w-4 h-4 text-[#FFCB06]" />
-          <span>Add Cadet / User</span>
+          <span>Add New Cadet</span>
         </button>
       </div>
 
