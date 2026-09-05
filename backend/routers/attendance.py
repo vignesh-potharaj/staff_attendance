@@ -15,7 +15,7 @@ from backend.database.database import get_db
 from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
-from backend.services.cloudinary_storage import get_cloudinary_manager
+from backend.services.cloudinary_storage import get_cloudinary_manager, compress_image_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -125,12 +125,13 @@ def mark_attendance(
     
     # If Cloudinary fails, fall back to local storage
     if not photo_url:
+        compressed_content = compress_image_bytes(file_content, max_dim=800, quality=60)
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
+            buffer.write(compressed_content)
         # Use absolute URL for database (so photos work on deployed Render)
         photo_url = f"{BACKEND_URL}/static/images/{filename}"
-        logger.info(f"Photo saved to local storage: {photo_url}")
+        logger.info(f"Photo saved to local storage (compressed): {photo_url}")
 
     # Determine LATE or PRESENT based on DailyRoaster
     status = AttendanceStatus.PRESENT
@@ -231,12 +232,13 @@ def check_out_attendance(
     
     # If Cloudinary fails, fall back to local storage
     if not check_out_photo_url:
+        compressed_content = compress_image_bytes(file_content, max_dim=800, quality=60)
         file_path = os.path.join(UPLOAD_DIR, filename)
         with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
+            buffer.write(compressed_content)
         # Use absolute URL for database (so photos work on deployed Render)
         check_out_photo_url = f"{BACKEND_URL}/static/images/{filename}"
-        logger.info(f"Check-out photo saved to local storage: {check_out_photo_url}")
+        logger.info(f"Check-out photo saved to local storage (compressed): {check_out_photo_url}")
 
     # Assign to instance attributes, not class attributes
     setattr(existing, 'check_out_time', datetime.now(IST).replace(tzinfo=None))
