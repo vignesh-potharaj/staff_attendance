@@ -127,7 +127,7 @@ const Attendance: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet Attendance Monitoring</h2>
-        <p className="text-xs text-slate-500 font-medium">Verify selfie logs, timestamps, and GPS parade ground coordinates</p>
+        <p className="text-xs text-slate-500 font-medium">Verify selfie logs, timestamps, and GPS session coordinates</p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 border-t-4 border-t-[#2D3092] space-y-5">

@@ -212,7 +212,7 @@ const Dashboard: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg font-medium text-sm transition-colors"
             >
               <Bell className="w-4 h-4 text-blue-600" />
-              Enable Parade & Attendance Reminders
+              Enable Session & Attendance Reminders
             </button>
           )}
 
@@ -261,7 +261,7 @@ const Dashboard: React.FC = () => {
           <div>
             <h3 className="font-bold text-sm sm:text-base text-white">Closed-App Notifications Setup</h3>
             <p className="text-xs text-slate-300 mt-0.5">
-              Allow background activity in phone battery settings to get parade alerts when app is closed.
+              Allow background activity in phone battery settings to get session alerts when app is closed.
             </p>
           </div>
         </div>
@@ -372,7 +372,7 @@ const Dashboard: React.FC = () => {
               {loading ? '...' : (summary?.month_present_days ?? 0)}
             </p>
             <span className="text-sm font-bold text-slate-500">
-              {(summary?.month_present_days ?? 0) === 1 ? 'Parade Attended' : 'Parades Attended'}
+              {(summary?.month_present_days ?? 0) === 1 ? 'Session Attended' : 'Sessions Attended'}
             </span>
           </div>
         </div>
@@ -393,7 +393,7 @@ const Dashboard: React.FC = () => {
               {loading ? '...' : (summary?.overall_present_days ?? 0)}
             </p>
             <span className="text-sm font-bold text-slate-500">
-              {(summary?.overall_present_days ?? 0) === 1 ? 'Total Parade' : 'Total Parades'}
+              {(summary?.overall_present_days ?? 0) === 1 ? 'Total Session' : 'Total Sessions'}
             </span>
           </div>
         </div>
@@ -402,11 +402,11 @@ const Dashboard: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center border-t-4 border-t-[#EF1C25] space-y-4">
         <CalendarCheck className="w-12 h-12 mx-auto text-[#EF1C25]" />
         <div>
-          <h3 className="text-lg font-black text-[#2D3092] uppercase tracking-tight">Parade & Drill Attendance</h3>
+          <h3 className="text-lg font-black text-[#2D3092] uppercase tracking-tight">Session & Drill Attendance</h3>
           {summary?.today?.marked ? (
             <div className="inline-flex items-center gap-2 mt-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Today's Parade: Recorded ({summary.today.status})</span>
+              <span>Today's Session: Recorded ({summary.today.status})</span>
               {summary.today.check_in_time && (
                 <span className="text-emerald-800">
                   • Fall-In: {new Date(summary.today.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -414,7 +414,7 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           ) : (
-            <p className="text-xs text-slate-500 mt-1">Mark your parade attendance with GPS verification and photo selfie</p>
+            <p className="text-xs text-slate-500 mt-1">Mark your session attendance with GPS verification and photo selfie</p>
           )}
         </div>
         <div>
@@ -438,7 +438,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <h2 className="text-lg font-black text-[#2D3092]">NCC Battalion & Unit Details</h2>
-              <p className="text-xs text-slate-500">Information about your assigned NCC battalion unit & parade ground</p>
+              <p className="text-xs text-slate-500">Information about your assigned NCC battalion unit & session ground</p>
             </div>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#FFCB06] text-[#2D3092] w-fit shadow-xs">
@@ -466,7 +466,7 @@ const Dashboard: React.FC = () => {
           {/* Location & Attendance Rules Card */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
             <p className="text-xs font-bold text-[#2D3092] uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" /> Parade Ground Geofence
+              <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" /> Session Ground Geofence
             </p>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -479,7 +479,7 @@ const Dashboard: React.FC = () => {
               </div>
               {user?.geofence_maps_link && (
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm text-slate-600 font-medium">Parade Location</span>
+                  <span className="text-sm text-slate-600 font-medium">Session Location</span>
                   <a
                     href={user.geofence_maps_link}
                     target="_blank"

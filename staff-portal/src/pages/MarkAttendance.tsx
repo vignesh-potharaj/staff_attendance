@@ -136,7 +136,7 @@ const MarkAttendance: React.FC = () => {
       <main className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-black text-[#2D3092] uppercase tracking-tight">Mark Cadet Attendance</h1>
-          <p className="text-xs font-bold text-[#00AEEF]">Parade Selfie Capture & Geofence Verification</p>
+          <p className="text-xs font-bold text-[#00AEEF]">Session Selfie Capture & Geofence Verification</p>
         </div>
 
         {/* Webcam Section */}
@@ -178,7 +178,7 @@ const MarkAttendance: React.FC = () => {
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-black text-[#2D3092] text-sm">Parade Ground GPS Access</p>
+                <p className="font-black text-[#2D3092] text-sm">Session Ground GPS Access</p>
                 <p className="text-xs font-semibold text-slate-500">
                   {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Required for geofence verification'}
                 </p>

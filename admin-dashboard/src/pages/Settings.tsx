@@ -193,7 +193,7 @@ const Settings: React.FC = () => {
               Tune how {formData.business_name || 'your NCC Battalion'} runs cadet attendance.
             </h1>
             <p className="mt-3 max-w-2xl text-xs font-semibold leading-6 text-slate-200">
-              Update your NCC battalion identity, personalize your instructor profile, configure parade ground geofencing, and manage portal preferences.
+              Update your NCC battalion identity, personalize your instructor profile, configure session ground geofencing, and manage portal preferences.
             </p>
           </div>
           <div className="border-t border-white/10 p-6 md:p-8 lg:border-l lg:border-t-0 bg-[#1E216B]/60">
@@ -297,9 +297,9 @@ const Settings: React.FC = () => {
                   <MapPin className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-black text-[#2D3092] text-base">Parade Ground Geofence</h3>
+                  <h3 className="font-black text-[#2D3092] text-base">Session Ground Geofence</h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600 font-medium">
-                    Paste a Google Maps link for the parade ground. Cadets can mark attendance only within the configured radius of this location.
+                    Paste a Google Maps link for the session ground. Cadets can mark attendance only within the configured radius of this location.
                   </p>
                   <label className="mt-4 block">
                     <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Google Maps Link</span>
@@ -345,13 +345,13 @@ const Settings: React.FC = () => {
             <div className="mb-6 flex items-center gap-2">
               <Clock3 className="h-5 w-5 text-[#EF1C25]" />
               <div>
-                <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Parade & Drill Attendance Rules</h2>
-                <p className="text-xs text-slate-500 font-medium">Configure parade late thresholds and grace windows.</p>
+                <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Session & Drill Attendance Rules</h2>
+                <p className="text-xs text-slate-500 font-medium">Configure session late thresholds and grace windows.</p>
               </div>
             </div>
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Parade Late Threshold</span>
+                <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Session Late Threshold</span>
                 <div className="mt-2 flex items-center gap-3">
                   <input
                     type="range"
@@ -396,8 +396,8 @@ const Settings: React.FC = () => {
             </div>
             <div className="space-y-3">
               {[
-                ['weeklyDigest', 'Weekly parade attendance digest'],
-                ['missedCheckoutAlert', 'Missed parade checkout alerts'],
+                ['weeklyDigest', 'Weekly session attendance digest'],
+                ['missedCheckoutAlert', 'Missed session checkout alerts'],
                 ['compactTables', 'Compact data tables'],
               ].map(([key, label]) => (
                 <label key={key} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-3">

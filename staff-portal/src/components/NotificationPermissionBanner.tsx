@@ -69,7 +69,7 @@ export const NotificationPermissionBanner: React.FC = () => {
             <BellOff className="w-4 h-4 text-slate-950" />
           </div>
           <p className="truncate">
-            <span className="font-bold">Notifications Blocked:</span> Enable notifications in your browser settings to get real-time parade & drill alerts.
+            <span className="font-bold">Notifications Blocked:</span> Enable notifications in your browser settings to get real-time session & drill alerts.
           </p>
         </div>
 

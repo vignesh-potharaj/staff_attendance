@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 border-t-4 border-t-[#EF1C25]">
-          <h3 className="text-base font-black text-[#2D3092] uppercase tracking-wider mb-4">Today's Parade Ratio</h3>
+          <h3 className="text-base font-black text-[#2D3092] uppercase tracking-wider mb-4">Today's Session Ratio</h3>
           <div className="h-64 flex justify-center">
             <Doughnut
               data={donutData}

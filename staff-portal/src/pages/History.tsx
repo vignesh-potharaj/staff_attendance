@@ -161,7 +161,7 @@ const History: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-slate-600 text-sm">
                   <Clock className="w-4 h-4 text-blue-600" />
-                  {(record.duration_hours ?? 0).toFixed(2)} hrs parade drill
+                  {(record.duration_hours ?? 0).toFixed(2)} hrs session drill
                 </div>
               </div>
             ))}

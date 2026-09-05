@@ -296,9 +296,9 @@ const TodayRoaster: React.FC = () => {
           <div>
             <h2 className="text-2xl font-black text-[#2D3092] flex items-center gap-2 uppercase tracking-tight">
               <CalendarIcon className="text-[#EF1C25]" />
-              Parade & Drill Schedule (Roster)
+              Session & Drill Schedule (Roster)
             </h2>
-            <p className="text-xs text-slate-500 font-bold mt-1">Assign drill timings and publish the parade schedule</p>
+            <p className="text-xs text-slate-500 font-bold mt-1">Assign drill timings and publish the session schedule</p>
           </div>
           <div className="flex gap-3">
             <button

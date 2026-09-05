@@ -392,13 +392,13 @@ def export_monthly_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique parade dates in this month for the tenant
-    parade_dates_query = db.query(Attendance.date).filter(
+    # Unique session dates in this month for the tenant
+    session_dates_query = db.query(Attendance.date).filter(
         Attendance.tenant_id == current_admin.tenant_id,
         Attendance.date.like(f"{month}%")
     ).distinct().all()
     
-    tenant_parade_dates_count = len(parade_dates_query)
+    tenant_session_dates_count = len(session_dates_query)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -421,7 +421,7 @@ def export_monthly_summary_csv(
         ).all()
         
         cadet_dates = {r.date for r in cadet_records}
-        total_days = max(tenant_parade_dates_count, len(cadet_dates))
+        total_days = max(tenant_session_dates_count, len(cadet_dates))
         
         present_count = sum(1 for r in cadet_records if r.status in [AttendanceStatus.PRESENT, AttendanceStatus.LATE])
         late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE)
@@ -463,12 +463,12 @@ def export_total_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique parade dates across all time for tenant
-    parade_dates_query = db.query(Attendance.date).filter(
+    # Unique session dates across all time for tenant
+    session_dates_query = db.query(Attendance.date).filter(
         Attendance.tenant_id == current_admin.tenant_id
     ).distinct().all()
     
-    tenant_parade_dates_count = len(parade_dates_query)
+    tenant_session_dates_count = len(session_dates_query)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -489,7 +489,7 @@ def export_total_summary_csv(
         ).all()
         
         cadet_dates = {r.date for r in cadet_records}
-        total_days = max(tenant_parade_dates_count, len(cadet_dates))
+        total_days = max(tenant_session_dates_count, len(cadet_dates))
         
         present_count = sum(1 for r in cadet_records if r.status in [AttendanceStatus.PRESENT, AttendanceStatus.LATE])
         late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE)
@@ -523,9 +523,9 @@ def get_staff_attendance_summary(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Returns cadet parade drill attendance analytics:
-    - month_present_days: count of parades attended in current month
-    - overall_present_days: total lifetime parades attended
+    Returns cadet session drill attendance analytics:
+    - month_present_days: count of sessions attended in current month
+    - overall_present_days: total lifetime sessions attended
     - today: today's fall-in/visarjan status
     """
     if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
