@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, User as UserIcon } from 'lucide-react';
+import { Plus, Trash2, Edit2, User as UserIcon, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 
 interface User {
@@ -54,7 +54,7 @@ const Users: React.FC = () => {
       name: user.name,
       employee_id: user.employee_id,
       phone: user.phone,
-      role: user.role,
+      role: user.role || 'STAFF',
       password: '',
       pay_type: user.pay_type || 'hourly',
       hourly_pay: String(hourly),
@@ -64,12 +64,12 @@ const Users: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (!window.confirm('Are you sure you want to delete this cadet?')) return;
     try {
       await api.delete(`/users/${id}`);
       fetchUsers();
     } catch {
-      alert('Failed to delete user');
+      alert('Failed to delete cadet');
     }
   };
 
@@ -85,30 +85,18 @@ const Users: React.FC = () => {
       let hourlyPay = Number(formData.hourly_pay);
       let dailyPay = Number(formData.daily_pay);
 
-      if (Number.isNaN(hourlyPay) || hourlyPay < 0) {
-        alert('Please enter a valid hourly pay amount');
-        return;
-      }
-      if (Number.isNaN(dailyPay) || dailyPay < 0) {
-        alert('Please enter a valid daily pay amount');
-        return;
-      }
-
-      // Auto compute counterpart if 0
-      if (formData.pay_type === 'daily' && (hourlyPay === 0 || Number.isNaN(hourlyPay))) {
-        hourlyPay = dailyPay / 8;
-      } else if (formData.pay_type === 'hourly' && (dailyPay === 0 || Number.isNaN(dailyPay))) {
-        dailyPay = hourlyPay * 8;
-      }
+      if (Number.isNaN(hourlyPay) || hourlyPay < 0) hourlyPay = 0;
+      if (Number.isNaN(dailyPay) || dailyPay < 0) dailyPay = 0;
 
       // For new users, password is required
       if (!editingUser && !formData.password) {
-        alert('Password is required for new users');
+        alert('Password is required for new cadets');
         return;
       }
 
       const payload: Record<string, string | number | null> = {
         ...formData,
+        role: editingUser ? editingUser.role : 'STAFF',
         hourly_pay: hourlyPay,
         daily_pay: dailyPay,
         pay_type: formData.pay_type
@@ -136,7 +124,7 @@ const Users: React.FC = () => {
       });
       fetchUsers();
     } catch {
-      alert(editingUser ? 'Failed to update user' : 'Failed to create user');
+      alert(editingUser ? 'Failed to update cadet profile' : 'Failed to create cadet');
     }
   };
 
@@ -145,7 +133,7 @@ const Users: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet & Instructor Management</h2>
-          <p className="text-xs text-slate-500 font-medium">Manage battalion profiles and accounts</p>
+          <p className="text-xs text-slate-500 font-medium">Manage battalion profiles and cadet access credentials</p>
         </div>
         <button
           onClick={() => {
@@ -168,6 +156,7 @@ const Users: React.FC = () => {
           <span>Add Cadet / User</span>
         </button>
       </div>
+
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
         <div className="space-y-3">
           {users.map((user) => {
@@ -183,9 +172,8 @@ const Users: React.FC = () => {
                   <div className="stripe-skyblue" />
                 </div>
 
-                {/* Card content - vertical layout */}
+                {/* Card content */}
                 <div className="space-y-3 pt-2">
-                  {/* Header: Avatar + Name + ID + Role */}
                   <div className="flex items-start gap-3 justify-between">
                     <div className="flex items-start gap-3 flex-1">
                       <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-[#2D3092] to-[#00AEEF] border-2 border-[#FFCB06] flex items-center justify-center shadow-md text-white font-black text-lg">
@@ -197,7 +185,7 @@ const Users: React.FC = () => {
                           {user.name}
                         </h3>
                         <p className="text-xs font-bold text-slate-500 mt-0.5">
-                          Cadet/User ID: <span className="text-[#EF1C25] font-black">{user.employee_id}</span>
+                          Cadet ID / Regt No: <span className="text-[#EF1C25] font-black">{user.employee_id}</span>
                         </p>
                       </div>
                     </div>
@@ -208,7 +196,7 @@ const Users: React.FC = () => {
                         ? 'bg-[#2D3092] text-white border-[#FFCB06]' 
                         : 'bg-[#00AEEF]/10 text-[#00AEEF] border-[#00AEEF]/40'
                     }`}>
-                      {user.role === 'ADMIN' ? 'INSTRUCTOR (ADMIN)' : 'CADET (STAFF)'}
+                      {user.role === 'ADMIN' ? 'INSTRUCTOR (ADMIN)' : 'CADET'}
                     </span>
                   </div>
 
@@ -245,60 +233,99 @@ const Users: React.FC = () => {
           {users.length === 0 && !loading && (
             <div className="text-center py-8 text-gray-500">
               <UserIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-              <p>No users found. Create your first user!</p>
+              <p>No cadets registered yet. Add your first cadet!</p>
             </div>
           )}
         </div>
       </div>
-      {/* Create/Edit Modal */}
+
+      {/* Add / Edit Cadet Modal with official NCC styling */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">{editingUser ? 'Edit Employee' : 'Add New Employee'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <input required type="text" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border-t-4 border-[#FFCB06]">
+            {/* Modal Header */}
+            <div className="bg-[#2D3092] text-white p-5">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#FFCB06] uppercase tracking-wider mb-1">
+                <ShieldCheck className="w-4 h-4 text-[#FFCB06]" />
+                NCC Cadet Registry
               </div>
+              <h3 className="text-xl font-black">
+                {editingUser ? 'Edit Cadet Profile' : 'Add New Cadet'}
+              </h3>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Employee ID</label>
+                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                  Cadet Full Name
+                </label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20" 
+                  placeholder="e.g. Cadet Rahul Sharma"
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})} 
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                  Cadet ID / Regt No.
+                </label>
                 <input 
                   required 
                   disabled={!!editingUser}
-                  placeholder={editingUser ? "Cannot change ID" : ""}
+                  placeholder={editingUser ? "Cannot change Cadet ID" : "e.g. KA/24/SD/10293"}
                   type="text" 
-                  className={`mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 ${editingUser ? 'bg-gray-100' : ''}`} 
+                  className={`w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20 ${editingUser ? 'bg-slate-100 text-slate-500' : ''}`} 
                   value={formData.employee_id} 
                   onChange={e => setFormData({...formData, employee_id: e.target.value})} 
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">Password {editingUser && '(Leave blank to keep current)'}</label>
+                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                  Password {editingUser && '(Leave blank to keep current)'}
+                </label>
                 <input 
                   required={!editingUser} 
                   type="password" 
                   minLength={6} 
-                  className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20" 
                   value={formData.password} 
                   onChange={e => setFormData({...formData, password: e.target.value})} 
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
-                <select className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                  <option value="STAFF">STAFF</option>
-                  <option value="ADMIN">ADMIN</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                  Contact Mobile Number
+                </label>
+                <input 
+                  required 
+                  type="tel" 
+                  placeholder="9876543210"
+                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20" 
+                  value={formData.phone} 
+                  onChange={e => setFormData({...formData, phone: e.target.value})} 
+                />
               </div>
 
-              <div className="mt-6 flex justify-end space-x-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                  {editingUser ? 'Update User' : 'Save User'}
+              <div className="pt-4 flex justify-end space-x-3 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)} 
+                  className="px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-5 py-2.5 bg-[#EF1C25] hover:bg-[#C7131B] text-white rounded-xl text-sm font-bold border-b-2 border-[#FFCB06] shadow-md transition"
+                >
+                  {editingUser ? 'Update Cadet' : 'Save Cadet'}
                 </button>
               </div>
             </form>
