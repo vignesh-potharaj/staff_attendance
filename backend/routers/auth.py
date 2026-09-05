@@ -350,43 +350,25 @@ async def login(request: Request, db: Session = Depends(get_db)):
         form = await request.form()
         payload = parse_login_payload(dict(form))
 
-    # If workspace email is provided, scope login to that tenant (staff login)
+    user_id_clean = payload.user_id.strip()
     user = None
+
     if payload.workspace_email:
         workspace_email = payload.workspace_email.strip().lower()
-        # Find admin user by workspace email
         admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
-        if not admin_user:
-            # Workspace not found or does not have an admin with this email
-            raise HTTPException(status_code=401, detail="Invalid workspace or credentials")
+        if admin_user:
+            user = db.query(User).filter(User.employee_id == user_id_clean, User.tenant_id == admin_user.tenant_id).first()
 
-        tenant = db.query(Tenant).filter(Tenant.id == admin_user.tenant_id).first()
-        tenant_data = orm_value(tenant)
-
-        # Now look up the employee within the tenant only
-        query = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.tenant_id == tenant_data.id)
-        user = query.first()
-    else:
-        # Admin portal login: allow user_id + password only, but require ADMIN role
-        admin_candidates = db.query(User).filter(User.employee_id == payload.user_id.strip(), User.role == RoleEnum.ADMIN).all()
-        if not admin_candidates:
-            raise HTTPException(status_code=401, detail="Invalid credentials")
-        if len(admin_candidates) > 1:
-            raise HTTPException(status_code=400, detail="Multiple admin accounts found. Provide workspace email.")
-        user = admin_candidates[0]
+    if not user:
+        user = db.query(User).filter(User.employee_id == user_id_clean).first()
 
     user_data = orm_value(user) if user else None
     if not user_data or not verify_password(payload.password, user_data.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid workspace or credentials" if payload.workspace_email else "Invalid credentials",
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    if user_data.email and not user_data.is_email_verified:
-        raise HTTPException(status_code=403, detail="Verify your email before signing in.")
-    if user_data.status != UserStatus.ACTIVE:
-        raise HTTPException(status_code=403, detail="Account is not active.")
 
     return build_login_response(user)
 

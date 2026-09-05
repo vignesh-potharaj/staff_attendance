@@ -7,7 +7,6 @@ import { Lock, User } from 'lucide-react';
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
-  const [workspaceEmail, setWorkspaceEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -19,10 +18,9 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-    const formData = new URLSearchParams();
-    formData.append('user_id', employeeId);
-    formData.append('password', password);
-    if (workspaceEmail) formData.append('workspace_email', workspaceEmail.trim().toLowerCase());
+      const formData = new URLSearchParams();
+      formData.append('user_id', employeeId.trim());
+      formData.append('password', password);
 
       const response = await api.post('/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
@@ -41,7 +39,7 @@ const Login: React.FC = () => {
     } catch (err: unknown) {
       const error = err as { response?: { status?: number } };
       if (error.response?.status === 401) {
-        setError('Invalid credentials');
+        setError('Invalid Cadet ID or Password');
       } else {
         setError('An error occurred during login. Is the server running?');
       }
@@ -88,20 +86,6 @@ const Login: React.FC = () => {
                   onChange={(e) => setEmployeeId(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1A1E5C] focus:border-transparent outline-none font-semibold text-slate-900 text-sm"
                   placeholder="Enter your Cadet ID"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Workspace email</label>
-              <div className="mt-1.5 relative">
-                <input
-                  type="email"
-                  required
-                  value={workspaceEmail}
-                  onChange={(e) => setWorkspaceEmail(e.target.value)}
-                  className="block w-full pl-3.5 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1A1E5C] focus:border-transparent outline-none font-semibold text-slate-900 text-sm"
-                  placeholder="unit@ncc.in"
                 />
               </div>
             </div>

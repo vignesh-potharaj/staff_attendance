@@ -6,7 +6,6 @@ import {
   Clock3,
   Download,
   Lock,
-  Mail,
   MapPin,
   Palette,
   Save,
@@ -20,7 +19,6 @@ interface SettingsData {
   business_name: string;
   tenant_slug?: string | null;
   admin_name: string;
-  email?: string | null;
   phone?: string | null;
   employee_id: string;
   role: string;
@@ -285,11 +283,11 @@ const Settings: React.FC = () => {
               </label>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#2D3092] uppercase tracking-wider">
-                  <Mail className="h-4 w-4 text-slate-500" />
+                  <ShieldCheck className="h-4 w-4 text-[#2D3092]" />
                   Sign-in Credentials
                 </div>
-                <p className="mt-2 break-words text-sm font-bold text-slate-800">{settings?.email || 'No email saved'}</p>
-                <p className="mt-1 text-xs font-semibold text-slate-500">Instructor ID: <span className="text-[#EF1C25] font-black">{settings?.employee_id}</span></p>
+                <p className="mt-2 text-sm font-bold text-slate-800">Instructor ID: <span className="text-[#EF1C25] font-black">{settings?.employee_id}</span></p>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Role: <span className="text-[#2D3092] font-black">{settings?.role}</span></p>
               </div>
             </div>
 

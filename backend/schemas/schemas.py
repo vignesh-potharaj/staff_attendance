@@ -64,7 +64,6 @@ class SettingsResponse(BaseModel):
     business_name: str
     tenant_slug: Optional[str] = None
     admin_name: str
-    email: Optional[str] = None
     phone: Optional[str] = None
     employee_id: str
     role: str

@@ -305,15 +305,9 @@ def run_migrations():
                         {"tenant_id": default_tenant_id},
                     )
                     conn.execute(text("UPDATE tenants SET role = 'tenant' WHERE role IS NULL"))
-                    conn.execute(text("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL"))
+                    conn.execute(text("UPDATE users SET status = 'ACTIVE'"))
                     conn.execute(text("UPDATE users SET failed_login_attempts = 0, locked_until = NULL"))
-                    conn.execute(
-                        text(
-                            "UPDATE users SET is_email_verified = 1 "
-                            "WHERE employee_id = 'admin' "
-                            "AND (is_email_verified IS NULL OR is_email_verified = 0)"
-                        )
-                    )
+                    conn.execute(text("UPDATE users SET is_email_verified = 1"))
                     if "attendance" in tables:
                         conn.execute(
                             text("UPDATE attendance SET tenant_id = :tenant_id WHERE tenant_id IS NULL"),

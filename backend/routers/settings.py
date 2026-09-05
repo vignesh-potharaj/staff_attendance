@@ -80,7 +80,6 @@ def _settings_response(current_admin: User) -> SettingsResponse:
         business_name=tenant.name if tenant else "Smart Attend Workspace",
         tenant_slug=tenant.slug if tenant else None,
         admin_name=cast(str, current_admin.name or ""),
-        email=cast(Optional[str], current_admin.email),
         phone=cast(Optional[str], current_admin.phone),
         employee_id=cast(str, current_admin.employee_id or ""),
         role=current_admin.role.value if hasattr(current_admin.role, "value") else str(current_admin.role),
