@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarCheck, History, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
+import { BarChart3, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 
@@ -84,10 +84,7 @@ const StaffLayout: React.FC = () => {
             <div className="flex items-center gap-2.5">
               <img src="/college-logo.png" alt="College Emblem" className="h-9 w-auto max-h-9 max-w-[40px] object-contain drop-shadow-md shrink-0" />
               <img src="/ncc-logo.png" alt="NCC Emblem" className="h-9 w-auto max-h-9 max-w-[30px] object-contain drop-shadow-md shrink-0" />
-              <div>
-                <span className="font-black text-sm uppercase tracking-wider block text-white">NCC Cadet Portal</span>
-                <span className="text-[10px] font-bold text-[#00AEEF] uppercase tracking-widest">National Cadet Corps</span>
-              </div>
+              <span className="font-black text-sm uppercase tracking-wider text-white">NCC Cadet Portal</span>
             </div>
             <button
               type="button"
@@ -109,17 +106,6 @@ const StaffLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white/10 border border-white/20 rounded-xl p-3 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#FFCB06] text-[#2D3092] shrink-0 font-bold">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-[#FFCB06] uppercase tracking-wider">NCC Battalion / Unit</p>
-              <p className="text-xs font-black text-white truncate">
-                {user?.tenant_name || 'Default NCC Battalion'}
-              </p>
-            </div>
-          </div>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
