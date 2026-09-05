@@ -60,19 +60,31 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-2">
-          <div className="bg-blue-600 p-2 rounded-lg"><User className="text-white w-8 h-8"/></div>
-          Smart Attend Admin
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* NCC Tri-Color Top Accent Line */}
+      <div className="fixed top-0 left-0 right-0 ncc-tricolor-bar z-50">
+        <div className="stripe-red" />
+        <div className="stripe-navy" />
+        <div className="stripe-skyblue" />
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#E52327] border-4 border-[#FFC800] shadow-xl text-white font-black text-2xl tracking-tighter mb-4">
+          NCC
+        </div>
+        <h2 className="text-3xl font-black text-white tracking-tight">
+          NCC INSTRUCTOR PORTAL
         </h2>
+        <p className="mt-1 text-sm font-semibold text-[#00A6EB]">
+          National Cadet Corps Attendance & Roster System
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+        <div className="bg-white py-8 px-6 shadow-2xl rounded-2xl sm:px-10 border-t-4 border-[#FFC800]">
           <form className="space-y-6" onSubmit={handleLogin}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm flex justify-between items-center bg-opacity-90 leading-tight">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex justify-between items-center bg-opacity-90 leading-tight">
                 <span>{error}</span>
                 {error.includes('Verify your email') && (
                   <button
@@ -87,39 +99,39 @@ const Login: React.FC = () => {
               </div>
             )}
             {resendSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-sm font-medium">
                 {resendSuccess}
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Administrator ID / User ID</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Instructor ID / User ID</label>
+              <div className="mt-1.5 relative rounded-xl shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="text"
                   required
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+                  className="focus:ring-2 focus:ring-[#1A1E5C] focus:border-[#1A1E5C] block w-full pl-10 text-sm border-slate-300 rounded-xl py-2.5 px-3 border font-semibold text-slate-900"
                   placeholder="e.g. admin"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Password</label>
+              <div className="mt-1.5 relative rounded-xl shadow-xs">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 px-3 border"
+                  className="focus:ring-2 focus:ring-[#1A1E5C] focus:border-[#1A1E5C] block w-full pl-10 text-sm border-slate-300 rounded-xl py-2.5 px-3 border font-semibold text-slate-900"
                   placeholder="••••••••"
                 />
               </div>
@@ -129,31 +141,22 @@ const Login: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-[#1A1E5C] hover:bg-[#2A318A] border-b-2 border-[#FFC800] focus:outline-none transition-all ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Authenticating...' : 'Instructor Sign In'}
               </button>
             </div>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-6 text-center text-xs font-semibold">
             <div className="flex items-center justify-center gap-4">
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                Create company account
+              <Link to="/register" className="text-[#1A1E5C] hover:text-[#E52327]">
+                Register Unit Account
               </Link>
-              <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot password
+              <Link to="/forgot-password" className="text-[#1A1E5C] hover:text-[#E52327]">
+                Forgot Password?
               </Link>
             </div>
-          </div>
-
-          <div className="mt-6 text-center border-t border-gray-100 pt-6">
-            <a 
-              href="/staff" 
-              className="text-sm font-medium text-blue-600 hover:text-blue-500"
-            >
-              ← Go to Staff Portal
-            </a>
           </div>
         </div>
       </div>

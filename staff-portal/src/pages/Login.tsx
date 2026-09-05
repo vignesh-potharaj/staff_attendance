@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
-import { Lock, User, ShieldCheck } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [employeeId, setEmployeeId] = useState('');
@@ -51,66 +51,73 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* NCC Tri-Color Top Accent Line */}
+      <div className="fixed top-0 left-0 right-0 ncc-tricolor-bar z-50">
+        <div className="stripe-red" />
+        <div className="stripe-navy" />
+        <div className="stripe-skyblue" />
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-[#FFC800]">
         <div className="bg-white px-8 pt-10 pb-4 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-blue-100 rounded-xl mb-4">
-            <ShieldCheck className="w-10 h-10 text-blue-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#E52327] border-4 border-[#FFC800] shadow-xl text-white font-black text-2xl tracking-tighter mb-4">
+            NCC
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Staff Portal</h2>
-          <p className="text-gray-500 mt-2">Sign in to mark your attendance</p>
+          <h2 className="text-3xl font-black text-[#1A1E5C] tracking-tight">CADET PORTAL</h2>
+          <p className="text-xs font-bold text-[#00A6EB] uppercase tracking-wider mt-1">National Cadet Corps Attendance</p>
         </div>
 
         <div className="px-8 pb-10">
-          <form className="space-y-6" onSubmit={handleLogin}>
+          <form className="space-y-5" onSubmit={handleLogin}>
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg text-sm animate-pulse">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium animate-pulse">
                 {error}
               </div>
             )}
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Employee ID</label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Cadet ID / Regt No</label>
+              <div className="mt-1.5 relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="text"
                   required
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter your ID"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1A1E5C] focus:border-transparent outline-none font-semibold text-slate-900 text-sm"
+                  placeholder="Enter your Cadet ID"
                 />
               </div>
             </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700">Workspace email</label>
-                <div className="mt-1 relative">
-                  <input
-                    type="email"
-                    required
-                    value={workspaceEmail}
-                    onChange={(e) => setWorkspaceEmail(e.target.value)}
-                    className="block w-full pl-3 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                    placeholder="admin@yourcompany.com"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Workspace email</label>
+              <div className="mt-1.5 relative">
+                <input
+                  type="email"
+                  required
+                  value={workspaceEmail}
+                  onChange={(e) => setWorkspaceEmail(e.target.value)}
+                  className="block w-full pl-3.5 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1A1E5C] focus:border-transparent outline-none font-semibold text-slate-900 text-sm"
+                  placeholder="unit@ncc.in"
+                />
               </div>
+            </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700">Password</label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
+              <label className="block text-xs font-bold text-[#1A1E5C] uppercase tracking-wider">Password</label>
+              <div className="mt-1.5 relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1A1E5C] focus:border-transparent outline-none font-semibold text-slate-900 text-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -119,18 +126,18 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
+              className={`w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-[#E52327] hover:bg-[#C1161A] border-b-2 border-[#FFC800] focus:outline-none transition-all ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
+              {loading ? 'Authenticating...' : 'Cadet Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <a 
               href="/" 
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              className="text-xs font-bold text-[#1A1E5C] hover:text-[#E52327] transition-colors"
             >
-              Go to Admin Portal →
+              ← Go to Instructor Portal
             </a>
           </div>
         </div>

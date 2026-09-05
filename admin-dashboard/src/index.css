@@ -4,6 +4,30 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-100 text-slate-900 antialiased;
   }
 }
+
+/* Official NCC Tri-Color Accent Band (Red - Army, Deep Blue - Navy, Light Blue - Air Force) */
+.ncc-tricolor-bar {
+  display: flex;
+  height: 6px;
+  width: 100%;
+}
+.ncc-tricolor-bar .stripe-red {
+  flex: 1;
+  background-color: #E52327;
+}
+.ncc-tricolor-bar .stripe-navy {
+  flex: 1;
+  background-color: #1A1E5C;
+}
+.ncc-tricolor-bar .stripe-skyblue {
+  flex: 1;
+  background-color: #00A6EB;
+}
+
+.ncc-gold-accent {
+  border-top: 3px solid #FFC800;
+}
+

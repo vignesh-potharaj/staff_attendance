@@ -38,41 +38,53 @@ const Layout: React.FC = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-slate-900 text-white flex flex-col transform transition-transform duration-300 ease-in-out ${
+      <aside className={`fixed lg:static inset-y-0 left-0 z-30 w-64 bg-[#1A1E5C] text-white flex flex-col transform transition-transform duration-300 ease-in-out border-r border-[#121543] ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
-        <div className="p-6 flex items-center justify-between space-x-3 border-b border-slate-800">
+        {/* NCC Tri-Color Top Accent Line */}
+        <div className="ncc-tricolor-bar">
+          <div className="stripe-red" />
+          <div className="stripe-navy" />
+          <div className="stripe-skyblue" />
+        </div>
+
+        <div className="p-5 flex items-center justify-between space-x-3 border-b border-[#2A318A]">
           <div className="flex items-center space-x-3">
-            <Calendar className="w-8 h-8 text-blue-400" />
-            <span className="text-xl font-bold tracking-wider">SMART ATTEND</span>
+            <div className="w-10 h-10 rounded-lg bg-[#E52327] border-2 border-[#FFC800] flex items-center justify-center shadow-lg font-black text-white text-base tracking-tighter">
+              NCC
+            </div>
+            <div>
+              <span className="text-lg font-black tracking-wider text-white block leading-none">NCC CADET</span>
+              <span className="text-[10px] font-bold tracking-widest text-[#00A6EB] uppercase">Attendance Portal</span>
+            </div>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-white"
+            className="lg:hidden text-slate-300 hover:text-white"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
         
-        <div className="p-4 border-b border-slate-800">
-          <p className="text-sm text-slate-400 font-medium">Logged in as:</p>
-          <p className="font-semibold break-words">{user?.name}</p>
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-900 text-blue-200 mt-1">
+        <div className="p-4 border-b border-[#2A318A] bg-[#121543]/60">
+          <p className="text-xs text-slate-300 font-medium uppercase tracking-wider">Instructor Account:</p>
+          <p className="font-bold text-white break-words text-sm mt-0.5">{user?.name}</p>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-[#FFC800] text-[#121543] mt-1.5 shadow-sm">
             {user?.role}
           </span>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               onClick={() => setIsSidebarOpen(false)}
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 rounded-lg transition-colors ${
+                `flex items-center px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-[#E52327] text-white shadow-md border-l-4 border-[#FFC800]'
+                    : 'text-slate-200 hover:bg-[#2A318A] hover:text-white'
                 }`
               }
             >
@@ -82,10 +94,10 @@ const Layout: React.FC = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-[#2A318A] bg-[#121543]/40">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-red-400 hover:bg-slate-800 hover:text-red-300 rounded-lg transition-colors"
+            className="flex items-center w-full px-4 py-2.5 text-red-300 hover:bg-[#E52327] hover:text-white rounded-xl transition-all font-bold text-sm"
           >
             <LogOut className="w-5 h-5 mr-3 shrink-0" />
             Logout
@@ -94,23 +106,33 @@ const Layout: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="bg-white border-b border-gray-200 px-4 lg:px-8 py-4 flex items-center justify-between shrink-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-slate-50">
+        {/* NCC Tri-Color Top Accent Line */}
+        <div className="ncc-tricolor-bar">
+          <div className="stripe-red" />
+          <div className="stripe-navy" />
+          <div className="stripe-skyblue" />
+        </div>
+
+        <header className="bg-white border-b border-slate-200 px-4 lg:px-8 py-3.5 flex items-center justify-between shrink-0 shadow-xs">
           <div className="flex items-center">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 mr-4 text-gray-600 hover:bg-gray-100 rounded-md lg:hidden"
+              className="p-2 -ml-2 mr-3 text-slate-700 hover:bg-slate-100 rounded-lg lg:hidden"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="text-xl lg:text-2xl font-semibold text-gray-800 truncate">Admin Portal</h2>
+            <div>
+              <h2 className="text-lg lg:text-xl font-black text-[#1A1E5C] truncate tracking-tight">NCC Instructor Portal</h2>
+              <p className="text-xs text-slate-500 font-medium hidden sm:block">National Cadet Corps Attendance & Roster Management</p>
+            </div>
           </div>
 
           <button
             onClick={() => setIsAnnounceModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1E5C] hover:bg-[#2A318A] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all border-b-2 border-[#FFC800]"
           >
-            <Megaphone className="w-4 h-4" />
+            <Megaphone className="w-4 h-4 text-[#FFC800]" />
             <span>Broadcast Announcement</span>
           </button>
         </header>
