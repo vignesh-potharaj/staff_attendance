@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST
+from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST, RoleEnum
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.services.cloudinary_storage import get_cloudinary_manager, compress_image_bytes
@@ -371,4 +371,146 @@ def export_attendance_csv(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=attendance_{date or 'all'}.csv"}
+    )
+
+@router.get("/export/monthly", dependencies=[Depends(get_current_admin)])
+def export_monthly_summary_csv(
+    month: Optional[str] = None,  # YYYY-MM
+    employee_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    if not month:
+        month = datetime.now(IST).strftime("%Y-%m")
+        
+    user_query = db.query(User).filter(
+        User.tenant_id == current_admin.tenant_id,
+        User.role == RoleEnum.STAFF
+    )
+    if employee_id:
+        user_query = user_query.filter(User.employee_id == employee_id)
+        
+    cadets = user_query.order_by(User.name.asc()).all()
+
+    # Unique parade dates in this month for the tenant
+    parade_dates_query = db.query(Attendance.date).filter(
+        Attendance.tenant_id == current_admin.tenant_id,
+        Attendance.date.like(f"{month}%")
+    ).distinct().all()
+    
+    tenant_parade_dates_count = len(parade_dates_query)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Cadet Name",
+        "Cadet Regt ID",
+        "Month",
+        "Total Days",
+        "Present",
+        "Absent",
+        "Late Arrivals",
+        "Attendance Percentage"
+    ])
+
+    for cadet in cadets:
+        cadet_records = db.query(Attendance).filter(
+            Attendance.tenant_id == current_admin.tenant_id,
+            Attendance.user_id == cadet.id,
+            Attendance.date.like(f"{month}%")
+        ).all()
+        
+        cadet_dates = {r.date for r in cadet_records}
+        total_days = max(tenant_parade_dates_count, len(cadet_dates))
+        
+        present_count = sum(1 for r in cadet_records if r.status in [AttendanceStatus.PRESENT, AttendanceStatus.LATE])
+        late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE)
+        absent_count = max(0, total_days - present_count)
+        
+        pct = (present_count / total_days * 100.0) if total_days > 0 else 0.0
+        pct_str = f"{pct:.2f}%"
+
+        writer.writerow([
+            cadet.name,
+            cadet.employee_id,
+            month,
+            total_days,
+            present_count,
+            absent_count,
+            late_count,
+            pct_str
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=attendance_monthly_{month}.csv"}
+    )
+
+@router.get("/export/total", dependencies=[Depends(get_current_admin)])
+def export_total_summary_csv(
+    employee_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    user_query = db.query(User).filter(
+        User.tenant_id == current_admin.tenant_id,
+        User.role == RoleEnum.STAFF
+    )
+    if employee_id:
+        user_query = user_query.filter(User.employee_id == employee_id)
+        
+    cadets = user_query.order_by(User.name.asc()).all()
+
+    # Unique parade dates across all time for tenant
+    parade_dates_query = db.query(Attendance.date).filter(
+        Attendance.tenant_id == current_admin.tenant_id
+    ).distinct().all()
+    
+    tenant_parade_dates_count = len(parade_dates_query)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Cadet Name",
+        "Cadet Regt ID",
+        "Total Days",
+        "Present",
+        "Absent",
+        "Late Arrivals",
+        "Attendance Percentage"
+    ])
+
+    for cadet in cadets:
+        cadet_records = db.query(Attendance).filter(
+            Attendance.tenant_id == current_admin.tenant_id,
+            Attendance.user_id == cadet.id
+        ).all()
+        
+        cadet_dates = {r.date for r in cadet_records}
+        total_days = max(tenant_parade_dates_count, len(cadet_dates))
+        
+        present_count = sum(1 for r in cadet_records if r.status in [AttendanceStatus.PRESENT, AttendanceStatus.LATE])
+        late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE)
+        absent_count = max(0, total_days - present_count)
+        
+        pct = (present_count / total_days * 100.0) if total_days > 0 else 0.0
+        pct_str = f"{pct:.2f}%"
+
+        writer.writerow([
+            cadet.name,
+            cadet.employee_id,
+            total_days,
+            present_count,
+            absent_count,
+            late_count,
+            pct_str
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=attendance_total_summary.csv"}
     )

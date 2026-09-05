@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Search, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Download, Search, FileSpreadsheet, MapPin, Image as ImageIcon } from 'lucide-react';
 import api from '../services/api';
 import { resolvePhotoUrl } from '../utils/urlHelper';
 
@@ -27,6 +27,7 @@ const Attendance: React.FC = () => {
   
   // Filters
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+  const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
   const [empIdFilter, setEmpIdFilter] = useState('');
 
   const fetchRecords = React.useCallback(async () => {
@@ -54,7 +55,8 @@ const Attendance: React.FC = () => {
     fetchRecords();
   };
 
-  const handleExport = async () => {
+  // Option 1: Daily / Filtered raw log CSV export
+  const handleExportDaily = async () => {
     try {
       const params = new URLSearchParams();
       if (dateFilter) params.append('date', dateFilter);
@@ -67,33 +69,71 @@ const Attendance: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `attendance_${dateFilter || 'all'}.csv`);
+      link.setAttribute('download', `attendance_daily_${dateFilter || 'all'}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
     } catch {
-      alert('Failed to export records');
+      alert('Failed to export daily records');
+    }
+  };
+
+  // Option 2: Monthly Summary CSV export
+  const handleExportMonthly = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (monthFilter) params.append('month', monthFilter);
+      if (empIdFilter) params.append('employee_id', empIdFilter);
+
+      const response = await api.get(`/attendance/export/monthly?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance_monthly_${monthFilter || 'all'}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Failed to export monthly summary');
+    }
+  };
+
+  // Option 3: Total Attendance Summary CSV export
+  const handleExportTotal = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (empIdFilter) params.append('employee_id', empIdFilter);
+
+      const response = await api.get(`/attendance/export/total?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'attendance_total_summary.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      alert('Failed to export total attendance summary');
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet Attendance Monitoring</h2>
-          <p className="text-xs text-slate-500 font-medium">Verify selfie logs, timestamps, and GPS parade ground coordinates</p>
-        </div>
-        <button 
-          onClick={handleExport}
-          className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all text-sm"
-        >
-          <Download className="w-4 h-4 text-[#FFCB06]" />
-          <span>Export Attendance CSV</span>
-        </button>
+      <div>
+        <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet Attendance Monitoring</h2>
+        <p className="text-xs text-slate-500 font-medium">Verify selfie logs, timestamps, and GPS parade ground coordinates</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-t-4 border-t-[#2D3092]">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 border-t-4 border-t-[#2D3092] space-y-5">
+        
+        {/* Row 1: Daily Log Filter & Option 1 Export Button */}
+        <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end pb-4 border-b border-slate-100">
           <div>
             <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">Filter by Date</label>
             <input 
@@ -103,23 +143,85 @@ const Attendance: React.FC = () => {
               onChange={e => setDateFilter(e.target.value)}
             />
           </div>
-          <div>
-            <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">Cadet Regt / User ID</label>
-            <div className="relative">
-              <input 
-                type="text" 
-                placeholder="Search ID..."
-                className="block w-full border border-slate-300 rounded-xl py-2 pl-9 pr-3 focus:ring-2 focus:ring-[#2D3092] text-sm font-semibold text-slate-900"
-                value={empIdFilter}
-                onChange={e => setEmpIdFilter(e.target.value)}
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            </div>
-          </div>
-          <button type="submit" className="bg-[#2D3092] hover:bg-[#3F43B5] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all">
-            Apply Filters
+
+          {/* Option 1 Button: Placed beside Filter by Date column */}
+          <button 
+            type="button"
+            onClick={handleExportDaily}
+            className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all text-sm shrink-0"
+          >
+            <Download className="w-4 h-4 text-[#FFCB06]" />
+            <span>Export Attendance CSV</span>
           </button>
+
+          <div className="sm:ml-auto flex flex-wrap gap-3 items-end">
+            <div>
+              <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">Cadet Regt / User ID</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search ID..."
+                  className="block w-full border border-slate-300 rounded-xl py-2 pl-9 pr-3 focus:ring-2 focus:ring-[#2D3092] text-sm font-semibold text-slate-900"
+                  value={empIdFilter}
+                  onChange={e => setEmpIdFilter(e.target.value)}
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              </div>
+            </div>
+            <button type="submit" className="bg-[#2D3092] hover:bg-[#3F43B5] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all">
+              Apply Filters
+            </button>
+          </div>
         </form>
+
+        {/* Row 2: Attendance Summary Export Options (Option 2 & Option 3) */}
+        <div>
+          <p className="text-xs font-black text-[#2D3092] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <FileSpreadsheet className="w-4 h-4 text-[#00AEEF]" />
+            <span>Summary Export Reports</span>
+          </p>
+          <div className="flex flex-wrap gap-4 items-center">
+            
+            {/* Option 2: Export by Month */}
+            <div className="flex flex-wrap items-end gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[280px]">
+              <div className="flex-1 min-w-[130px]">
+                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">Month (Option 2)</label>
+                <input 
+                  type="month" 
+                  className="block w-full border border-slate-300 rounded-lg py-1.5 px-3 focus:ring-2 focus:ring-[#2D3092] text-xs font-semibold bg-white text-slate-900"
+                  value={monthFilter}
+                  onChange={e => setMonthFilter(e.target.value)}
+                />
+              </div>
+              <button 
+                type="button"
+                onClick={handleExportMonthly}
+                className="bg-[#2D3092] hover:bg-[#3F43B5] text-white px-4 py-2 rounded-lg font-bold flex items-center space-x-2 shadow-sm border-b-2 border-[#FFCB06] transition-all text-xs shrink-0"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-[#FFCB06]" />
+                <span>Export Monthly Summary</span>
+              </button>
+            </div>
+
+            {/* Option 3: Export Total Attendance */}
+            <div className="flex items-center bg-slate-50 p-3 rounded-xl border border-slate-200 flex-1 min-w-[260px] justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">All-Time Report (Option 3)</p>
+                <p className="text-[10px] text-slate-500 font-medium">Cadet totals & attendance %</p>
+              </div>
+              <button 
+                type="button"
+                onClick={handleExportTotal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center space-x-2 shadow-sm border-b-2 border-emerald-400 transition-all text-xs shrink-0"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
+                <span>Export Total Attendance</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
