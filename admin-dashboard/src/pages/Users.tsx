@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, User as UserIcon, Clock, Calendar } from 'lucide-react';
+import { Plus, Trash2, Edit2, User as UserIcon } from 'lucide-react';
 import api from '../services/api';
 
 interface User {
@@ -168,11 +168,6 @@ const Users: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
         <div className="space-y-3">
           {users.map((user) => {
-            const isDaily = user.pay_type === 'daily';
-            const rate = isDaily 
-              ? (user.daily_pay !== undefined && user.daily_pay > 0 ? user.daily_pay : (user.hourly_pay || 0) * 8)
-              : (user.hourly_pay || 0);
-
             return (
               <div 
                 key={user.id}
@@ -214,33 +209,6 @@ const Users: React.FC = () => {
                   <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Phone</p>
                     <p className="text-sm font-semibold text-slate-900">{user.phone}</p>
-                  </div>
-
-                  {/* Pay Rate & Pay Type Badge */}
-                  <div className={`p-3 rounded-lg border ${
-                    isDaily ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200'
-                  }`}>
-                    <div className="flex items-center justify-between">
-                      <p className={`text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 ${
-                        isDaily ? 'text-emerald-700' : 'text-blue-700'
-                      }`}>
-                        {isDaily ? <Calendar className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                        {isDaily ? 'Daily Pay (Day Rate)' : 'Hourly Pay'}
-                      </p>
-                      <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full border ${
-                        isDaily 
-                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
-                          : 'bg-blue-100 text-blue-800 border-blue-300'
-                      }`}>
-                        {isDaily ? 'Daily Mode' : 'Hourly Mode'}
-                      </span>
-                    </div>
-                    <p className="text-base font-bold text-slate-900 mt-1">
-                      ₹{Number(rate).toFixed(2)} 
-                      <span className="text-xs font-normal text-slate-500 ml-1">
-                        {isDaily ? '/ day' : '/ hr'}
-                      </span>
-                    </p>
                   </div>
 
                   {/* Actions */}
@@ -320,82 +288,6 @@ const Users: React.FC = () => {
                 <input required type="tel" className="mt-1 block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
               </div>
 
-              {/* Default Pay Type Selector */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Default Pay Type</label>
-                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const hourly = Number(formData.hourly_pay) || (Number(formData.daily_pay) / 8) || 0;
-                      setFormData({ ...formData, pay_type: 'hourly', hourly_pay: String(hourly) });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold rounded-md transition-all ${
-                      formData.pay_type === 'hourly'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    Hourly Pay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const daily = Number(formData.daily_pay) || (Number(formData.hourly_pay) * 8) || 0;
-                      setFormData({ ...formData, pay_type: 'daily', daily_pay: String(daily) });
-                    }}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-bold rounded-md transition-all ${
-                      formData.pay_type === 'daily'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-700 hover:bg-slate-200'
-                    }`}
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    Daily Pay
-                  </button>
-                </div>
-              </div>
-
-              {/* Pay Rates Inputs */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase">Hourly Pay (₹)</label>
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="mt-1 block w-full border border-gray-300 rounded-md py-1.5 px-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
-                    value={formData.hourly_pay}
-                    onChange={e => {
-                      const val = e.target.value;
-                      const num = Number(val);
-                      const daily = !Number.isNaN(num) && num > 0 ? String(num * 8) : formData.daily_pay;
-                      setFormData({...formData, hourly_pay: val, daily_pay: daily});
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase">Daily Pay (₹)</label>
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="mt-1 block w-full border border-gray-300 rounded-md py-1.5 px-2.5 text-sm focus:ring-blue-500 focus:border-blue-500"
-                    value={formData.daily_pay}
-                    onChange={e => {
-                      const val = e.target.value;
-                      const num = Number(val);
-                      const hourly = !Number.isNaN(num) && num > 0 ? String(num / 8) : formData.hourly_pay;
-                      setFormData({...formData, daily_pay: val, hourly_pay: hourly});
-                    }}
-                  />
-                </div>
-              </div>
-              
               <div className="mt-6 flex justify-end space-x-3">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">

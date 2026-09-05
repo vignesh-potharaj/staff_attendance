@@ -9,12 +9,10 @@ import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 
 import Dashboard from './pages/Dashboard';
-import Payroll from './pages/Payroll';
 import Users from './pages/Users';
 import TodayRoaster from './pages/TodayRoaster';
 import Attendance from './pages/Attendance';
 import Settings from './pages/Settings';
-import Billing from './pages/Billing';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -41,13 +39,10 @@ const App: React.FC = () => {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="admin/payroll" element={<Payroll />} />
-            <Route path="payroll" element={<Payroll />} />
             <Route path="users" element={<Users />} />
             <Route path="roaster" element={<TodayRoaster />} />
             <Route path="roaster-management" element={<TodayRoaster />} />
             <Route path="attendance" element={<Attendance />} />
-            <Route path="billing" element={<Billing />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
