@@ -180,6 +180,7 @@ class AttendanceResponse(AttendanceBase):
     user: Optional[UserBase] = None
     check_out_time: Optional[datetime] = None
     check_out_photo_url: Optional[str] = None  # URL to check-out photo (local or Google Drive)
+    expected_fall_in_time: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer('check_out_time')

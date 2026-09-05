@@ -193,6 +193,7 @@ def mark_attendance(
         except Exception as push_err:
             logger.warning(f"Failed to send admin push alert for late check-in: {push_err}")
 
+    populate_expected_fall_in_time([new_attendance], db)
     return new_attendance
 
 @router.post("/check-out", response_model=AttendanceResponse)
@@ -259,11 +260,55 @@ def check_out_attendance(
     except Exception as push_err:
         logger.warning(f"Failed to send admin push alert for check-out: {push_err}")
 
+    populate_expected_fall_in_time([existing], db)
     return existing
+
+def populate_expected_fall_in_time(records: List[Attendance], db: Session):
+    if not records:
+        return
+    user_ids = {r.user_id for r in records if getattr(r, 'user_id', None)}
+    dates = {r.date for r in records if getattr(r, 'date', None)}
+    if not user_ids or not dates:
+        return
+    
+    roasters = db.query(DailyRoaster).filter(
+        DailyRoaster.user_id.in_(user_ids),
+        DailyRoaster.date.in_(dates)
+    ).all()
+    
+    roaster_map = {(r.user_id, r.date): r for r in roasters}
+    
+    for r in records:
+        user_id = getattr(r, 'user_id', None)
+        date_str = getattr(r, 'date', None)
+        roaster = roaster_map.get((user_id, date_str)) if user_id and date_str else None
+        
+        if roaster and getattr(roaster, 'start_time', None) is not None:
+            st = getattr(roaster, 'start_time')
+            if isinstance(st, str):
+                try:
+                    parts = st.split(":")
+                    h, m = int(parts[0]), int(parts[1])
+                    ampm = "AM" if h < 12 else "PM"
+                    h12 = h % 12 or 12
+                    st_str = f"{h12:02d}:{m:02d} {ampm}"
+                except Exception:
+                    st_str = st
+            else:
+                try:
+                    st_str = st.strftime("%I:%M %p")
+                except Exception:
+                    st_str = str(st)
+        else:
+            st_str = "07:00 AM"
+            
+        setattr(r, 'expected_fall_in_time', st_str)
 
 @router.get("/history", response_model=List[AttendanceResponse])
 def get_attendance_history(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Attendance).filter(Attendance.user_id == current_user.id).order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
+    records = db.query(Attendance).filter(Attendance.user_id == current_user.id).order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
+    populate_expected_fall_in_time(records, db)
+    return records
 
 @router.get("/records", response_model=List[AttendanceResponse], dependencies=[Depends(get_current_admin)])
 def get_attendance_records(
@@ -281,7 +326,9 @@ def get_attendance_records(
     if employee_id:
         query = query.filter(User.employee_id == employee_id)
         
-    return query.order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
+    records = query.order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
+    populate_expected_fall_in_time(records, db)
+    return records
 
 @router.get("/export", dependencies=[Depends(get_current_admin)])
 def export_attendance_csv(
@@ -298,10 +345,11 @@ def export_attendance_csv(
         query = query.filter(User.employee_id == employee_id)
         
     records = query.order_by(Attendance.created_at.desc()).all()
+    populate_expected_fall_in_time(records, db)
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Employee Name", "Employee ID", "Date", "Check In Time", "Check Out Time", "Status", "Latitude", "Longitude", "Device"])
+    writer.writerow(["Cadet Name", "Cadet Regt ID", "Date", "Expected Fall-In", "Fall-In Time", "Visarjan Time", "Status", "Latitude", "Longitude", "Device"])
 
     for r in records:
         check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
@@ -309,6 +357,7 @@ def export_attendance_csv(
             r.user.name,
             r.user.employee_id,
             r.date,
+            getattr(r, 'expected_fall_in_time', '07:00 AM'),
             r.check_in_time.strftime("%H:%M:%S"),
             check_out_str,
             r.status,

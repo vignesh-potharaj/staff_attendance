@@ -8,6 +8,7 @@ interface AttendanceRecord {
   date: string;
   status: string;
   check_in_time: string;
+  expected_fall_in_time?: string | null;
   check_out_time?: string | null;
   duration_hours: number;
 }
@@ -100,7 +101,14 @@ const History: React.FC = () => {
                 {visibleRecords.map((record) => (
                   <tr key={record.id} className="hover:bg-slate-50">
                     <td className="px-4 py-4 font-semibold text-slate-900">{record.date}</td>
-                    <td className="px-4 py-4 text-slate-600">{formatTime(record.check_in_time)}</td>
+                    <td className="px-4 py-4 text-slate-600">
+                      <span className="font-medium text-slate-900">{formatTime(record.check_in_time)}</span>
+                      {record.expected_fall_in_time && (
+                        <span className="block text-[11px] font-bold text-blue-600 mt-0.5">
+                          Exp: {record.expected_fall_in_time}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-4 text-slate-600">{formatTime(record.check_out_time)}</td>
                     <td className="px-4 py-4 text-slate-600">{record.duration_hours.toFixed(2)} hrs</td>
                     <td className="px-4 py-4">
@@ -136,7 +144,14 @@ const History: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <p className="text-xs text-slate-500 font-semibold">Fall-In</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500 font-semibold">Fall-In</p>
+                      {record.expected_fall_in_time && (
+                        <span className="text-[10px] font-bold text-blue-600">
+                          Exp: {record.expected_fall_in_time}
+                        </span>
+                      )}
+                    </div>
                     <p className="font-bold text-slate-900 mt-1">{formatTime(record.check_in_time)}</p>
                   </div>
                   <div className="bg-slate-50 rounded-lg p-3">

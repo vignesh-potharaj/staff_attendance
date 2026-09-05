@@ -11,6 +11,7 @@ interface AttendanceRecord {
   };
   date: string;
   check_in_time: string;
+  expected_fall_in_time?: string | null;
   check_out_time?: string | null;
   status: string;
   latitude: number;
@@ -161,7 +162,14 @@ const Attendance: React.FC = () => {
                 {/* Fall-In & Visarjan Times */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-[#00AEEF]/10 p-3 rounded-xl border border-[#00AEEF]/30">
-                    <p className="text-xs text-[#00AEEF] font-bold uppercase tracking-wider">Fall-In Time</p>
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <p className="text-xs text-[#00AEEF] font-bold uppercase tracking-wider">Fall-In Time</p>
+                      {record.expected_fall_in_time && (
+                        <span className="text-[10px] font-bold bg-[#2D3092] text-white px-2 py-0.5 rounded-full shadow-sm">
+                          Expected: {record.expected_fall_in_time}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm font-black text-slate-900 mt-1">
                       {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>

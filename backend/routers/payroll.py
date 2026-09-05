@@ -25,6 +25,8 @@ def get_staff_attendance_history(
         raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
     
     records = db.query(Attendance).filter(Attendance.user_id == staff_id).order_by(Attendance.check_in_time.desc()).all()
+    from backend.routers.attendance import populate_expected_fall_in_time
+    populate_expected_fall_in_time(records, db)
     return records
 
 
