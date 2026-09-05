@@ -81,16 +81,16 @@ export const scheduleShiftReminders = (startTimeStr?: string | null, endTimeStr?
     if (msUntilReminder > 0 && msUntilReminder < 24 * 60 * 60 * 1000) {
       shiftStartTimeout = window.setTimeout(() => {
         sendInstantNotification(
-          '⏰ Shift Starting Soon!',
-          `Your shift begins in 15 minutes (${startTimeStr}). Please mark check-in.`,
+          '⏰ Parade Starting Soon!',
+          `Your parade begins in 15 minutes (${startTimeStr}). Please mark Fall-In.`,
           { tag: 'shift-reminder', data: { url: '/staff/mark-attendance' } }
         );
       }, msUntilReminder);
-      console.log(`⏰ Scheduled shift reminder in ${Math.round(msUntilReminder / 60000)} minutes`);
+      console.log(`⏰ Scheduled parade reminder in ${Math.round(msUntilReminder / 60000)} minutes`);
     }
   }
 
-  // Schedule Check-Out Reminder at Shift End Time
+  // Schedule Visarjan Reminder at Parade End Time
   if (endTimeStr) {
     const [endH, endM] = endTimeStr.split(':').map(Number);
     const shiftEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endH, endM, 0);
@@ -99,12 +99,12 @@ export const scheduleShiftReminders = (startTimeStr?: string | null, endTimeStr?
     if (msUntilEnd > 0 && msUntilEnd < 24 * 60 * 60 * 1000) {
       shiftEndTimeout = window.setTimeout(() => {
         sendInstantNotification(
-          '🔔 Shift Completed!',
-          `Your shift ended at ${endTimeStr}. Don't forget to mark check-out.`,
+          '🔔 Parade & Drill Completed!',
+          `Your parade ended at ${endTimeStr}. Don't forget to mark Visarjan.`,
           { tag: 'checkout-reminder', data: { url: '/staff/mark-attendance' } }
         );
       }, msUntilEnd);
-      console.log(`🔔 Scheduled check-out reminder in ${Math.round(msUntilEnd / 60000)} minutes`);
+      console.log(`🔔 Scheduled Visarjan reminder in ${Math.round(msUntilEnd / 60000)} minutes`);
     }
   }
 };

@@ -206,8 +206,8 @@ const Dashboard: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="text-center sm:text-left">
-          <p className="text-sm font-semibold text-blue-600">Staff Dashboard</p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">Welcome, {user?.name}</h1>
+          <p className="text-xs font-black text-[#00AEEF] uppercase tracking-wider">Cadet Control Panel</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#2D3092] mt-1">Welcome, {user?.name}</h1>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -217,7 +217,7 @@ const Dashboard: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg font-medium text-sm transition-colors"
             >
               <Bell className="w-4 h-4 text-blue-600" />
-              Enable Shift & Check-in Reminders
+              Enable Parade & Attendance Reminders
             </button>
           )}
 
@@ -266,7 +266,7 @@ const Dashboard: React.FC = () => {
           <div>
             <h3 className="font-bold text-sm sm:text-base text-white">Closed-App Notifications Setup</h3>
             <p className="text-xs text-slate-300 mt-0.5">
-              Allow background activity in phone battery settings to get shift alerts when app is closed.
+              Allow background activity in phone battery settings to get parade alerts when app is closed.
             </p>
           </div>
         </div>
@@ -373,7 +373,7 @@ const Dashboard: React.FC = () => {
           <div className="w-11 h-11 rounded-xl bg-[#00AEEF]/10 text-[#00AEEF] flex items-center justify-center mb-4 font-bold">
             <Clock className="w-6 h-6" />
           </div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Total Hours</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Total Parade Hours</p>
           <p className="text-3xl font-black text-[#00AEEF] mt-2">{loading ? '...' : (monthly?.total_working_hours || 0).toFixed(2)} hrs</p>
         </div>
       </div>

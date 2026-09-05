@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Building2, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
+import { BarChart3, CalendarCheck, History, LogOut, Menu, X, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 
 const navItems = [
-  { to: '/staff/dashboard', label: 'Dashboard', icon: BarChart3 },
-  { to: '/staff/mark-attendance', label: 'Mark Attendance', icon: CalendarCheck },
+  { to: '/staff/dashboard', label: 'Cadet Dashboard', icon: BarChart3 },
+  { to: '/staff/mark-attendance', label: 'Mark Attendance (Fall In / Visarjan)', icon: CalendarCheck },
   { to: '/staff/attendance-history', label: 'Attendance History', icon: History },
 ];
 
@@ -20,7 +20,7 @@ const StaffLayout: React.FC = () => {
     .map((part) => part.charAt(0))
     .join('')
     .slice(0, 2)
-    .toUpperCase() || 'S';
+    .toUpperCase() || 'C';
 
   const handleLogout = () => {
     logout();
@@ -31,58 +31,76 @@ const StaffLayout: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <NotificationPermissionBanner />
 
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-30 p-3 rounded-xl bg-white text-slate-800 border border-slate-200 shadow-lg hover:bg-slate-100 flex items-center gap-2"
-        aria-label="Open navigation"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
+      {/* Top Header Bar for Mobile */}
+      <div className="bg-[#2D3092] text-white fixed top-0 left-0 right-0 z-30 h-16 px-4 flex items-center justify-between border-b-4 border-[#FFCB06] shadow-md">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="p-2 rounded-xl bg-white/10 text-white hover:bg-white/20 flex items-center gap-2 border border-white/20 transition-all"
+          aria-label="Open navigation"
+        >
+          <Menu className="w-6 h-6 text-[#FFCB06]" />
+        </button>
+
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#EF1C25] border border-[#FFCB06] flex items-center justify-center font-black text-xs text-white shadow-md">
+            NCC
+          </div>
+          <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
+        </div>
+      </div>
 
       {open && (
         <button
           type="button"
-          className="fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40"
           onClick={() => setOpen(false)}
           aria-label="Close navigation backdrop"
         />
       )}
 
+      {/* Sidebar Navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-slate-950 text-white flex flex-col transform transition-transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#2D3092] text-white flex flex-col transform transition-transform duration-300 border-r border-[#1E216B] shadow-2xl ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-slate-800 flex flex-col gap-3">
+        {/* NCC Tri-Color Top Accent Line */}
+        <div className="ncc-tricolor-bar">
+          <div className="stripe-red" />
+          <div className="stripe-navy" />
+          <div className="stripe-skyblue" />
+        </div>
+
+        <div className="p-5 border-b border-white/10 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-lg shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[#EF1C25] border-2 border-[#FFCB06] text-white flex items-center justify-center font-black text-lg shrink-0 shadow-md">
                 {initials}
               </div>
               <div className="min-w-0">
-                <p className="font-bold truncate">{user?.name}</p>
-                <p className="text-xs text-slate-400 truncate">ID: {user?.employee_id}</p>
+                <p className="font-black text-base truncate text-white">{user?.name}</p>
+                <p className="text-xs font-bold text-[#00AEEF] truncate">Cadet ID: {user?.employee_id}</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="p-2 text-slate-400 hover:text-white"
+              className="p-2 text-slate-300 hover:text-white"
               aria-label="Close navigation"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 flex items-center gap-2.5">
-            <div className="p-1.5 rounded-md bg-blue-500/10 text-blue-400 shrink-0">
-              <Building2 className="w-4 h-4" />
+          <div className="bg-white/10 border border-white/20 rounded-xl p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#FFCB06] text-[#2D3092] shrink-0 font-bold">
+              <ShieldCheck className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Workspace</p>
-              <p className="text-sm font-semibold text-slate-100 truncate">
-                {user?.tenant_name || 'Default Workspace'}
+              <p className="text-[10px] font-bold text-[#FFCB06] uppercase tracking-wider">NCC Battalion / Unit</p>
+              <p className="text-xs font-black text-white truncate">
+                {user?.tenant_name || 'Default NCC Battalion'}
               </p>
             </div>
           </div>
@@ -95,24 +113,26 @@ const StaffLayout: React.FC = () => {
               to={item.to}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-colors ${
-                  isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all text-sm ${
+                  isActive 
+                    ? 'bg-[#EF1C25] text-white border-b-2 border-[#FFCB06] shadow-md' 
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
                 }`
               }
             >
-              <item.icon className="w-5 h-5 shrink-0" />
+              <item.icon className="w-5 h-5 shrink-0 text-[#FFCB06]" />
               {item.label}
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-white/10">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-300 hover:bg-slate-800"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-200 font-bold hover:bg-white/10 hover:text-white transition-all text-sm"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-5 h-5 text-[#EF1C25]" />
             Logout
           </button>
         </div>
