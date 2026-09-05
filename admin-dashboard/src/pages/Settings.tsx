@@ -27,16 +27,12 @@ interface SettingsData {
 }
 
 interface PreferenceData {
-  lateThreshold: number;
-  checkInWindow: number;
   weeklyDigest: boolean;
   missedCheckoutAlert: boolean;
   compactTables: boolean;
 }
 
 const DEFAULT_PREFERENCES: PreferenceData = {
-  lateThreshold: 10,
-  checkInWindow: 30,
   weeklyDigest: true,
   missedCheckoutAlert: true,
   compactTables: false,
@@ -330,51 +326,6 @@ const Settings: React.FC = () => {
             </div>
           </form>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 border-t-4 border-t-[#EF1C25]">
-            <div className="mb-6 flex items-center gap-2">
-              <Clock3 className="h-5 w-5 text-[#EF1C25]" />
-              <div>
-                <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Session & Drill Attendance Rules</h2>
-                <p className="text-xs text-slate-500 font-medium">Configure session late thresholds and grace windows.</p>
-              </div>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Session Late Threshold</span>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={0}
-                    max={60}
-                    step={5}
-                    value={preferences.lateThreshold}
-                    onChange={(event) => setPreferences({ ...preferences, lateThreshold: Number(event.target.value) })}
-                    className="w-full accent-[#EF1C25]"
-                  />
-                  <span className="w-16 rounded-xl bg-slate-100 px-2 py-1.5 text-center text-xs font-black text-[#2D3092]">
-                    {preferences.lateThreshold}m
-                  </span>
-                </div>
-              </label>
-              <label className="block">
-                <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Check-in Grace Window</span>
-                <div className="mt-2 flex items-center gap-3">
-                  <input
-                    type="range"
-                    min={10}
-                    max={120}
-                    step={10}
-                    value={preferences.checkInWindow}
-                    onChange={(event) => setPreferences({ ...preferences, checkInWindow: Number(event.target.value) })}
-                    className="w-full accent-[#2D3092]"
-                  />
-                  <span className="w-16 rounded-xl bg-slate-100 px-2 py-1.5 text-center text-xs font-black text-[#2D3092]">
-                    {preferences.checkInWindow}m
-                  </span>
-                </div>
-              </label>
-            </div>
-          </section>
         </div>
 
         <div className="space-y-6">

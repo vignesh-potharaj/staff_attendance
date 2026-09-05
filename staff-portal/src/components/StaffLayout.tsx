@@ -33,12 +33,6 @@ const StaffLayout: React.FC = () => {
 
       {/* Top Header Bar with NCC Tri-Color Accent */}
       <header className="bg-[#2D3092] text-white fixed top-0 left-0 right-0 z-30 shadow-md">
-        <div className="ncc-tricolor-bar">
-          <div className="stripe-red" />
-          <div className="stripe-navy" />
-          <div className="stripe-skyblue" />
-        </div>
-
         <div className="h-16 px-4 flex items-center justify-between border-b-4 border-[#FFCB06]">
           <button
             type="button"
@@ -62,6 +56,13 @@ const StaffLayout: React.FC = () => {
             />
             <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
           </div>
+        </div>
+
+        {/* NCC Tri-Color Accent Line below the gold border */}
+        <div className="ncc-tricolor-bar">
+          <div className="stripe-red" />
+          <div className="stripe-navy" />
+          <div className="stripe-skyblue" />
         </div>
       </header>
 

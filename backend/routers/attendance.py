@@ -151,7 +151,7 @@ def mark_attendance(
             now_time = datetime.now(IST).time()
             current_date = datetime.now(IST).date()
             shift_start_dt = datetime.combine(current_date, start_time_val)
-            grace_td = timedelta(minutes=15)
+            grace_td = timedelta(minutes=0)
             allowed_time = (shift_start_dt + grace_td).time()
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
@@ -160,7 +160,7 @@ def mark_attendance(
         now_time = datetime.now(IST).time()
         current_date = datetime.now(IST).date()
         default_start = datetime.combine(current_date, datetime.strptime("10:00", "%H:%M").time())
-        allowed_time = (default_start + timedelta(minutes=15)).time()
+        allowed_time = (default_start + timedelta(minutes=0)).time()
         if now_time > allowed_time:
             status = AttendanceStatus.LATE
                 
