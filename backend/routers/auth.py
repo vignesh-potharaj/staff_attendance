@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.auth.security import (
@@ -351,16 +352,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         payload = parse_login_payload(dict(form))
 
     user_id_clean = payload.user_id.strip()
-    user = None
-
-    if payload.workspace_email:
-        workspace_email = payload.workspace_email.strip().lower()
-        admin_user = db.query(User).filter(User.email == workspace_email, User.role == RoleEnum.ADMIN).first()
-        if admin_user:
-            user = db.query(User).filter(User.employee_id == user_id_clean, User.tenant_id == admin_user.tenant_id).first()
-
-    if not user:
-        user = db.query(User).filter(User.employee_id == user_id_clean).first()
+    user = db.query(User).filter(func.lower(User.employee_id) == user_id_clean.lower()).first()
 
     user_data = orm_value(user) if user else None
     if not user_data or not verify_password(payload.password, user_data.password_hash):

@@ -1,6 +1,7 @@
 from typing import List
 import logging
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from backend.database.database import get_db
 from backend.models.models import User, UserStatus
@@ -24,10 +25,11 @@ def get_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), cu
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     try:
+        employee_id_clean = user.employee_id.strip()
         # Ensure uniqueness within the tenant scope
-        db_user = db.query(User).filter(User.employee_id == user.employee_id, User.tenant_id == current_admin.tenant_id).first()
+        db_user = db.query(User).filter(func.lower(User.employee_id) == employee_id_clean.lower(), User.tenant_id == current_admin.tenant_id).first()
         if db_user:
-            raise HTTPException(status_code=400, detail="Employee ID already registered for this workspace")
+            raise HTTPException(status_code=400, detail="Cadet ID already registered for this battalion")
         if user.email and db.query(User).filter(User.email == user.email.lower(), User.tenant_id == current_admin.tenant_id).first():
             raise HTTPException(status_code=400, detail="Email already registered for this workspace")
         if user.hourly_pay < 0:
@@ -38,10 +40,10 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: 
         daily_pay = user.daily_pay if user.daily_pay > 0 else user.hourly_pay * 8.0
         hashed_password = get_password_hash(user.password)
         db_user = User(
-            name=user.name,
-            employee_id=user.employee_id,
+            name=user.name.strip(),
+            employee_id=employee_id_clean,
             email=user.email.lower() if user.email else None,
-            phone=user.phone,
+            phone=user.phone.strip(),
             role=user.role,
             hourly_pay=user.hourly_pay,
             daily_pay=daily_pay,
@@ -49,7 +51,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: 
             password_hash=hashed_password,
             tenant_id=current_admin.tenant_id,
             status=UserStatus.ACTIVE,
-            is_email_verified=1 if user.email else 0,
+            is_email_verified=1,
         )
         db.add(db_user)
         db.commit()
