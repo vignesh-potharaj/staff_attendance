@@ -78,74 +78,81 @@ const Attendance: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">Attendance Monitoring</h2>
+        <div>
+          <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet Attendance Monitoring</h2>
+          <p className="text-xs text-slate-500 font-medium">Verify selfie logs, timestamps, and GPS parade ground coordinates</p>
+        </div>
         <button 
           onClick={handleExport}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+          className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all text-sm"
         >
-          <Download className="w-4 h-4" />
-          <span>Export CSV</span>
+          <Download className="w-4 h-4 text-[#FFCB06]" />
+          <span>Export Attendance CSV</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 border-t-4 border-t-[#2D3092]">
         <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Date</label>
+            <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">Filter by Date</label>
             <input 
               type="date" 
-              className="block w-full border border-gray-300 rounded-md py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-full border border-slate-300 rounded-xl py-2 px-3 focus:ring-2 focus:ring-[#2D3092] text-sm font-semibold text-slate-900"
               value={dateFilter}
               onChange={e => setDateFilter(e.target.value)}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Employee ID</label>
+            <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">Cadet Regt / User ID</label>
             <div className="relative">
               <input 
                 type="text" 
                 placeholder="Search ID..."
-                className="block w-full border border-gray-300 rounded-md py-2 pl-9 pr-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="block w-full border border-slate-300 rounded-xl py-2 pl-9 pr-3 focus:ring-2 focus:ring-[#2D3092] text-sm font-semibold text-slate-900"
                 value={empIdFilter}
                 onChange={e => setEmpIdFilter(e.target.value)}
               />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
           </div>
-          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium h-10">
+          <button type="submit" className="bg-[#2D3092] hover:bg-[#3F43B5] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all">
             Apply Filters
           </button>
         </form>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
         <div className="space-y-4">
           {records.map((record) => (
             <div 
               key={record.id}
-              className="relative rounded-xl border border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
+              className="relative rounded-2xl border border-slate-200 bg-white hover:border-[#00AEEF] hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
             >
-              {/* Timeline top border */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-blue-600" />
+              {/* NCC Tri-Color Top Accent Line */}
+              <div className="ncc-tricolor-bar absolute top-0 left-0 right-0">
+                <div className="stripe-red" />
+                <div className="stripe-navy" />
+                <div className="stripe-skyblue" />
+              </div>
 
               {/* Card content - vertical layout */}
-              <div className="space-y-4">
+              <div className="space-y-4 pt-2">
                 {/* Header: Employee Info + Date */}
                 <div className="flex items-start gap-3 justify-between">
                   <div className="flex-1">
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                    <h3 className="text-base sm:text-lg font-black text-[#2D3092]">
                       {record.user?.name}
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      ID: {record.user?.employee_id} • {record.date}
+                    <p className="text-xs font-bold text-slate-500 mt-0.5">
+                      Cadet ID: <span className="text-[#EF1C25] font-black">{record.user?.employee_id}</span> • Date: {record.date}
                     </p>
                   </div>
 
                   {/* Status Badge */}
-                  <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${
+                  <span className={`px-3.5 py-1 inline-flex text-xs leading-5 font-black rounded-full flex-shrink-0 border ${
                     record.status === 'PRESENT'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-amber-100 text-amber-800'
+                      ? 'bg-[#00AEEF]/10 text-[#00AEEF] border-[#00AEEF]/40'
+                      : 'bg-[#FFCB06]/20 text-[#D9AB00] border-[#FFCB06]'
                   }`}>
                     {record.status}
                   </span>
@@ -153,15 +160,15 @@ const Attendance: React.FC = () => {
 
                 {/* Check-in & Check-out Times */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <p className="text-xs text-green-600 font-medium uppercase tracking-wide">Check In</p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">
+                  <div className="bg-[#00AEEF]/10 p-3 rounded-xl border border-[#00AEEF]/30">
+                    <p className="text-xs text-[#00AEEF] font-bold uppercase tracking-wider">Check In Time</p>
+                    <p className="text-sm font-black text-slate-900 mt-1">
                       {new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                   </div>
-                  <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-                    <p className="text-xs text-red-600 font-medium uppercase tracking-wide">Check Out</p>
-                    <p className="text-sm font-bold text-slate-900 mt-1">
+                  <div className="bg-[#EF1C25]/10 p-3 rounded-xl border border-[#EF1C25]/30">
+                    <p className="text-xs text-[#EF1C25] font-bold uppercase tracking-wider">Check Out Time</p>
+                    <p className="text-sm font-black text-slate-900 mt-1">
                       {record.check_out_time 
                         ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
                         : 'Pending'}
@@ -170,7 +177,7 @@ const Attendance: React.FC = () => {
                 </div>
 
                 {/* Selfies & Location Section */}
-                <div className="border-t border-slate-200 pt-3 space-y-3">
+                <div className="border-t border-slate-100 pt-3 space-y-3">
                   {/* Selfies Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Check-In Selfie */}

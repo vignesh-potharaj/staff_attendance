@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Battery, Bell, BellOff, Building2, CalendarCheck, Clock, IndianRupee, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Battery, Bell, BellOff, Building2, CalendarCheck, Clock, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,13 +24,6 @@ interface MonthlySummary {
   total_payroll: number;
   hourly_pay: number;
 }
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 2,
-  }).format(value || 0);
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -367,41 +360,34 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-[#2D3092] p-5 shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-[#2D3092]/10 text-[#2D3092] flex items-center justify-center mb-4 font-bold">
             <Timer className="w-6 h-6" />
           </div>
-          <p className="text-sm font-semibold text-slate-500">Today's Working Hours</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{loading ? '...' : (today?.duration_hours || 0).toFixed(2)}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Parade Hours</p>
+          <p className="text-3xl font-black text-[#2D3092] mt-2">{loading ? '...' : (today?.duration_hours || 0).toFixed(2)} hrs</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+        <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-[#00AEEF] p-5 shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-[#00AEEF]/10 text-[#00AEEF] flex items-center justify-center mb-4 font-bold">
             <Clock className="w-6 h-6" />
           </div>
-          <p className="text-sm font-semibold text-slate-500">This Month's Total Hours</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{loading ? '...' : (monthly?.total_working_hours || 0).toFixed(2)}</p>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
-            <IndianRupee className="w-6 h-6" />
-          </div>
-          <p className="text-sm font-semibold text-slate-500">This Month's Payroll</p>
-          <p className="text-2xl font-bold text-slate-900 mt-2">{loading ? '...' : formatCurrency(monthly?.total_payroll || 0)}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Total Hours</p>
+          <p className="text-3xl font-black text-[#00AEEF] mt-2">{loading ? '...' : (monthly?.total_working_hours || 0).toFixed(2)} hrs</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm text-center">
-        <CalendarCheck className="w-12 h-12 mx-auto text-blue-600 mb-4" />
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center border-t-4 border-t-[#EF1C25]">
+        <CalendarCheck className="w-12 h-12 mx-auto text-[#EF1C25] mb-3" />
+        <h3 className="text-lg font-black text-[#2D3092] uppercase tracking-tight mb-2">Parade & Drill Attendance</h3>
         <button
           type="button"
           onClick={() => navigate('/staff/mark-attendance')}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#EF1C25] text-white font-black text-base shadow-lg hover:bg-[#C7131B] border-b-2 border-[#FFCB06] transition-all"
         >
-          <CalendarCheck className="w-5 h-5" />
-          Mark Attendance
+          <CalendarCheck className="w-6 h-6 text-[#FFCB06]" />
+          Mark Attendance (Selfie + GPS)
         </button>
       </div>
 
@@ -409,62 +395,58 @@ const Dashboard: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#2D3092]/10 text-[#2D3092] flex items-center justify-center shrink-0">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Workspace Details</h2>
-              <p className="text-xs text-slate-500">Information about your assigned workplace & organization</p>
+              <h2 className="text-lg font-black text-[#2D3092]">NCC Battalion & Unit Details</h2>
+              <p className="text-xs text-slate-500">Information about your assigned NCC battalion unit & parade ground</p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 w-fit">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-[#FFCB06] text-[#2D3092] w-fit shadow-xs">
             <ShieldCheck className="w-3.5 h-3.5" />
-            {user?.subscription_status === 'ACTIVE' || !user?.subscription_status ? 'Active Workspace' : user.subscription_status}
+            {user?.subscription_status === 'ACTIVE' || !user?.subscription_status ? 'Active Unit' : user.subscription_status}
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Workspace Info Card */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Business / Workspace</p>
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <p className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">NCC Unit / Battalion</p>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">Workspace Name</span>
-                <span className="text-sm font-bold text-slate-900">{user?.tenant_name || 'Default Workspace'}</span>
+                <span className="text-sm text-slate-600 font-medium">Unit Name</span>
+                <span className="text-sm font-black text-slate-900">{user?.tenant_name || 'Default NCC Unit'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">Workspace Slug</span>
-                <span className="text-sm font-mono font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{user?.tenant_slug || 'default'}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">Tenant ID</span>
-                <span className="text-sm font-semibold text-slate-700">#{user?.tenant_id || 1}</span>
+                <span className="text-sm text-slate-600 font-medium">Unit Code</span>
+                <span className="text-sm font-mono font-bold text-[#00AEEF] bg-[#00AEEF]/10 px-2 py-0.5 rounded">{user?.tenant_slug || 'ncc-unit'}</span>
               </div>
             </div>
           </div>
 
           {/* Location & Attendance Rules Card */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-blue-600" /> Location Policy
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <p className="text-xs font-bold text-[#2D3092] uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" /> Parade Ground Geofence
             </p>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">Geofence Radius</span>
-                <span className="text-sm font-bold text-slate-900">{user?.geofence_radius_meters || 100} meters</span>
+                <span className="text-sm text-slate-600 font-medium">Allowed Radius</span>
+                <span className="text-sm font-black text-slate-900">{user?.geofence_radius_meters || 100} meters</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-slate-600 font-medium">Verification Method</span>
-                <span className="text-sm font-semibold text-slate-700">GPS & Selfie Photo</span>
+                <span className="text-sm text-slate-600 font-medium">Verification</span>
+                <span className="text-sm font-bold text-[#00AEEF]">GPS & Selfie Photo</span>
               </div>
               {user?.geofence_maps_link && (
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm text-slate-600 font-medium">Workplace Map</span>
+                  <span className="text-sm text-slate-600 font-medium">Parade Location</span>
                   <a
                     href={user.geofence_maps_link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-[#EF1C25] hover:underline flex items-center gap-1"
                   >
                     View Map →
                   </a>
@@ -476,19 +458,19 @@ const Dashboard: React.FC = () => {
 
         {/* Employee Profile Section */}
         <div className="pt-2 border-t border-slate-100">
-          <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-[#2D3092]/5 border border-[#2D3092]/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
-                <UserCheck className="w-5 h-5" />
+              <div className="w-10 h-10 rounded-full bg-[#EF1C25] border-2 border-[#FFCB06] text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                <UserCheck className="w-5 h-5 text-[#FFCB06]" />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-900">{user?.name}</p>
-                <p className="text-xs text-slate-500">Employee ID: <span className="font-semibold text-slate-700">{user?.employee_id}</span> • Role: <span className="capitalize">{user?.role || 'Staff'}</span></p>
+                <p className="text-sm font-black text-[#2D3092]">{user?.name}</p>
+                <p className="text-xs font-bold text-slate-500">Cadet ID: <span className="text-[#EF1C25]">{user?.employee_id}</span> • Role: <span className="uppercase">{user?.role || 'Cadet'}</span></p>
               </div>
             </div>
             {user?.email && (
-              <div className="text-xs text-slate-600 bg-white px-3 py-2 rounded-lg border border-slate-200">
-                <span className="font-semibold text-slate-500">Contact:</span> {user.email}
+              <div className="text-xs font-bold text-slate-700 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-slate-500 font-semibold">Contact:</span> {user.email}
               </div>
             )}
           </div>

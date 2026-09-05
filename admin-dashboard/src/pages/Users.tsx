@@ -143,7 +143,10 @@ const Users: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">User Management</h2>
+        <div>
+          <h2 className="text-xl font-black text-[#2D3092] uppercase tracking-tight">Cadet & Instructor Management</h2>
+          <p className="text-xs text-slate-500 font-medium">Manage battalion profiles and accounts</p>
+        </div>
         <button
           onClick={() => {
             setEditingUser(null);
@@ -159,63 +162,67 @@ const Users: React.FC = () => {
             });
             setShowModal(true);
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+          className="bg-[#EF1C25] hover:bg-[#C7131B] text-white font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center space-x-2 border-b-2 border-[#FFCB06] transition-all text-sm"
         >
-          <Plus className="w-4 h-4" />
-          <span>Add User</span>
+          <Plus className="w-4 h-4 text-[#FFCB06]" />
+          <span>Add Cadet / User</span>
         </button>
       </div>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
         <div className="space-y-3">
           {users.map((user) => {
             return (
               <div 
                 key={user.id}
-                className="relative rounded-xl border border-indigo-100 bg-white hover:border-indigo-300 hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
+                className="relative rounded-xl border border-slate-200 bg-white hover:border-[#00AEEF] hover:shadow-md transition-all duration-300 overflow-hidden p-4 sm:p-5"
               >
-                {/* Timeline top border */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-400 to-blue-600" />
+                {/* NCC Tri-Color Top Accent Line */}
+                <div className="ncc-tricolor-bar absolute top-0 left-0 right-0">
+                  <div className="stripe-red" />
+                  <div className="stripe-navy" />
+                  <div className="stripe-skyblue" />
+                </div>
 
                 {/* Card content - vertical layout */}
-                <div className="space-y-3">
+                <div className="space-y-3 pt-2">
                   {/* Header: Avatar + Name + ID + Role */}
                   <div className="flex items-start gap-3 justify-between">
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md text-white font-bold text-lg">
+                      <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-[#2D3092] to-[#00AEEF] border-2 border-[#FFCB06] flex items-center justify-center shadow-md text-white font-black text-lg">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                        <h3 className="text-base sm:text-lg font-black text-[#2D3092]">
                           {user.name}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          ID: {user.employee_id}
+                        <p className="text-xs font-bold text-slate-500 mt-0.5">
+                          Cadet/User ID: <span className="text-[#EF1C25] font-black">{user.employee_id}</span>
                         </p>
                       </div>
                     </div>
 
                     {/* Role Badge */}
-                    <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full flex-shrink-0 ${
+                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-black rounded-full flex-shrink-0 border ${
                       user.role === 'ADMIN' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-green-100 text-green-800'
+                        ? 'bg-[#2D3092] text-white border-[#FFCB06]' 
+                        : 'bg-[#00AEEF]/10 text-[#00AEEF] border-[#00AEEF]/40'
                     }`}>
-                      {user.role}
+                      {user.role === 'ADMIN' ? 'INSTRUCTOR (ADMIN)' : 'CADET (STAFF)'}
                     </span>
                   </div>
 
                   {/* Contact Info */}
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-600 font-medium mb-1 uppercase tracking-wide">Phone</p>
-                    <p className="text-sm font-semibold text-slate-900">{user.phone}</p>
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <p className="text-xs text-slate-500 font-bold mb-0.5 uppercase tracking-wide">Phone Number</p>
+                    <p className="text-sm font-bold text-slate-900">{user.phone}</p>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                  <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                     <button 
                       onClick={() => handleEdit(user)} 
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-[#2D3092] hover:bg-[#2D3092]/10 rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit
@@ -223,7 +230,7 @@ const Users: React.FC = () => {
                     {user.employee_id !== 'admin' && (
                       <button 
                         onClick={() => handleDelete(user.id)} 
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-bold text-[#EF1C25] hover:bg-[#EF1C25]/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                         Delete

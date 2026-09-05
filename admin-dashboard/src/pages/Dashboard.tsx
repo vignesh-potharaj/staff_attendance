@@ -87,7 +87,7 @@ const Dashboard: React.FC = () => {
           summary.absent_today, 
           summary.late_today
         ],
-        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+        backgroundColor: ['#00AEEF', '#EF1C25', '#FFCB06'],
         borderWidth: 0,
       },
     ],
@@ -97,11 +97,12 @@ const Dashboard: React.FC = () => {
     labels: trends.dates,
     datasets: [
       {
-        label: 'Daily Attendance',
+        label: 'Daily Cadet Attendance',
         data: trends.counts,
-        borderColor: '#3B82F6',
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+        borderColor: '#2D3092',
+        backgroundColor: 'rgba(45, 48, 146, 0.2)',
         tension: 0.3,
+        fill: true,
       },
     ],
   };
@@ -110,51 +111,51 @@ const Dashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#2D3092] border-x border-b border-slate-200 flex items-center space-x-4">
+          <div className="p-3.5 bg-[#2D3092]/10 text-[#2D3092] rounded-xl font-bold">
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Total Staff</p>
-            <p className="text-2xl font-bold text-gray-900">{summary.total_staff}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Cadets</p>
+            <p className="text-3xl font-black text-[#2D3092]">{summary.total_staff}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-green-100 text-green-600 rounded-lg">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#00AEEF] border-x border-b border-slate-200 flex items-center space-x-4">
+          <div className="p-3.5 bg-[#00AEEF]/10 text-[#00AEEF] rounded-xl font-bold">
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Present Today</p>
-            <p className="text-2xl font-bold text-gray-900">{summary.present_today}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Present Today</p>
+            <p className="text-3xl font-black text-[#00AEEF]">{summary.present_today}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-amber-100 text-amber-600 rounded-lg">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#FFCB06] border-x border-b border-slate-200 flex items-center space-x-4">
+          <div className="p-3.5 bg-[#FFCB06]/20 text-[#D9AB00] rounded-xl font-bold">
             <Clock className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Late Arrivals</p>
-            <p className="text-2xl font-bold text-gray-900">{summary.late_today}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Late Arrivals</p>
+            <p className="text-3xl font-black text-[#D9AB00]">{summary.late_today}</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-red-100 text-red-600 rounded-lg">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#EF1C25] border-x border-b border-slate-200 flex items-center space-x-4">
+          <div className="p-3.5 bg-[#EF1C25]/10 text-[#EF1C25] rounded-xl font-bold">
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Absent Today</p>
-            <p className="text-2xl font-bold text-gray-900">{summary.absent_today}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Absent Today</p>
+            <p className="text-3xl font-black text-[#EF1C25]">{summary.absent_today}</p>
           </div>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">30-Day Attendance Trend</h3>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 border-t-4 border-t-[#2D3092] lg:col-span-2">
+          <h3 className="text-base font-black text-[#2D3092] uppercase tracking-wider mb-4">30-Day Cadet Attendance Trend</h3>
           <div className="h-72">
             <Line
               data={lineData}
@@ -163,8 +164,8 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Today's Ratio</h3>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-slate-200 border-t-4 border-t-[#EF1C25]">
+          <h3 className="text-base font-black text-[#2D3092] uppercase tracking-wider mb-4">Today's Parade Ratio</h3>
           <div className="h-64 flex justify-center">
             <Doughnut
               data={donutData}

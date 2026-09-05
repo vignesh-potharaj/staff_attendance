@@ -294,31 +294,31 @@ const TodayRoaster: React.FC = () => {
       <section>
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <CalendarIcon className="text-blue-600" />
-              Today's Roaster
+            <h2 className="text-2xl font-black text-[#2D3092] flex items-center gap-2 uppercase tracking-tight">
+              <CalendarIcon className="text-[#EF1C25]" />
+              Parade & Drill Schedule (Roster)
             </h2>
-            <p className="text-gray-500 mt-1">Assign custom shift timings and share the schedule</p>
+            <p className="text-xs text-slate-500 font-bold mt-1">Assign drill timings and publish the parade schedule</p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={handleSaveAndCopy}
-              className={`px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-all font-medium ${
+              className={`px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-sm ${
                 copySuccess 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
+                  ? 'bg-[#00AEEF] text-white' 
+                  : 'bg-[#2D3092] hover:bg-[#3F43B5] text-white border-b-2 border-[#FFCB06]'
               }`}
               title="Save roaster and copy to clipboard"
             >
-              <Copy className="w-5 h-5" />
+              <Copy className="w-4 h-4 text-[#FFCB06]" />
               <span>{copySuccess ? 'Copied!' : 'Save & Copy'}</span>
             </button>
             <button
               onClick={handleSaveAndShare}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-lg flex items-center space-x-2 shadow-md transition-shadow"
+              className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all font-bold text-sm"
             >
-              <Share2 className="w-5 h-5" />
-              <span>Save & Share on WhatsApp</span>
+              <Share2 className="w-4 h-4 text-[#FFCB06]" />
+              <span>Share on WhatsApp</span>
             </button>
           </div>
         </div>

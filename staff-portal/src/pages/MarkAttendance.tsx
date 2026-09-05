@@ -131,12 +131,12 @@ const MarkAttendance: React.FC = () => {
     <div className="max-w-md mx-auto w-full">
       <main className="space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Mark Attendance</h1>
-          <p className="text-sm text-gray-500">Capture a selfie and your location</p>
+          <h1 className="text-2xl font-black text-[#2D3092] uppercase tracking-tight">Mark Cadet Attendance</h1>
+          <p className="text-xs font-bold text-[#00AEEF]">Parade Selfie Capture & Geofence Verification</p>
         </div>
 
         {/* Webcam Section */}
-        <div className="relative aspect-square rounded-2xl overflow-hidden bg-black shadow-inner border-4 border-white">
+        <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-900 shadow-2xl border-4 border-[#FFCB06]">
           {!imgSrc ? (
             <>
               <Webcam
@@ -148,7 +148,7 @@ const MarkAttendance: React.FC = () => {
               />
               <button
                 onClick={capture}
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/30 backdrop-blur-md p-4 rounded-full border-2 border-white shadow-xl hover:scale-110 transition-all"
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#EF1C25] text-white p-4 rounded-full border-2 border-[#FFCB06] shadow-2xl hover:scale-110 active:scale-95 transition-all"
               >
                 <Camera className="w-8 h-8 text-white" />
               </button>
@@ -158,41 +158,41 @@ const MarkAttendance: React.FC = () => {
               <img src={imgSrc} className="w-full h-full object-cover" />
               <button
                 onClick={() => setImgSrc(null)}
-                className="absolute top-4 right-4 bg-black/50 p-2 rounded-full text-white"
+                className="absolute top-4 right-4 bg-black/60 p-2.5 rounded-full text-white hover:bg-black"
               >
-                <RefreshCw className="w-5 h-5" />
+                <RefreshCw className="w-5 h-5 text-[#FFCB06]" />
               </button>
             </div>
           )}
         </div>
 
         {/* Location Section */}
-        <div className={`p-4 rounded-2xl border transition-all ${location ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div className={`p-4 rounded-2xl border transition-all ${location ? 'bg-[#00AEEF]/10 border-[#00AEEF]/40' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${location ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+              <div className={`p-2.5 rounded-xl ${location ? 'bg-[#00AEEF] text-white' : 'bg-slate-100 text-slate-500'}`}>
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-gray-900">Location Access</p>
-                <p className="text-xs text-gray-500">
-                  {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Required for verification'}
+                <p className="font-black text-[#2D3092] text-sm">Parade Ground GPS Access</p>
+                <p className="text-xs font-semibold text-slate-500">
+                  {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Required for geofence verification'}
                 </p>
               </div>
             </div>
             {!location && (
               <button
                 onClick={getLocation}
-                className="text-sm font-bold text-blue-600 hover:underline"
+                className="text-xs font-black text-[#EF1C25] bg-[#EF1C25]/10 px-3 py-1.5 rounded-xl hover:bg-[#EF1C25] hover:text-white transition-all"
               >
-                Allow
+                Allow GPS
               </button>
             )}
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-center gap-2 text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-bold">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -202,25 +202,25 @@ const MarkAttendance: React.FC = () => {
           <button
             onClick={() => handleSubmit('check-in')}
             disabled={loading || !imgSrc || !location}
-            className={`flex-1 py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all border-b-2 border-[#FFCB06] text-sm uppercase tracking-wider ${
               loading || !imgSrc || !location 
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-              : 'bg-green-600 text-white hover:bg-green-700 hover:-translate-y-1'
+              ? 'bg-slate-200 text-slate-400 border-none cursor-not-allowed' 
+              : 'bg-[#2D3092] text-white hover:bg-[#3F43B5] hover:-translate-y-0.5'
             }`}
           >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Check In</>}
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Check In</>}
           </button>
           
           <button
             onClick={() => handleSubmit('check-out')}
             disabled={loading || !imgSrc || !location}
-            className={`flex-1 py-4 rounded-2xl font-bold shadow-xl flex items-center justify-center gap-2 transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all border-b-2 border-[#FFCB06] text-sm uppercase tracking-wider ${
               loading || !imgSrc || !location 
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
-              : 'bg-red-600 text-white hover:bg-red-700 hover:-translate-y-1'
+              ? 'bg-slate-200 text-slate-400 border-none cursor-not-allowed' 
+              : 'bg-[#EF1C25] text-white hover:bg-[#C7131B] hover:-translate-y-0.5'
             }`}
           >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Check Out</>}
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Check Out</>}
           </button>
         </div>
       </main>

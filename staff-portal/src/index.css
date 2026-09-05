@@ -16,13 +16,13 @@ body {
 }
 .ncc-tricolor-bar .stripe-red {
   flex: 1;
-  background-color: #E52327;
+  background-color: #EF1C25;
 }
 .ncc-tricolor-bar .stripe-navy {
   flex: 1;
-  background-color: #1A1E5C;
+  background-color: #2D3092;
 }
 .ncc-tricolor-bar .stripe-skyblue {
   flex: 1;
-  background-color: #00A6EB;
+  background-color: #00AEEF;
 }
