@@ -56,11 +56,18 @@ const Login: React.FC = () => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border-t-4 border-[#FFC800]">
         <div className="bg-white px-8 pt-10 pb-4 text-center">
-          <img 
-            src="/ncc-logo.png" 
-            alt="NCC Emblem" 
-            className="w-20 h-24 mx-auto mb-4 object-contain filter drop-shadow-md"
-          />
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img 
+              src="/college-logo.png" 
+              alt="College Emblem" 
+              className="h-14 sm:h-16 w-auto max-h-16 max-w-[75px] object-contain drop-shadow-md"
+            />
+            <img 
+              src="/ncc-logo.png" 
+              alt="NCC Emblem" 
+              className="h-14 sm:h-16 w-auto max-h-16 max-w-[55px] object-contain drop-shadow-md"
+            />
+          </div>
           <h2 className="text-3xl font-black text-[#1A1E5C] tracking-tight">CADET PORTAL</h2>
           <p className="text-xs font-bold text-[#00A6EB] uppercase tracking-wider mt-1">National Cadet Corps Attendance</p>
         </div>

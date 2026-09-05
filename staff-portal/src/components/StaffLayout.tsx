@@ -44,9 +44,14 @@ const StaffLayout: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <img 
+            src="/college-logo.png" 
+            alt="College Emblem" 
+            className="h-7 w-auto max-h-7 max-w-[32px] object-contain drop-shadow-sm shrink-0"
+          />
+          <img 
             src="/ncc-logo.png" 
             alt="NCC Emblem" 
-            className="w-7 h-9 object-contain drop-shadow-sm"
+            className="h-7 w-auto max-h-7 max-w-[24px] object-contain drop-shadow-sm shrink-0"
           />
           <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
         </div>
@@ -76,8 +81,9 @@ const StaffLayout: React.FC = () => {
 
         <div className="p-5 border-b border-white/10 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/ncc-logo.png" alt="NCC Emblem" className="w-8 h-10 object-contain drop-shadow-md" />
+            <div className="flex items-center gap-2.5">
+              <img src="/college-logo.png" alt="College Emblem" className="h-9 w-auto max-h-9 max-w-[40px] object-contain drop-shadow-md shrink-0" />
+              <img src="/ncc-logo.png" alt="NCC Emblem" className="h-9 w-auto max-h-9 max-w-[30px] object-contain drop-shadow-md shrink-0" />
               <div>
                 <span className="font-black text-sm uppercase tracking-wider block text-white">NCC Cadet Portal</span>
                 <span className="text-[10px] font-bold text-[#00AEEF] uppercase tracking-widest">National Cadet Corps</span>

@@ -30,8 +30,9 @@ const SidebarLayout: React.FC = () => {
         }`}
       >
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-5">
-          <div className="flex items-center gap-3">
-            <img src="/ncc-logo.png" alt="NCC Emblem" className="w-8 h-10 object-contain drop-shadow-md" />
+          <div className="flex items-center gap-2.5">
+            <img src="/college-logo.png" alt="College Emblem" className="h-9 w-auto max-h-9 max-w-[40px] object-contain drop-shadow-md shrink-0" />
+            <img src="/ncc-logo.png" alt="NCC Emblem" className="h-9 w-auto max-h-9 max-w-[30px] object-contain drop-shadow-md shrink-0" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#00AEEF]">NCC HQ</p>
               <h1 className="text-lg font-bold text-white">Super Admin</h1>

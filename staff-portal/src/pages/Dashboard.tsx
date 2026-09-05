@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Battery, Bell, BellOff, Building2, CalendarCheck, Clock, MapPin, ShieldCheck, Timer, UserCheck } from 'lucide-react';
+import { Award, Battery, Bell, BellOff, Building2, CalendarCheck, CheckCircle2, MapPin, ShieldCheck, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,23 +13,22 @@ import {
   triggerDelayedTestNotification,
 } from '../services/notificationService';
 
-interface AttendanceRecord {
-  duration_hours: number;
-  check_in_time?: string;
-  check_out_time?: string | null;
-}
-
-interface MonthlySummary {
-  total_working_hours: number;
-  total_payroll: number;
-  hourly_pay: number;
+interface CadetAttendanceSummary {
+  month_present_days: number;
+  overall_present_days: number;
+  today?: {
+    marked: boolean;
+    status?: string;
+    check_in_time?: string | null;
+    check_out_time?: string | null;
+    expected_fall_in_time?: string | null;
+  } | null;
 }
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [today, setToday] = useState<AttendanceRecord | null>(null);
-  const [monthly, setMonthly] = useState<MonthlySummary | null>(null);
+  const [summary, setSummary] = useState<CadetAttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission>(getNotificationPermission());
   const [testCountdown, setTestCountdown] = useState<number | null>(null);
@@ -148,12 +147,8 @@ const Dashboard: React.FC = () => {
         }).catch((err) => {
           addLog(`Auto-sync warning: ${err}`);
         });
-        const [todayRes, monthlyRes] = await Promise.all([
-          api.get(`/attendance/staff/${user.id}/today`),
-          api.get(`/attendance/staff/${user.id}/monthly`),
-        ]);
-        setToday(todayRes.data);
-        setMonthly(monthlyRes.data);
+        const summaryRes = await api.get(`/attendance/staff/${user.id}/summary`);
+        setSummary(summaryRes.data);
 
         // Fetch today's roaster to schedule shift reminders
         const todayDate = new Date().toISOString().split('T')[0];
@@ -361,34 +356,77 @@ const Dashboard: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card 1: This Month's Attendance */}
         <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-[#2D3092] p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-xl bg-[#2D3092]/10 text-[#2D3092] flex items-center justify-center mb-4 font-bold">
-            <Timer className="w-6 h-6" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-11 h-11 rounded-xl bg-[#2D3092]/10 text-[#2D3092] flex items-center justify-center font-bold">
+              <CalendarCheck className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
+              {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </span>
           </div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Parade Hours</p>
-          <p className="text-3xl font-black text-[#2D3092] mt-2">{loading ? '...' : (today?.duration_hours || 0).toFixed(2)} hrs</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Attendance</p>
+          <div className="flex items-baseline gap-2 mt-2">
+            <p className="text-3xl font-black text-[#2D3092]">
+              {loading ? '...' : (summary?.month_present_days ?? 0)}
+            </p>
+            <span className="text-sm font-bold text-slate-500">
+              {(summary?.month_present_days ?? 0) === 1 ? 'Parade Attended' : 'Parades Attended'}
+            </span>
+          </div>
         </div>
 
+        {/* Card 2: Overall Attendance */}
         <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-[#00AEEF] p-5 shadow-sm">
-          <div className="w-11 h-11 rounded-xl bg-[#00AEEF]/10 text-[#00AEEF] flex items-center justify-center mb-4 font-bold">
-            <Clock className="w-6 h-6" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-11 h-11 rounded-xl bg-[#00AEEF]/10 text-[#00AEEF] flex items-center justify-center font-bold">
+              <Award className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-1 bg-sky-50 text-[#00AEEF] rounded-full">
+              All-Time
+            </span>
           </div>
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Total Parade Hours</p>
-          <p className="text-3xl font-black text-[#00AEEF] mt-2">{loading ? '...' : (monthly?.total_working_hours || 0).toFixed(2)} hrs</p>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Overall Attendance</p>
+          <div className="flex items-baseline gap-2 mt-2">
+            <p className="text-3xl font-black text-[#00AEEF]">
+              {loading ? '...' : (summary?.overall_present_days ?? 0)}
+            </p>
+            <span className="text-sm font-bold text-slate-500">
+              {(summary?.overall_present_days ?? 0) === 1 ? 'Total Parade' : 'Total Parades'}
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center border-t-4 border-t-[#EF1C25]">
-        <CalendarCheck className="w-12 h-12 mx-auto text-[#EF1C25] mb-3" />
-        <h3 className="text-lg font-black text-[#2D3092] uppercase tracking-tight mb-2">Parade & Drill Attendance</h3>
-        <button
-          type="button"
-          onClick={() => navigate('/staff/mark-attendance')}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#EF1C25] text-white font-black text-base shadow-lg hover:bg-[#C7131B] border-b-2 border-[#FFCB06] transition-all"
-        >
-          <CalendarCheck className="w-6 h-6 text-[#FFCB06]" />
-          Mark Attendance (Selfie + GPS)
-        </button>
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center border-t-4 border-t-[#EF1C25] space-y-4">
+        <CalendarCheck className="w-12 h-12 mx-auto text-[#EF1C25]" />
+        <div>
+          <h3 className="text-lg font-black text-[#2D3092] uppercase tracking-tight">Parade & Drill Attendance</h3>
+          {summary?.today?.marked ? (
+            <div className="inline-flex items-center gap-2 mt-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Today's Parade: Recorded ({summary.today.status})</span>
+              {summary.today.check_in_time && (
+                <span className="text-emerald-800">
+                  • Fall-In: {new Date(summary.today.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500 mt-1">Mark your parade attendance with GPS verification and photo selfie</p>
+          )}
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={() => navigate('/staff/mark-attendance')}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#EF1C25] text-white font-black text-base shadow-lg hover:bg-[#C7131B] border-b-2 border-[#FFCB06] transition-all cursor-pointer"
+          >
+            <CalendarCheck className="w-6 h-6 text-[#FFCB06]" />
+            Mark Attendance (Selfie + GPS)
+          </button>
+        </div>
       </div>
 
       {/* Workspace Details Section */}

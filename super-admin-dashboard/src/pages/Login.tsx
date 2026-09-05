@@ -33,7 +33,10 @@ const Login: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl shadow-black/20">
         <div className="mb-8 flex items-center gap-4">
-          <img src="/ncc-logo.png" alt="NCC Emblem" className="w-10 h-12 object-contain drop-shadow-md" />
+          <div className="flex items-center gap-2.5 shrink-0">
+            <img src="/college-logo.png" alt="College Emblem" className="h-10 w-auto max-h-10 max-w-[40px] object-contain drop-shadow-md shrink-0" />
+            <img src="/ncc-logo.png" alt="NCC Emblem" className="h-10 w-auto max-h-10 max-w-[32px] object-contain drop-shadow-md shrink-0" />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-white">NCC Super Admin Login</h1>
             <p className="text-sm text-slate-400">Manage battalions, subscriptions, and audit activity.</p>

@@ -514,3 +514,150 @@ def export_total_summary_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=attendance_total_summary.csv"}
     )
+
+
+@router.get("/staff/{staff_id}/summary")
+def get_staff_attendance_summary(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns cadet parade drill attendance analytics:
+    - month_present_days: count of parades attended in current month
+    - overall_present_days: total lifetime parades attended
+    - today: today's fall-in/visarjan status
+    """
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
+
+    target_user = db.query(User).filter(
+        User.id == staff_id,
+        User.tenant_id == current_user.tenant_id
+    ).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Cadet not found in this unit.")
+
+    now = datetime.now(IST)
+    today_str = now.strftime("%Y-%m-%d")
+    month_prefix = now.strftime("%Y-%m")
+
+    valid_statuses = [AttendanceStatus.PRESENT, AttendanceStatus.LATE]
+
+    cadet_records = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.tenant_id == current_user.tenant_id,
+        Attendance.status.in_(valid_statuses)
+    ).all()
+
+    overall_present_days = len({r.date for r in cadet_records if r.date})
+    month_present_days = len({r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)})
+
+    today_record = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.tenant_id == current_user.tenant_id,
+        Attendance.date == today_str
+    ).first()
+
+    today_data = None
+    if today_record:
+        populate_expected_fall_in_time([today_record], db)
+        today_data = {
+            "marked": True,
+            "status": today_record.status.value if hasattr(today_record.status, "value") else str(today_record.status),
+            "check_in_time": today_record.check_in_time.isoformat() if today_record.check_in_time else None,
+            "check_out_time": today_record.check_out_time.isoformat() if today_record.check_out_time else None,
+            "expected_fall_in_time": getattr(today_record, "expected_fall_in_time", None)
+        }
+    else:
+        today_data = {
+            "marked": False,
+            "status": "NOT_MARKED",
+            "check_in_time": None,
+            "check_out_time": None,
+            "expected_fall_in_time": None
+        }
+
+    return {
+        "month_present_days": month_present_days,
+        "overall_present_days": overall_present_days,
+        "today": today_data
+    }
+
+
+@router.get("/staff/{staff_id}")
+def get_staff_attendance_history(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
+
+    records = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.tenant_id == current_user.tenant_id
+    ).order_by(Attendance.date.desc(), Attendance.created_at.desc()).all()
+
+    populate_expected_fall_in_time(records, db)
+
+    result = []
+    for r in records:
+        duration_hours = 0.0
+        if r.check_in_time and r.check_out_time:
+            duration_hours = round(max((r.check_out_time - r.check_in_time).total_seconds(), 0) / 3600, 2)
+        elif r.check_in_time and not r.check_out_time and r.date == datetime.now(IST).strftime("%Y-%m-%d"):
+            duration_hours = round(max((datetime.now(IST).replace(tzinfo=None) - r.check_in_time).total_seconds(), 0) / 3600, 2)
+
+        result.append({
+            "id": r.id,
+            "user_id": r.user_id,
+            "date": r.date,
+            "check_in_time": r.check_in_time.isoformat() if r.check_in_time else None,
+            "check_out_time": r.check_out_time.isoformat() if r.check_out_time else None,
+            "expected_fall_in_time": getattr(r, "expected_fall_in_time", None),
+            "status": r.status.value if hasattr(r.status, "value") else str(r.status),
+            "duration_hours": duration_hours,
+            "latitude": r.latitude,
+            "longitude": r.longitude,
+            "photo_url": r.photo_url,
+            "check_out_photo_url": r.check_out_photo_url,
+            "device_info": r.device_info,
+        })
+    return result
+
+
+@router.get("/staff/{staff_id}/today")
+def get_staff_today_attendance(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    summary = get_staff_attendance_summary(staff_id, db, current_user)
+    today = summary.get("today")
+    if not today or not today.get("marked"):
+        return {"status": "NOT_CHECKED_IN", "hours": 0.0, "duration_hours": 0.0}
+    return {
+        "status": today.get("status"),
+        "check_in_time": today.get("check_in_time"),
+        "check_out_time": today.get("check_out_time"),
+        "hours": 0.0,
+        "duration_hours": 0.0,
+    }
+
+
+@router.get("/staff/{staff_id}/monthly")
+def get_staff_monthly_attendance(
+    staff_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    summary = get_staff_attendance_summary(staff_id, db, current_user)
+    return {
+        "total_working_hours": 0.0,
+        "total_hours": 0.0,
+        "month_present_days": summary.get("month_present_days", 0),
+        "overall_present_days": summary.get("overall_present_days", 0),
+    }
+
+
