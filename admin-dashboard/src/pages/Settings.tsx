@@ -2,12 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   Building2,
-  Check,
   Clock3,
   Download,
   Lock,
   MapPin,
-  Palette,
   Save,
   ShieldCheck,
   Wand2,
@@ -34,7 +32,6 @@ interface PreferenceData {
   weeklyDigest: boolean;
   missedCheckoutAlert: boolean;
   compactTables: boolean;
-  accent: string;
 }
 
 const DEFAULT_PREFERENCES: PreferenceData = {
@@ -43,15 +40,7 @@ const DEFAULT_PREFERENCES: PreferenceData = {
   weeklyDigest: true,
   missedCheckoutAlert: true,
   compactTables: false,
-  accent: 'ncc-navy',
 };
-
-const ACCENTS = [
-  { id: 'ncc-navy', name: 'Navy Blue (#2D3092)', className: 'bg-[#2D3092]' },
-  { id: 'ncc-red', name: 'Army Red (#EF1C25)', className: 'bg-[#EF1C25]' },
-  { id: 'ncc-lightblue', name: 'Air Force Blue (#00AEEF)', className: 'bg-[#00AEEF]' },
-  { id: 'ncc-gold', name: 'NCC Gold (#FFCB06)', className: 'bg-[#FFCB06]' },
-];
 
 const getApiErrorMessage = (err: unknown, fallback: string) => {
   if (
@@ -413,28 +402,7 @@ const Settings: React.FC = () => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-5 flex items-center gap-2">
-              <Palette className="h-5 w-5 text-[#EF1C25]" />
-              <h2 className="text-base font-black text-[#2D3092] uppercase tracking-tight">Official NCC Theme Accent</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {ACCENTS.map((accent) => (
-                <button
-                  key={accent.id}
-                  type="button"
-                  onClick={() => setPreferences({ ...preferences, accent: accent.id })}
-                  title={accent.name}
-                  className={`flex h-12 items-center justify-between px-3 rounded-xl border-2 text-xs font-bold ${preferences.accent === accent.id ? 'border-[#2D3092] bg-slate-50' : 'border-slate-200'}`}
-                >
-                  <span className="truncate text-slate-800">{accent.name.split(' ')[0]}</span>
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${accent.className}`}>
-                    {preferences.accent === accent.id && <Check className="h-3.5 w-3.5 text-white" />}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="mb-5 flex items-center gap-2">
