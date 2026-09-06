@@ -1,13 +1,13 @@
-{
+﻿{
   "project_info": {
-    "project_number": "283058133218",
-    "project_id": "smart-staff-app-b3757",
-    "storage_bucket": "smart-staff-app-b3757.firebasestorage.app"
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "your-firebase-project-id",
+    "storage_bucket": "your-firebase-project-id.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:283058133218:android:fd9ef529defc6edcfc26bb",
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_MOBILESDK_APP_ID",
         "android_client_info": {
           "package_name": "com.smartstaff.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC8QsQv0sxQvwxfa3JEMSZBFryJ1sC56po"
+          "current_key": "YOUR_FIREBASE_API_KEY"
         }
       ],
       "services": {
@@ -26,7 +26,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:283058133218:android:fd9ef529defc6edcfc26bb",
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_MOBILESDK_APP_ID",
         "android_client_info": {
           "package_name": "com.smartstaff.app.test"
         }
@@ -34,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC8QsQv0sxQvwxfa3JEMSZBFryJ1sC56po"
+          "current_key": "YOUR_FIREBASE_API_KEY"
         }
       ],
       "services": {
