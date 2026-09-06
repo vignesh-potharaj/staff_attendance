@@ -44,3 +44,8 @@ staff-portal/node_modules/
 staff-portal/dist/
 admin-dashboard/node_modules/
 admin-dashboard/dist/
+
+# Android / Google Services
+google-services.json
+**/google-services.json
+
