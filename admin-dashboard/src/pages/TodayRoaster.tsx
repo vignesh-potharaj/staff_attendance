@@ -66,9 +66,14 @@ const TodayRoaster: React.FC = () => {
 
   const populateSessionFields = (session?: SessionData | null) => {
     if (session) {
-      const isPreset = PRESET_DRILL_TITLES.includes(session.title);
-      if (isPreset) {
-        setDrillType(session.title.includes('Regular') ? 'Sunday Regular Parade' : session.title.includes('Weapon') ? 'Weapon Drill Training' : 'Camp Drill Training');
+      const lower = session.title.toLowerCase();
+      const isPreset = PRESET_DRILL_TITLES.some(p => lower.includes(p.toLowerCase()));
+      const isRegular = lower.includes('regular');
+      const isWeapon = lower.includes('weapon');
+      const isCamp = lower.includes('camp');
+
+      if (isPreset || isRegular || isWeapon || isCamp) {
+        setDrillType(isRegular ? 'Sunday Regular Parade' : isWeapon ? 'Weapon Drill Training' : 'Camp Drill Training');
         setSessionTitle(session.title);
         setCustomEventTitle('');
       } else {
@@ -243,6 +248,22 @@ const TodayRoaster: React.FC = () => {
         endTime: defEndTime
       }
     }));
+  };
+
+  const handleResetAllCadets = () => {
+    const sessionObj = sessionStatus?.session;
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+    setSchedules(prev => {
+      const updated: Record<number, ScheduleInput> = { ...prev };
+      users.forEach(u => {
+        updated[u.id] = {
+          startTime: defStartTime,
+          endTime: defEndTime
+        };
+      });
+      return updated;
+    });
   };
 
   const formatTime12h = (time: string) => {
@@ -421,6 +442,22 @@ const TodayRoaster: React.FC = () => {
           </div>
           {sessionStatus?.is_active && (
             <div className="flex flex-wrap items-center gap-2.5">
+              {users.some(u => {
+                const s = schedules[u.id];
+                const defSt = sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00';
+                const defEt = sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30';
+                return s && (s.startTime !== defSt || s.endTime !== defEt);
+              }) && (
+                <button
+                  type="button"
+                  onClick={handleResetAllCadets}
+                  className="px-3.5 py-2.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  title="Reset all cadets to the session timing"
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Sync All to Session Timing</span>
+                </button>
+              )}
               <button
                 onClick={handleSave}
                 className={`px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-xs sm:text-sm cursor-pointer ${
