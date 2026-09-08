@@ -14,6 +14,7 @@ const MarkAttendance: React.FC = () => {
   const [sessionChecking, setSessionChecking] = useState(true);
   const [sessionActive, setSessionActive] = useState<boolean>(true);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
+  const [requireLocation, setRequireLocation] = useState<boolean>(true);
   const navigate = useNavigate();
 
   const getLocation = () => {
@@ -28,11 +29,13 @@ const MarkAttendance: React.FC = () => {
         },
         (err) => {
           console.error(err);
-          setError('Location access denied or unavailable. Geofencing requires GPS location.');
+          if (requireLocation) {
+            setError('Location access denied or unavailable. Geofencing requires GPS location.');
+          }
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
-    } else {
+    } else if (requireLocation) {
       setError('Geolocation is not supported by your browser.');
     }
   };
@@ -46,6 +49,7 @@ const MarkAttendance: React.FC = () => {
           setSessionActive(Boolean(res.data.is_active));
           if (res.data.session) {
             setSessionTitle(res.data.session.title);
+            setRequireLocation(res.data.session.require_location !== false);
           }
         }
       } catch {
@@ -82,8 +86,8 @@ const MarkAttendance: React.FC = () => {
       setError('Please capture a photo before submitting.');
       return;
     }
-    if (!location) {
-      setError('Location is required. Please allow GPS location.');
+    if (requireLocation && !location) {
+      setError('Location is required for this session. Please allow GPS location.');
       return;
     }
 
@@ -93,8 +97,8 @@ const MarkAttendance: React.FC = () => {
     try {
       const file = dataURLtoFile(imgSrc, 'attendance_photo.jpg');
       const formData = new FormData();
-      formData.append('latitude', location.lat.toString());
-      formData.append('longitude', location.lng.toString());
+      formData.append('latitude', location ? location.lat.toString() : '0');
+      formData.append('longitude', location ? location.lng.toString() : '0');
       formData.append('device_info', 'Web Staff Portal');
       formData.append('photo', file);
 
@@ -220,23 +224,41 @@ const MarkAttendance: React.FC = () => {
         </div>
 
         {/* Location Section */}
-        <div className={`p-4 rounded-2xl border transition-all ${location ? 'bg-[#00AEEF]/10 border-[#00AEEF]/40' : 'bg-white border-slate-200 shadow-sm'}`}>
+        <div className={`p-4 rounded-2xl border transition-all ${
+          !requireLocation
+            ? 'bg-amber-50/70 border-amber-300 shadow-xs'
+            : location 
+              ? 'bg-[#00AEEF]/10 border-[#00AEEF]/40' 
+              : 'bg-white border-slate-200 shadow-sm'
+        }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${location ? 'bg-[#00AEEF] text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <div className={`p-2.5 rounded-xl ${
+                !requireLocation
+                  ? 'bg-amber-500 text-white'
+                  : location 
+                    ? 'bg-[#00AEEF] text-white' 
+                    : 'bg-slate-100 text-slate-500'
+              }`}>
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-black text-[#2D3092] text-sm">Session Ground GPS Access</p>
+                <p className="font-black text-[#2D3092] text-sm">
+                  {!requireLocation ? 'Open Location Mode (Geofence OFF)' : 'Session Ground GPS Access'}
+                </p>
                 <p className="text-xs font-semibold text-slate-500">
-                  {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Required for geofence verification'}
+                  {!requireLocation
+                    ? 'Instructor disabled geofence for multi-post/distributed duty. GPS optional.'
+                    : location 
+                      ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` 
+                      : 'Required for geofence verification'}
                 </p>
               </div>
             </div>
-            {!location && (
+            {requireLocation && !location && (
               <button
                 onClick={getLocation}
-                className="text-xs font-black text-[#EF1C25] bg-[#EF1C25]/10 px-3 py-1.5 rounded-xl hover:bg-[#EF1C25] hover:text-white transition-all"
+                className="text-xs font-black text-[#EF1C25] bg-[#EF1C25]/10 px-3 py-1.5 rounded-xl hover:bg-[#EF1C25] hover:text-white transition-all cursor-pointer"
               >
                 Allow GPS
               </button>
@@ -254,11 +276,11 @@ const MarkAttendance: React.FC = () => {
         <div className="flex gap-4">
           <button
             onClick={() => handleSubmit('check-in')}
-            disabled={loading || !imgSrc || !location}
+            disabled={loading || !imgSrc || (requireLocation && !location)}
             className={`flex-1 py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all border-b-2 border-[#FFCB06] text-sm uppercase tracking-wider ${
-              loading || !imgSrc || !location 
+              loading || !imgSrc || (requireLocation && !location)
               ? 'bg-slate-200 text-slate-400 border-none cursor-not-allowed' 
-              : 'bg-[#2D3092] text-white hover:bg-[#3F43B5] hover:-translate-y-0.5'
+              : 'bg-[#2D3092] text-white hover:bg-[#3F43B5] hover:-translate-y-0.5 cursor-pointer'
             }`}
           >
             {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Fall In</>}
@@ -266,11 +288,11 @@ const MarkAttendance: React.FC = () => {
           
           <button
             onClick={() => handleSubmit('check-out')}
-            disabled={loading || !imgSrc || !location}
+            disabled={loading || !imgSrc || (requireLocation && !location)}
             className={`flex-1 py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all border-b-2 border-[#FFCB06] text-sm uppercase tracking-wider ${
-              loading || !imgSrc || !location 
+              loading || !imgSrc || (requireLocation && !location)
               ? 'bg-slate-200 text-slate-400 border-none cursor-not-allowed' 
-              : 'bg-[#EF1C25] text-white hover:bg-[#C7131B] hover:-translate-y-0.5'
+              : 'bg-[#EF1C25] text-white hover:bg-[#C7131B] hover:-translate-y-0.5 cursor-pointer'
             }`}
           >
             {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Visarjan</>}

@@ -287,6 +287,7 @@ def get_session_status(
             "start_time": _format_time_obj(session.start_time),
             "end_time": _format_time_obj(session.end_time),
             "is_active": bool(session.is_active),
+            "require_location": bool(getattr(session, "require_location", 1)),
             "notes": session.notes
         }
     }
@@ -311,6 +312,7 @@ def activate_session(
         # Parse timings (default 07:00 to 09:30 for NCC parades if omitted)
         start_time_parsed = _parse_time_str(payload.start_time) or time_obj(7, 0, 0)
         end_time_parsed = _parse_time_str(payload.end_time) or time_obj(9, 30, 0)
+        require_location_val = 1 if payload.require_location else 0
 
         # Check existing session
         session = db.query(AttendanceSession).filter(
@@ -327,6 +329,7 @@ def activate_session(
             session.start_time = start_time_parsed
             session.end_time = end_time_parsed
             session.is_active = 1
+            session.require_location = require_location_val
             session.notes = payload.notes
         else:
             old_start = None
@@ -338,6 +341,7 @@ def activate_session(
                 start_time=start_time_parsed,
                 end_time=end_time_parsed,
                 is_active=1,
+                require_location=require_location_val,
                 notes=payload.notes,
                 created_by=current_user.id
             )
@@ -402,7 +406,8 @@ def activate_session(
                 "title": session.title,
                 "start_time": _format_time_obj(session.start_time),
                 "end_time": _format_time_obj(session.end_time),
-                "is_active": True
+                "is_active": True,
+                "require_location": bool(getattr(session, "require_location", 1))
             }
         }
     except HTTPException:

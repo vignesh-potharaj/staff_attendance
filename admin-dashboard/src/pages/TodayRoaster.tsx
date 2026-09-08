@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Zap, Square, X, Bell, Save, Check } from 'lucide-react';
+import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Zap, Square, X, Bell, Save, Check, MapPin } from 'lucide-react';
 import api, { getApiErrorMessage } from '../services/api';
 
 interface Shift {
@@ -29,6 +29,7 @@ interface SessionData {
   start_time: string | null;
   end_time: string | null;
   is_active: boolean;
+  require_location?: boolean;
   notes?: string | null;
 }
 
@@ -57,6 +58,7 @@ const TodayRoaster: React.FC = () => {
   const [customEventTitle, setCustomEventTitle] = useState('');
   const [sessionStartTime, setSessionStartTime] = useState('07:00');
   const [sessionEndTime, setSessionEndTime] = useState('09:30');
+  const [requireLocation, setRequireLocation] = useState(true);
   const [sessionNotes, setSessionNotes] = useState('');
   const [notifyCadets, setNotifyCadets] = useState(true);
   const [sessionSubmitting, setSessionSubmitting] = useState(false);
@@ -84,12 +86,14 @@ const TodayRoaster: React.FC = () => {
       if (session.start_time) setSessionStartTime(session.start_time.substring(0, 5));
       if (session.end_time) setSessionEndTime(session.end_time.substring(0, 5));
       if (session.notes) setSessionNotes(session.notes);
+      setRequireLocation(session.require_location !== false);
     } else {
       setDrillType('Sunday Regular Parade');
       setSessionTitle('Sunday Regular Parade');
       setCustomEventTitle('');
       setSessionStartTime('07:00');
       setSessionEndTime('09:30');
+      setRequireLocation(true);
       setSessionNotes('');
     }
   };
@@ -189,6 +193,7 @@ const TodayRoaster: React.FC = () => {
         title: titleToSave,
         start_time: sessionStartTime,
         end_time: sessionEndTime,
+        require_location: requireLocation,
         notes: sessionNotes,
         send_notification: notifyCadets
       });
@@ -502,7 +507,7 @@ const TodayRoaster: React.FC = () => {
         }`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {sessionStatus?.is_active ? (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
@@ -513,6 +518,16 @@ const TodayRoaster: React.FC = () => {
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-600 border border-slate-300">
                     <span className="w-2 h-2 rounded-full bg-slate-400"></span>
                     NO ACTIVE SESSION TODAY
+                  </span>
+                )}
+                {sessionStatus?.is_active && (
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border ${
+                    sessionStatus.session?.require_location === false
+                      ? 'bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-blue-50 text-[#2D3092] border-[#2D3092]/30'
+                  }`}>
+                    <MapPin className="w-3 h-3" />
+                    <span>{sessionStatus.session?.require_location === false ? 'Location: OFF (Multi-Post Open Duty)' : 'Location: ON (Ground Geofenced)'}</span>
                   </span>
                 )}
                 <span className="text-xs font-mono font-bold text-slate-500">
@@ -977,6 +992,44 @@ const TodayRoaster: React.FC = () => {
                   placeholder="e.g. Main Ground, Uniform: Khaki"
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
                 />
+              </div>
+
+              {/* Location Verification (Geofencing) Toggle Card */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
+                  <div className="flex items-start gap-2.5">
+                    <div className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      requireLocation ? 'bg-[#2D3092]/10 text-[#2D3092]' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                          Location Verification (Geofencing)
+                        </span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                          requireLocation
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-amber-100 text-amber-800 border-amber-300'
+                        }`}>
+                          {requireLocation ? 'ENABLED (ON)' : 'DISABLED (OFF)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">
+                        {requireLocation
+                          ? 'Enforced: Cadets must be physically present within the unit parade ground perimeter.'
+                          : 'Location check OFF: Useful when cadets are posted across multiple gates, auditorium, or distributed stations.'}
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={requireLocation}
+                    onChange={(e) => setRequireLocation(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-[#EF1C25] border-gray-300 rounded focus:ring-[#EF1C25] cursor-pointer"
+                  />
+                </label>
               </div>
 
               <div className="pt-1">

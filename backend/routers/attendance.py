@@ -93,8 +93,8 @@ def upload_photo_to_cloudinary(
 
 @router.post("/mark", response_model=AttendanceResponse)
 def mark_attendance(
-    latitude: float = Form(...),
-    longitude: float = Form(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     device_info: str = Form(...),
     photo: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -124,7 +124,14 @@ def mark_attendance(
     if existing:
         raise HTTPException(status_code=400, detail="Attendance already recorded")
 
-    enforce_geofence(latitude, longitude, current_user)
+    require_loc = bool(getattr(active_session, "require_location", 1))
+    if require_loc:
+        if latitude is None or longitude is None or (latitude == 0.0 and longitude == 0.0):
+            raise HTTPException(
+                status_code=400,
+                detail="Location verification is required for this session. Please allow GPS location permissions."
+            )
+        enforce_geofence(latitude, longitude, current_user)
 
     # Save photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
@@ -217,8 +224,8 @@ def mark_attendance(
 
 @router.post("/check-out", response_model=AttendanceResponse)
 def check_out_attendance(
-    latitude: float = Form(...),
-    longitude: float = Form(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     device_info: str = Form(...),
     photo: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -238,7 +245,19 @@ def check_out_attendance(
     if getattr(existing, 'check_out_time', None) is not None:
         raise HTTPException(status_code=400, detail="You have already checked out for today.")
 
-    enforce_geofence(latitude, longitude, current_user)
+    active_session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id,
+        AttendanceSession.date == today_str,
+        AttendanceSession.is_active == 1
+    ).first()
+    require_loc = bool(getattr(active_session, "require_location", 1)) if active_session else True
+    if require_loc:
+        if latitude is None or longitude is None or (latitude == 0.0 and longitude == 0.0):
+            raise HTTPException(
+                status_code=400,
+                detail="Location verification is required for this session. Please allow GPS location permissions."
+            )
+        enforce_geofence(latitude, longitude, current_user)
 
     # Save check-out photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")

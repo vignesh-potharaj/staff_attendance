@@ -105,6 +105,7 @@ class AttendanceSessionBase(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     notes: Optional[str] = None
+    require_location: bool = True
 
 class AttendanceSessionCreate(AttendanceSessionBase):
     send_notification: bool = True
@@ -113,6 +114,7 @@ class AttendanceSessionResponse(AttendanceSessionBase):
     id: int
     tenant_id: int
     is_active: bool
+    require_location: bool = True
     created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 

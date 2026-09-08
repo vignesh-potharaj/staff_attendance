@@ -65,6 +65,7 @@ def run_migrations():
             f"start_time {time_type} NULL, "
             f"end_time {time_type} NULL, "
             f"is_active INTEGER DEFAULT 1 NOT NULL, "
+            f"require_location INTEGER DEFAULT 1 NOT NULL, "
             f"notes TEXT NULL, "
             f"created_by INTEGER REFERENCES users(id) NULL, "
             f"created_at {datetime_type} DEFAULT CURRENT_TIMESTAMP"
@@ -85,6 +86,11 @@ def run_migrations():
             _execute_migration(
                 "ALTER TABLE attendance_sessions ADD COLUMN is_active INTEGER DEFAULT 1",
                 "is_active column ensured on attendance_sessions"
+            )
+        if "require_location" not in columns:
+            _execute_migration(
+                "ALTER TABLE attendance_sessions ADD COLUMN require_location INTEGER DEFAULT 1",
+                "require_location column ensured on attendance_sessions"
             )
 
     if "attendance" in tables:

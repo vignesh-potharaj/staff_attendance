@@ -116,6 +116,7 @@ class AttendanceSession(Base):
     start_time = Column(Time, nullable=True)
     end_time = Column(Time, nullable=True)
     is_active = Column(Integer, default=1, nullable=False)  # 1 = Active / Open, 0 = Inactive / Closed
+    require_location = Column(Integer, default=1, nullable=False)  # 1 = Location required/geofenced, 0 = Location off/optional
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
