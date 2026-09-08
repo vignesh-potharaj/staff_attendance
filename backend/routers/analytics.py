@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, RoleEnum, IST
+from backend.models.models import Attendance, User, AttendanceStatus, RoleEnum, IST, AttendanceSession
 from backend.auth.dependencies import get_current_admin
 from backend.schemas.schemas import AnalyticsSummary
 
@@ -18,6 +18,16 @@ router = APIRouter(
 def get_analytics(db: Session = Depends(get_db), current_admin: User = Depends(get_current_admin)):
     today_str = datetime.now(IST).strftime("%Y-%m-%d")
     
+    # Check if an active session is conducted today
+    active_session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_admin.tenant_id,
+        AttendanceSession.date == today_str,
+        AttendanceSession.is_active == 1
+    ).first()
+
+    has_active_session = bool(active_session)
+    session_title = active_session.title if active_session else None
+
     # 1. Total staff
     total_staff = db.query(User).filter(User.role == RoleEnum.STAFF, User.tenant_id == current_admin.tenant_id).count()
     
@@ -34,14 +44,21 @@ def get_analytics(db: Session = Depends(get_db), current_admin: User = Depends(g
         Attendance.tenant_id == current_admin.tenant_id,
     ).count()
     
-    # 4. Absent today (total staff - present today)
-    absent_today = total_staff - present_today if total_staff > present_today else 0
+    # 4. Absent today:
+    # If today has NO active parade/drill session (e.g. exam month, off day),
+    # cadets should not be flagged as absent!
+    if not has_active_session:
+        absent_today = 0
+    else:
+        absent_today = total_staff - present_today if total_staff > present_today else 0
     
     return {
         "total_staff": total_staff,
         "present_today": present_today,
         "absent_today": absent_today,
-        "late_today": late_today
+        "late_today": late_today,
+        "has_active_session": has_active_session,
+        "session_title": session_title
     }
     
 @router.get("/trends")

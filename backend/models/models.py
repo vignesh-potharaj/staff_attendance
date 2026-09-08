@@ -55,6 +55,7 @@ class Tenant(Base):
 
     users = relationship("User", back_populates="tenant")
     billing_payments = relationship("BillingPayment", back_populates="tenant")
+    attendance_sessions = relationship("AttendanceSession", back_populates="tenant")
 
 class BillingPayment(Base):
     __tablename__ = "billing_payments"
@@ -104,6 +105,23 @@ class DailyRoaster(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     user = relationship("User")
+
+class AttendanceSession(Base):
+    __tablename__ = "attendance_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    date = Column(String, index=True, nullable=False)  # YYYY-MM-DD
+    title = Column(String, default="Parade / Drill Session", nullable=False)
+    start_time = Column(Time, nullable=True)
+    end_time = Column(Time, nullable=True)
+    is_active = Column(Integer, default=1, nullable=False)  # 1 = Active / Open, 0 = Inactive / Closed
+    notes = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
+
+    tenant = relationship("Tenant", back_populates="attendance_sessions")
+    creator = relationship("User", foreign_keys=[created_by])
 
 class User(Base):
     __tablename__ = "users"

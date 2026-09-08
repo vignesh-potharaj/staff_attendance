@@ -1,12 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, time as time_obj
 import logging
 
 from backend.database.database import get_db
-from backend.models.models import DailyRoaster, User
-from backend.schemas.schemas import DailyRoasterCreate, DailyRoasterResponse
+from backend.models.models import DailyRoaster, User, AttendanceSession, RoleEnum, IST, Attendance
+from backend.schemas.schemas import (
+    DailyRoasterCreate,
+    DailyRoasterResponse,
+    AttendanceSessionCreate,
+    AttendanceSessionResponse,
+    AttendanceSessionStatus
+)
 from backend.auth.dependencies import get_current_admin, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -221,4 +227,248 @@ def get_my_roaster(
     except Exception as e:
         logger.error(f"Error fetching staff my-roaster: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error fetching staff roaster: {str(e)}")
+
+
+def _parse_time_str(time_val: Optional[str]) -> Optional[time_obj]:
+    if not time_val:
+        return None
+    try:
+        parts = time_val.split(":")
+        h = int(parts[0])
+        m = int(parts[1])
+        s = int(parts[2]) if len(parts) > 2 else 0
+        return time_obj(h, m, s)
+    except Exception:
+        return None
+
+
+def _format_time_obj(t_val) -> Optional[str]:
+    if t_val is None:
+        return None
+    if hasattr(t_val, "strftime"):
+        return t_val.strftime("%H:%M")
+    return str(t_val)[:5]
+
+
+@router.get("/session/status", response_model=AttendanceSessionStatus)
+def get_session_status(
+    date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Check if a parade/drill session is configured and active for a given date.
+    Accessible by both admins and cadets.
+    """
+    if not date:
+        date = datetime.now(IST).strftime("%Y-%m-%d")
+
+    session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id,
+        AttendanceSession.date == date
+    ).order_by(AttendanceSession.id.desc()).first()
+
+    if not session:
+        return {
+            "has_session": False,
+            "is_active": False,
+            "today_date": date,
+            "session": None
+        }
+
+    return {
+        "has_session": True,
+        "is_active": bool(session.is_active),
+        "today_date": date,
+        "session": {
+            "id": session.id,
+            "date": session.date,
+            "title": session.title,
+            "start_time": _format_time_obj(session.start_time),
+            "end_time": _format_time_obj(session.end_time),
+            "is_active": bool(session.is_active),
+            "notes": session.notes
+        }
+    }
+
+
+@router.post("/session/activate")
+def activate_session(
+    payload: AttendanceSessionCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """
+    Activate or create an on-demand parade/drill session for a date.
+    Sets default roaster for all cadets if not set, and optionally notifies them.
+    """
+    try:
+        try:
+            datetime.strptime(payload.date, "%Y-%m-%d")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+        # Parse timings (default 07:00 to 09:30 for NCC parades if omitted)
+        start_time_parsed = _parse_time_str(payload.start_time) or time_obj(7, 0, 0)
+        end_time_parsed = _parse_time_str(payload.end_time) or time_obj(9, 30, 0)
+
+        # Check existing session
+        session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == current_user.tenant_id,
+            AttendanceSession.date == payload.date
+        ).first()
+
+        session_title = payload.title.strip() if payload.title and payload.title.strip() else "Parade / Drill Session"
+
+        if session:
+            session.title = session_title
+            session.start_time = start_time_parsed
+            session.end_time = end_time_parsed
+            session.is_active = 1
+            session.notes = payload.notes
+        else:
+            session = AttendanceSession(
+                tenant_id=current_user.tenant_id,
+                date=payload.date,
+                title=session_title,
+                start_time=start_time_parsed,
+                end_time=end_time_parsed,
+                is_active=1,
+                notes=payload.notes,
+                created_by=current_user.id
+            )
+            db.add(session)
+
+        # Also populate or update default roaster entries for active cadets for this date
+        cadets = db.query(User).filter(
+            User.tenant_id == current_user.tenant_id,
+            User.role == RoleEnum.STAFF
+        ).all()
+
+        existing_roasters = {
+            r.user_id: r for r in db.query(DailyRoaster).filter(
+                DailyRoaster.tenant_id == current_user.tenant_id,
+                DailyRoaster.date == payload.date
+            ).all()
+        }
+
+        for cadet in cadets:
+            if cadet.id not in existing_roasters:
+                new_roaster = DailyRoaster(
+                    tenant_id=current_user.tenant_id,
+                    user_id=cadet.id,
+                    date=payload.date,
+                    start_time=start_time_parsed,
+                    end_time=end_time_parsed,
+                    is_leave=0,
+                    is_week_off=0
+                )
+                db.add(new_roaster)
+
+        db.commit()
+        db.refresh(session)
+
+        # Send push notification if requested
+        if payload.send_notification:
+            try:
+                from backend.services.push_service import broadcast_push_to_tenant
+                time_display = f"{start_time_parsed.strftime('%I:%M %p')} - {end_time_parsed.strftime('%I:%M %p')}"
+                broadcast_push_to_tenant(
+                    db=db,
+                    tenant_id=current_user.tenant_id,
+                    title="Parade Session Activated! 🎖️",
+                    body=f"{session.title} is now ACTIVE ({time_display}). Fall-In attendance is open.",
+                    url="/staff/dashboard"
+                )
+            except Exception as push_err:
+                logger.warning(f"Failed to send session activation push: {push_err}")
+
+        return {
+            "message": "Session activated successfully",
+            "session": {
+                "id": session.id,
+                "date": session.date,
+                "title": session.title,
+                "start_time": _format_time_obj(session.start_time),
+                "end_time": _format_time_obj(session.end_time),
+                "is_active": True
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error activating session: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error activating session: {str(e)}")
+
+
+@router.post("/session/deactivate")
+def deactivate_session(
+    date: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """
+    Deactivate/conclude an active parade session for a given date.
+    """
+    try:
+        session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == current_user.tenant_id,
+            AttendanceSession.date == date
+        ).first()
+
+        if not session:
+            raise HTTPException(status_code=404, detail="No session found for this date")
+
+        session.is_active = 0
+        db.commit()
+        db.refresh(session)
+
+        return {
+            "message": "Session concluded successfully",
+            "date": date,
+            "is_active": False
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deactivating session: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error deactivating session: {str(e)}")
+
+
+@router.get("/sessions")
+def list_sessions(
+    limit: int = 30,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin)
+):
+    """
+    List all created sessions with attendance counts.
+    """
+    try:
+        sessions = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == current_user.tenant_id
+        ).order_by(AttendanceSession.date.desc()).limit(limit).all()
+
+        result = []
+        for s in sessions:
+            att_count = db.query(Attendance).filter(
+                Attendance.tenant_id == current_user.tenant_id,
+                Attendance.date == s.date
+            ).count()
+
+            result.append({
+                "id": s.id,
+                "date": s.date,
+                "title": s.title,
+                "start_time": _format_time_obj(s.start_time),
+                "end_time": _format_time_obj(s.end_time),
+                "is_active": bool(s.is_active),
+                "attendee_count": att_count,
+                "created_at": s.created_at.isoformat() if s.created_at else None
+            })
+
+        return result
+    except Exception as e:
+        logger.error(f"Error listing sessions: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error listing sessions: {str(e)}")
 

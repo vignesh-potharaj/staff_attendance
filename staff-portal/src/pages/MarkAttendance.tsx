@@ -11,6 +11,9 @@ const MarkAttendance: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [sessionChecking, setSessionChecking] = useState(true);
+  const [sessionActive, setSessionActive] = useState<boolean>(true);
+  const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const getLocation = () => {
@@ -36,6 +39,22 @@ const MarkAttendance: React.FC = () => {
 
   useEffect(() => {
     getLocation();
+    const checkSession = async () => {
+      try {
+        const res = await api.get('/roaster/session/status');
+        if (res.data) {
+          setSessionActive(Boolean(res.data.is_active));
+          if (res.data.session) {
+            setSessionTitle(res.data.session.title);
+          }
+        }
+      } catch {
+        // Fallback: allow, backend will validate
+      } finally {
+        setSessionChecking(false);
+      }
+    };
+    checkSession();
   }, []);
 
   const capture = () => {
@@ -131,12 +150,42 @@ const MarkAttendance: React.FC = () => {
     );
   }
 
+  if (!sessionChecking && !sessionActive) {
+    return (
+      <div className="max-w-md mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center p-8 text-center space-y-5">
+        <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center font-bold">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div>
+          <h2 className="text-xl font-black text-[#2D3092]">No Active Parade Session</h2>
+          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+            Attendance is closed because no drill or parade session is active today.
+            Sessions are activated on-demand by your instructor when drills commence.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/staff/dashboard')}
+          className="w-full bg-[#2D3092] hover:bg-[#3F43B5] text-white py-3.5 rounded-xl font-black text-sm shadow-md transition-all cursor-pointer border-b-2 border-[#FFCB06]"
+        >
+          Return to Cadet Dashboard
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto w-full">
       <main className="space-y-6">
         <div className="text-center">
           <h1 className="text-2xl font-black text-[#2D3092] uppercase tracking-tight">Mark Cadet Attendance</h1>
           <p className="text-xs font-bold text-[#00AEEF]">Session Selfie Capture & Geofence Verification</p>
+          {sessionTitle && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 mt-2 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+              <span>Active Session: {sessionTitle}</span>
+            </div>
+          )}
         </div>
 
         {/* Webcam Section */}

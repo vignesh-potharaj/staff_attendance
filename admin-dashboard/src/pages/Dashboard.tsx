@@ -12,7 +12,8 @@ import {
   ArcElement
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
-import { Users, CheckCircle, Clock } from 'lucide-react';
+import { Users, CheckCircle, Clock, Zap, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 ChartJS.register(
@@ -32,6 +33,8 @@ interface SummaryData {
   present_today: number;
   late_today: number;
   absent_today: number;
+  has_active_session?: boolean;
+  session_title?: string | null;
 }
 
 interface TrendData {
@@ -109,6 +112,63 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Session Status Banner */}
+      <div className={`p-5 rounded-2xl border shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        summary.has_active_session
+          ? 'bg-gradient-to-r from-emerald-500/10 via-white to-blue-500/10 border-emerald-300'
+          : 'bg-white border-slate-200'
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            {summary.has_active_session ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                LIVE PARADE SESSION ACTIVE
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-slate-100 text-slate-600 border border-slate-300">
+                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                NO DRILL SESSION TODAY
+              </span>
+            )}
+            <span className="text-xs font-mono font-bold text-slate-500">
+              {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+          <h2 className="text-lg font-black text-[#2D3092]">
+            {summary.has_active_session
+              ? (summary.session_title || 'Parade / Drill Session')
+              : 'On-Demand Attendance Mode (No Session Scheduled)'}
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            {summary.has_active_session
+              ? 'Attendance is currently OPEN for cadets in your battalion.'
+              : 'Exam period or off-day. Cadets are not expected to attend and are not penalized.'}
+          </p>
+        </div>
+        <Link
+          to="/roaster"
+          className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 shrink-0 ${
+            summary.has_active_session
+              ? 'bg-[#2D3092] hover:bg-[#3F43B5] text-white border-b-2 border-[#FFCB06]'
+              : 'bg-[#EF1C25] hover:bg-[#C7131B] text-white border-b-2 border-[#FFCB06]'
+          }`}
+        >
+          {summary.has_active_session ? (
+            <>
+              <Calendar className="w-4 h-4 text-[#FFCB06]" />
+              <span>Manage Session & Roaster</span>
+            </>
+          ) : (
+            <>
+              <Zap className="w-4 h-4 text-[#FFCB06] fill-[#FFCB06]" />
+              <span>Activate Today's Session</span>
+            </>
+          )}
+        </Link>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-sm p-6 border-t-4 border-[#2D3092] border-x border-b border-slate-200 flex items-center space-x-4">
@@ -146,8 +206,17 @@ const Dashboard: React.FC = () => {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Absent Today</p>
-            <p className="text-3xl font-black text-[#EF1C25]">{summary.absent_today}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              {summary.has_active_session ? 'Absent Today' : 'Session Status'}
+            </p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-black text-[#EF1C25]">
+                {summary.has_active_session ? summary.absent_today : 0}
+              </p>
+              {!summary.has_active_session && (
+                <span className="text-xs font-bold text-slate-400">Off Day</span>
+              )}
+            </div>
           </div>
         </div>
       </div>

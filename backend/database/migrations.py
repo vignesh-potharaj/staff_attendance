@@ -53,6 +53,40 @@ def run_migrations():
                 "tenant_id column ensured on daily_roasters",
             )
 
+    if "attendance_sessions" not in tables:
+        time_type = "TIME" if engine.dialect.name == "postgresql" else "TIME"
+        datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        _execute_migration(
+            f"CREATE TABLE IF NOT EXISTS attendance_sessions ("
+            f"id INTEGER PRIMARY KEY {'GENERATED ALWAYS AS IDENTITY' if engine.dialect.name == 'postgresql' else 'AUTOINCREMENT'}, "
+            f"tenant_id INTEGER NOT NULL REFERENCES tenants(id), "
+            f"date VARCHAR NOT NULL, "
+            f"title VARCHAR DEFAULT 'Parade / Drill Session' NOT NULL, "
+            f"start_time {time_type} NULL, "
+            f"end_time {time_type} NULL, "
+            f"is_active INTEGER DEFAULT 1 NOT NULL, "
+            f"notes TEXT NULL, "
+            f"created_by INTEGER REFERENCES users(id) NULL, "
+            f"created_at {datetime_type} DEFAULT CURRENT_TIMESTAMP"
+            f")",
+            "attendance_sessions table ensured successfully"
+        )
+        _execute_migration(
+            "CREATE INDEX IF NOT EXISTS ix_attendance_sessions_date ON attendance_sessions (date)",
+            "index on attendance_sessions(date) ensured"
+        )
+        _execute_migration(
+            "CREATE INDEX IF NOT EXISTS ix_attendance_sessions_tenant_id ON attendance_sessions (tenant_id)",
+            "index on attendance_sessions(tenant_id) ensured"
+        )
+    else:
+        columns = {col["name"] for col in inspector.get_columns("attendance_sessions")}
+        if "is_active" not in columns:
+            _execute_migration(
+                "ALTER TABLE attendance_sessions ADD COLUMN is_active INTEGER DEFAULT 1",
+                "is_active column ensured on attendance_sessions"
+            )
+
     if "attendance" in tables:
         columns = {col["name"] for col in inspector.get_columns("attendance")}
         if "check_out_time" not in columns:

@@ -99,6 +99,29 @@ class DailyRoasterResponse(DailyRoasterBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
+class AttendanceSessionBase(BaseModel):
+    date: str
+    title: str = "Parade / Drill Session"
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    notes: Optional[str] = None
+
+class AttendanceSessionCreate(AttendanceSessionBase):
+    send_notification: bool = True
+
+class AttendanceSessionResponse(AttendanceSessionBase):
+    id: int
+    tenant_id: int
+    is_active: bool
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class AttendanceSessionStatus(BaseModel):
+    has_session: bool
+    is_active: bool
+    today_date: str
+    session: Optional[dict] = None
+
 class UserBase(BaseModel):
     name: str
     employee_id: str
@@ -199,3 +222,5 @@ class AnalyticsSummary(BaseModel):
     present_today: int
     absent_today: int
     late_today: int
+    has_active_session: bool = False
+    session_title: Optional[str] = None

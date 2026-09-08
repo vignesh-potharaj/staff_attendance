@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, IST, RoleEnum
+from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, AttendanceSession, IST, RoleEnum
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.services.cloudinary_storage import get_cloudinary_manager, compress_image_bytes
@@ -101,6 +101,19 @@ def mark_attendance(
     current_user: User = Depends(get_current_user)
 ):
     today_str = datetime.now(IST).strftime("%Y-%m-%d")
+
+    # Verify there is an active parade/drill session for today
+    active_session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id,
+        AttendanceSession.date == today_str,
+        AttendanceSession.is_active == 1
+    ).first()
+
+    if not active_session:
+        raise HTTPException(
+            status_code=400,
+            detail="No active parade/drill session for today. Fall-in is closed until an instructor activates a session in the Roaster."
+        )
     
     # Check if already marked
     existing = db.query(Attendance).filter(
@@ -133,7 +146,7 @@ def mark_attendance(
         photo_url = f"{BACKEND_URL}/static/images/{filename}"
         logger.info(f"Photo saved to local storage (compressed): {photo_url}")
 
-    # Determine LATE or PRESENT based on DailyRoaster
+    # Determine LATE or PRESENT based on DailyRoaster or active session
     status = AttendanceStatus.PRESENT
     roaster = db.query(DailyRoaster).filter(
         DailyRoaster.tenant_id == current_user.tenant_id,
@@ -151,16 +164,22 @@ def mark_attendance(
             now_time = datetime.now(IST).time()
             current_date = datetime.now(IST).date()
             shift_start_dt = datetime.combine(current_date, start_time_val)
-            grace_td = timedelta(minutes=0)
-            allowed_time = (shift_start_dt + grace_td).time()
+            allowed_time = shift_start_dt.time()
             if now_time > allowed_time:
                 status = AttendanceStatus.LATE
-    else:
-        # Default behavior if no roaster entry exists: assume 10:00 AM start
+    elif active_session and active_session.start_time is not None:
         now_time = datetime.now(IST).time()
         current_date = datetime.now(IST).date()
-        default_start = datetime.combine(current_date, datetime.strptime("10:00", "%H:%M").time())
-        allowed_time = (default_start + timedelta(minutes=0)).time()
+        shift_start_dt = datetime.combine(current_date, active_session.start_time)
+        allowed_time = shift_start_dt.time()
+        if now_time > allowed_time:
+            status = AttendanceStatus.LATE
+    else:
+        # Default NCC morning parade fallback: 07:00 AM start
+        now_time = datetime.now(IST).time()
+        current_date = datetime.now(IST).date()
+        default_start = datetime.combine(current_date, datetime.strptime("07:00", "%H:%M").time())
+        allowed_time = default_start.time()
         if now_time > allowed_time:
             status = AttendanceStatus.LATE
                 
@@ -275,16 +294,27 @@ def populate_expected_fall_in_time(records: List[Attendance], db: Session):
         DailyRoaster.user_id.in_(user_ids),
         DailyRoaster.date.in_(dates)
     ).all()
+
+    sessions = db.query(AttendanceSession).filter(
+        AttendanceSession.date.in_(dates)
+    ).all()
     
     roaster_map = {(r.user_id, r.date): r for r in roasters}
+    session_map = {s.date: s for s in sessions}
     
     for r in records:
         user_id = getattr(r, 'user_id', None)
         date_str = getattr(r, 'date', None)
         roaster = roaster_map.get((user_id, date_str)) if user_id and date_str else None
+        session = session_map.get(date_str) if date_str else None
         
+        st = None
         if roaster and getattr(roaster, 'start_time', None) is not None:
             st = getattr(roaster, 'start_time')
+        elif session and getattr(session, 'start_time', None) is not None:
+            st = getattr(session, 'start_time')
+
+        if st is not None:
             if isinstance(st, str):
                 try:
                     parts = st.split(":")
@@ -392,13 +422,21 @@ def export_monthly_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique session dates in this month for the tenant
-    session_dates_query = db.query(Attendance.date).filter(
-        Attendance.tenant_id == current_admin.tenant_id,
-        Attendance.date.like(f"{month}%")
+    # Unique session dates in this month for the tenant (from AttendanceSession)
+    session_dates_query = db.query(AttendanceSession.date).filter(
+        AttendanceSession.tenant_id == current_admin.tenant_id,
+        AttendanceSession.date.like(f"{month}%")
     ).distinct().all()
     
-    tenant_session_dates_count = len(session_dates_query)
+    if session_dates_query:
+        tenant_session_dates_count = len(session_dates_query)
+    else:
+        # Fallback to distinct dates of attendance if no sessions were created
+        legacy_dates = db.query(Attendance.date).filter(
+            Attendance.tenant_id == current_admin.tenant_id,
+            Attendance.date.like(f"{month}%")
+        ).distinct().all()
+        tenant_session_dates_count = len(legacy_dates)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -463,12 +501,19 @@ def export_total_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique session dates across all time for tenant
-    session_dates_query = db.query(Attendance.date).filter(
-        Attendance.tenant_id == current_admin.tenant_id
+    # Unique session dates across all time for tenant (from AttendanceSession)
+    session_dates_query = db.query(AttendanceSession.date).filter(
+        AttendanceSession.tenant_id == current_admin.tenant_id
     ).distinct().all()
     
-    tenant_session_dates_count = len(session_dates_query)
+    if session_dates_query:
+        tenant_session_dates_count = len(session_dates_query)
+    else:
+        # Fallback to distinct dates of attendance if no sessions were created
+        legacy_dates = db.query(Attendance.date).filter(
+            Attendance.tenant_id == current_admin.tenant_id
+        ).distinct().all()
+        tenant_session_dates_count = len(legacy_dates)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -578,10 +623,24 @@ def get_staff_attendance_summary(
             "expected_fall_in_time": None
         }
 
+    today_session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id,
+        AttendanceSession.date == today_str
+    ).first()
+
+    session_info = {
+        "has_session": bool(today_session),
+        "is_active": bool(today_session.is_active) if today_session else False,
+        "title": today_session.title if today_session else None,
+        "start_time": today_session.start_time.strftime("%H:%M") if today_session and today_session.start_time else None,
+        "end_time": today_session.end_time.strftime("%H:%M") if today_session and today_session.end_time else None,
+    }
+
     return {
         "month_present_days": month_present_days,
         "overall_present_days": overall_present_days,
-        "today": today_data
+        "today": today_data,
+        "session": session_info
     }
 
 

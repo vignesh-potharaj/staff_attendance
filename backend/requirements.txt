@@ -4,8 +4,8 @@ sqlalchemy>=2.0.35
 # Use a slightly newer psycopg2-binary which provides prebuilt wheels for more Python versions.
 # If you still see build errors on Windows, install PostgreSQL client tools (pg_config) or use WSL.
 psycopg2-binary==2.9.11
-pydantic==2.11.1
-pydantic-settings==2.8.1
+pydantic>=2.11.1
+pydantic-settings>=2.8.1
 passlib==1.7.4
 bcrypt==3.2.0
 argon2-cffi==23.1.0
