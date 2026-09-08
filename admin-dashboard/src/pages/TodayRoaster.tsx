@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Zap, Square, X, Bell } from 'lucide-react';
+import { Share2, Copy, Calendar as CalendarIcon, User as UserIcon, Clock, Zap, Square, X, Bell, Save, Check } from 'lucide-react';
 import api, { getApiErrorMessage } from '../services/api';
 
 interface Shift {
@@ -18,9 +18,6 @@ interface User {
 }
 
 interface ScheduleInput {
-  isLeave: boolean;
-  isWeekOff: boolean;
-  isPresent: boolean;
   startTime: string;
   endTime: string;
 }
@@ -49,6 +46,7 @@ const TodayRoaster: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Session State
   const [sessionStatus, setSessionStatus] = useState<SessionStatusResponse | null>(null);
@@ -134,24 +132,11 @@ const TodayRoaster: React.FC = () => {
 
       const initialSchedules: Record<number, ScheduleInput> = {};
       staffOnly.forEach((u: User) => {
-        if (roasterMap[u.id]) {
-          const r = roasterMap[u.id];
-          initialSchedules[u.id] = {
-             isLeave: !!r.is_leave,
-             isWeekOff: !!r.is_week_off,
-             isPresent: !r.is_leave && !r.is_week_off,
-             startTime: r.start_time ? r.start_time.substring(0, 5) : defStartTime,
-             endTime: r.end_time ? r.end_time.substring(0, 5) : defEndTime
-          };
-        } else {
-          initialSchedules[u.id] = {
-             isLeave: false,
-             isWeekOff: false,
-             isPresent: true,
-             startTime: defStartTime,
-             endTime: defEndTime
-          };
-        }
+        const r = roasterMap[u.id];
+        initialSchedules[u.id] = {
+           startTime: (r && r.start_time) ? r.start_time.substring(0, 5) : defStartTime,
+           endTime: (r && r.end_time) ? r.end_time.substring(0, 5) : defEndTime
+        };
       });
       setSchedules(initialSchedules);
     } catch (err: unknown) {
@@ -236,26 +221,28 @@ const TodayRoaster: React.FC = () => {
   }, []);
 
 
-  const handleToggle = (userId: number, field: 'isLeave' | 'isWeekOff' | 'isPresent', value: boolean) => {
-    setSchedules(prev => {
-      const updated = { ...prev[userId], [field]: value };
-      // Make these mutually exclusive
-      if (value) {
-        if (field === 'isLeave') {
-          updated.isWeekOff = false;
-          updated.isPresent = false;
-        }
-        if (field === 'isWeekOff') {
-          updated.isLeave = false;
-          updated.isPresent = false;
-        }
-        if (field === 'isPresent') {
-          updated.isLeave = false;
-          updated.isWeekOff = false;
-        }
+  const handleTimeChange = (userId: number, field: 'startTime' | 'endTime', value: string) => {
+    setSchedules(prev => ({
+      ...prev,
+      [userId]: {
+        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00'),
+        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30'),
+        [field]: value
       }
-      return { ...prev, [userId]: updated };
-    });
+    }));
+  };
+
+  const handleResetCadetTime = (userId: number) => {
+    const sessionObj = sessionStatus?.session;
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+    setSchedules(prev => ({
+      ...prev,
+      [userId]: {
+        startTime: defStartTime,
+        endTime: defEndTime
+      }
+    }));
   };
 
   const formatTime12h = (time: string) => {
@@ -268,121 +255,127 @@ const TodayRoaster: React.FC = () => {
     return `${hours}:${m} ${ampm}`;
   };
 
-  const handleSaveAndShare = async () => {
-    try {
-      const todayDate = new Date().toLocaleDateString('en-CA');
-      
-      const payload = users.map(u => ({
+  const saveRoasterPayload = async () => {
+    const todayDate = new Date().toLocaleDateString('en-CA');
+    const sessionObj = sessionStatus?.session;
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+
+    const payload = users.map(u => {
+      const s = schedules[u.id];
+      const st = s?.startTime || defStartTime;
+      const et = s?.endTime || defEndTime;
+      return {
         user_id: u.id,
         date: todayDate,
-        start_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.start_time ? sessionStatus.session.start_time : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : '07:00:00')),
-        end_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.end_time ? sessionStatus.session.end_time : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : '09:30:00')),
-        is_leave: schedules[u.id]?.isLeave || false,
+        start_time: st.length === 5 ? `${st}:00` : st,
+        end_time: et.length === 5 ? `${et}:00` : et,
+        is_leave: false,
         is_week_off: false
-      }));
+      };
+    });
 
-      await api.post(`/roaster/bulk?date=${todayDate}`, payload);
-      fetchHistory(todayDate); // Refresh history if viewing today
-      
+    await api.post(`/roaster/bulk?date=${todayDate}`, payload);
+    fetchHistory(todayDate); // Refresh history if viewing today
+  };
+
+  const handleSave = async () => {
+    try {
+      await saveRoasterPayload();
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2500);
+    } catch (err) {
+      console.error('Failed to save roaster', err);
+      alert(getApiErrorMessage(err, 'Failed to save roaster schedule.'));
+    }
+  };
+
+  const handleSaveAndShare = async () => {
+    try {
+      await saveRoasterPayload();
+
       const todayFormatted = new Date().toLocaleDateString('en-GB', { 
         day: 'numeric', 
         month: 'long', 
         year: 'numeric' 
       });
 
-      let message = `📅 *Cadet Duty Roaster - ${todayFormatted}*\n`;
-      if (sessionStatus?.is_active && sessionStatus.session?.title) {
-        message += `🎖️ *Parade Session*: ${sessionStatus.session.title}\n`;
-        if (sessionStatus.session.start_time && sessionStatus.session.end_time) {
-          message += `⏰ *Timings*: ${formatTime12h(sessionStatus.session.start_time)} - ${formatTime12h(sessionStatus.session.end_time)}\n`;
-        }
+      const sessionObj = sessionStatus?.session;
+      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+
+      let message = `📅 *Cadet Drill Duty Roster - ${todayFormatted}*\n`;
+      if (sessionStatus?.is_active && sessionObj?.title) {
+        message += `🎖️ *Parade Session*: ${sessionObj.title}\n`;
+        message += `⏰ *Session Timings*: ${formatTime12h(defStartTime)} - ${formatTime12h(defEndTime)}\n`;
       }
       message += `------------------------------------------\n\n`;
+      message += `*Cadet Reporting Schedule*:\n`;
 
       users.forEach((user, index) => {
         const schedule = schedules[user.id];
-        let statusText = '';
+        const sTime = schedule?.startTime || defStartTime;
+        const eTime = schedule?.endTime || defEndTime;
+        const isCustom = sTime !== defStartTime || eTime !== defEndTime;
+        const customTag = sTime < defStartTime ? ' *(Early Duty)*' : (sTime > defStartTime ? ' *(Late Reporting)*' : (isCustom ? ' *(Special Timing)*' : ''));
 
-        if (schedule && schedule.isLeave) {
-          statusText = '🔴 *ON LEAVE*';
-        } else if (schedule && schedule.isPresent) {
-          statusText = '🟢 *PRESENT*';
-        } else {
-          statusText = '⚪ Not Assigned';
-        }
-
-        message += `${index + 1}. *${user.name}*: ${statusText}\n`;
+        message += `${index + 1}. *${user.name}* (${user.employee_id})\n`;
+        message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}\n`;
       });
 
       message += `\n------------------------------------------\n`;
-      message += `_Please be on time. Have a great day!_`;
+      message += `_Fall-in at parade ground in proper uniform. Jai Hind!_`;
 
       const encodedMessage = encodeURIComponent(message);
       window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
     } catch (err) {
-      console.error('Failed to save roaster', err);
-      alert('Failed to save roaster. Please ensure backend is running.');
+      console.error('Failed to save and share roaster', err);
+      alert(getApiErrorMessage(err, 'Failed to save and share roaster.'));
     }
   };
 
   const handleSaveAndCopy = async () => {
     try {
-      const todayDate = new Date().toLocaleDateString('en-CA');
-      
-      const payload = users.map(u => ({
-        user_id: u.id,
-        date: todayDate,
-        start_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.start_time ? sessionStatus.session.start_time : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : '07:00:00')),
-        end_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.end_time ? sessionStatus.session.end_time : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : '09:30:00')),
-        is_leave: schedules[u.id]?.isLeave || false,
-        is_week_off: false
-      }));
+      await saveRoasterPayload();
 
-      await api.post(`/roaster/bulk?date=${todayDate}`, payload);
-      fetchHistory(todayDate); // Refresh history if viewing today
-      
       const todayFormatted = new Date().toLocaleDateString('en-GB', { 
         day: 'numeric', 
         month: 'long', 
         year: 'numeric' 
       });
 
-      let message = `📅 Cadet Duty Roaster - ${todayFormatted}\n`;
-      if (sessionStatus?.is_active && sessionStatus.session?.title) {
-        message += `🎖️ Parade Session: ${sessionStatus.session.title}\n`;
-        if (sessionStatus.session.start_time && sessionStatus.session.end_time) {
-          message += `⏰ Timings: ${formatTime12h(sessionStatus.session.start_time)} - ${formatTime12h(sessionStatus.session.end_time)}\n`;
-        }
+      const sessionObj = sessionStatus?.session;
+      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+
+      let message = `📅 Cadet Drill Duty Roster - ${todayFormatted}\n`;
+      if (sessionStatus?.is_active && sessionObj?.title) {
+        message += `🎖️ Parade Session: ${sessionObj.title}\n`;
+        message += `⏰ Session Timings: ${formatTime12h(defStartTime)} - ${formatTime12h(defEndTime)}\n`;
       }
       message += `------------------------------------------\n\n`;
+      message += `Cadet Reporting Schedule:\n`;
 
       users.forEach((user, index) => {
         const schedule = schedules[user.id];
-        let statusText = '';
+        const sTime = schedule?.startTime || defStartTime;
+        const eTime = schedule?.endTime || defEndTime;
+        const isCustom = sTime !== defStartTime || eTime !== defEndTime;
+        const customTag = sTime < defStartTime ? ' (Early Duty)' : (sTime > defStartTime ? ' (Late Reporting)' : (isCustom ? ' (Special Timing)' : ''));
 
-        if (schedule && schedule.isLeave) {
-          statusText = '🔴 ON LEAVE';
-        } else if (schedule && schedule.isPresent) {
-          statusText = '🟢 PRESENT';
-        } else {
-          statusText = '⚪ Not Assigned';
-        }
-
-        message += `${index + 1}. ${user.name}: ${statusText}\n`;
+        message += `${index + 1}. ${user.name} (${user.employee_id})\n`;
+        message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}\n`;
       });
 
       message += `\n------------------------------------------\n`;
-      message += `Please be on time. Have a great day!`;
+      message += `Fall-in at parade ground in proper uniform. Jai Hind!`;
 
-      // Copy to clipboard
       await navigator.clipboard.writeText(message);
-      
-      // Show success feedback
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
       console.error('Failed to save and copy roaster', err);
-      alert('Failed to save and copy roaster. Please ensure backend is running.');
+      alert(getApiErrorMessage(err, 'Failed to save and copy roaster.'));
     }
   };
 
@@ -427,25 +420,38 @@ const TodayRoaster: React.FC = () => {
             <p className="text-xs text-slate-500 font-bold mt-1">Assign drill timings and publish the session schedule</p>
           </div>
           {sessionStatus?.is_active && (
-            <div className="flex gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
-                onClick={handleSaveAndCopy}
-                className={`px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-sm cursor-pointer ${
-                  copySuccess 
-                    ? 'bg-[#00AEEF] text-white' 
+                onClick={handleSave}
+                className={`px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-xs sm:text-sm cursor-pointer ${
+                  saveSuccess
+                    ? 'bg-emerald-600 text-white'
                     : 'bg-[#2D3092] hover:bg-[#3F43B5] text-white border-b-2 border-[#FFCB06]'
                 }`}
-                title="Save roaster and copy to clipboard"
+                title="Save scheduled reporting timings for all cadets"
               >
-                <Copy className="w-4 h-4 text-[#FFCB06]" />
+                {saveSuccess ? <Check className="w-4 h-4 text-white" /> : <Save className="w-4 h-4 text-[#FFCB06]" />}
+                <span>{saveSuccess ? 'Saved!' : 'Save Schedule'}</span>
+              </button>
+              <button
+                onClick={handleSaveAndCopy}
+                className={`px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-xs sm:text-sm cursor-pointer ${
+                  copySuccess 
+                    ? 'bg-[#00AEEF] text-white' 
+                    : 'bg-slate-800 hover:bg-slate-900 text-white border-b-2 border-[#00AEEF]'
+                }`}
+                title="Save roaster and copy schedule to clipboard"
+              >
+                <Copy className="w-4 h-4 text-[#00AEEF]" />
                 <span>{copySuccess ? 'Copied!' : 'Save & Copy'}</span>
               </button>
               <button
                 onClick={handleSaveAndShare}
-                className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all font-bold text-sm cursor-pointer"
+                className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all font-bold text-xs sm:text-sm cursor-pointer"
+                title="Save roaster and share on WhatsApp"
               >
                 <Share2 className="w-4 h-4 text-[#FFCB06]" />
-                <span>Share on WhatsApp</span>
+                <span>Share WhatsApp</span>
               </button>
             </div>
           )}
@@ -540,13 +546,22 @@ const TodayRoaster: React.FC = () => {
           <div className="space-y-3">
             {users.map((user) => {
               const schedule = schedules[user.id];
+              const sessionObj = sessionStatus?.session;
+              const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
+              const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
               
+              const cadetStartTime = schedule?.startTime || defStartTime;
+              const cadetEndTime = schedule?.endTime || defEndTime;
+              const isCustom = cadetStartTime !== defStartTime || cadetEndTime !== defEndTime;
+              const isEarly = cadetStartTime < defStartTime;
+              const isLate = cadetStartTime > defStartTime;
+
               return (
                 <div 
                   key={user.id}
                   className={`relative rounded-2xl border transition-all duration-300 overflow-hidden p-4 sm:p-5 shadow-xs hover:shadow-md ${
-                    schedule?.isLeave
-                      ? 'bg-red-50/40 border-red-200'
+                    isCustom
+                      ? 'bg-amber-50/20 border-amber-300 hover:border-amber-400 ring-1 ring-amber-200/50'
                       : 'bg-white border-slate-200 hover:border-[#2D3092]/40'
                   }`}
                 >
@@ -558,8 +573,8 @@ const TodayRoaster: React.FC = () => {
                   </div>
 
                   {/* Card content */}
-                  <div className="space-y-3.5 pt-1">
-                    {/* Header: Cadet Avatar + Name + Regimental No + Status Badge */}
+                  <div className="space-y-3 pt-1">
+                    {/* Header: Cadet Avatar + Name + Regimental No + Reporting Hours Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">
                         <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
@@ -583,54 +598,89 @@ const TodayRoaster: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Status Badge in Header */}
-                      <div className="shrink-0">
-                        {schedule?.isLeave ? (
-                          <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-red-100 text-red-800 border border-red-200 items-center gap-1.5 shadow-2xs">
-                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                            ON LEAVE
-                          </span>
-                        ) : schedule?.isPresent ? (
-                          <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5 shadow-2xs">
-                            <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                            PRESENT
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1.5 inline-flex text-xs font-bold rounded-xl bg-slate-100 text-slate-600 border border-slate-200">
-                            PENDING
-                          </span>
-                        )}
+                      {/* Reporting Timing Badge in Header */}
+                      <div className="shrink-0 text-right">
+                        <span className={`px-3 py-1.5 inline-flex text-xs font-black rounded-xl border items-center gap-1.5 shadow-2xs ${
+                          isCustom
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                        }`}>
+                          <Clock className={`w-3.5 h-3.5 ${isCustom ? 'text-amber-700' : 'text-emerald-700'}`} />
+                          <span>{formatTime12h(cadetStartTime)} - {formatTime12h(cadetEndTime)}</span>
+                        </span>
+                        <div className="mt-1">
+                          {isEarly ? (
+                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              ⚡ Expected Early
+                            </span>
+                          ) : isLate ? (
+                            <span className="text-[10px] font-black text-orange-700 uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                              ⏱️ Reporting Late
+                            </span>
+                          ) : isCustom ? (
+                            <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              Custom Timing
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400">
+                              Session Default
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Duty Status Selector: Present vs Leave */}
-                    <div className="pt-0.5">
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => handleToggle(user.id, 'isPresent', true)}
-                          className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
-                            schedule?.isPresent
-                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-500/20'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
-                          <span>Present (Fall-In)</span>
-                        </button>
+                    {/* Duty Reporting Timings Inputs */}
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-[#2D3092]" />
+                          Cadet Reporting Hours (Adjust if expected early or late):
+                        </span>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetCadetTime(user.id)}
+                            className="text-[11px] font-extrabold text-[#EF1C25] hover:text-[#C7131B] hover:underline cursor-pointer"
+                            title="Reset this cadet back to session timing"
+                          >
+                            Reset to Default ({formatTime12h(defStartTime)} - {formatTime12h(defEndTime)})
+                          </button>
+                        )}
+                      </div>
 
-                        <button
-                          type="button"
-                          onClick={() => handleToggle(user.id, 'isLeave', true)}
-                          className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
-                            schedule?.isLeave
-                              ? 'bg-[#EF1C25] text-white border-red-700 shadow-sm ring-2 ring-red-500/20'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
-                          <span>On Leave</span>
-                        </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                            Fall-In (Start Time)
+                          </label>
+                          <input
+                            type="time"
+                            value={cadetStartTime}
+                            onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
+                            className={`w-full px-3 py-2 text-sm font-black rounded-xl border transition-all cursor-pointer ${
+                              cadetStartTime !== defStartTime
+                                ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-300/40'
+                                : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 focus:bg-white focus:border-[#2D3092]'
+                            }`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                            Visarjan (End Time)
+                          </label>
+                          <input
+                            type="time"
+                            value={cadetEndTime}
+                            onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
+                            className={`w-full px-3 py-2 text-sm font-black rounded-xl border transition-all cursor-pointer ${
+                              cadetEndTime !== defEndTime
+                                ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-300/40'
+                                : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 focus:bg-white focus:border-[#2D3092]'
+                            }`}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -704,9 +754,9 @@ const TodayRoaster: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Staff ID</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Roaster Status</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Regt / Cadet ID</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cadet Name</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Reporting Hours</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -725,18 +775,14 @@ const TodayRoaster: React.FC = () => {
                   return (
                     <tr key={r.id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user?.employee_id || r.user_id}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user?.name || 'Unknown Staff'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user?.name || 'Cadet'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {r.is_leave ? (
-                          <span className="text-red-600 font-bold text-xs bg-red-50 px-2.5 py-1 rounded-full border border-red-100">LEAVE</span>
-                        ) : r.is_week_off ? (
-                          <span className="text-amber-600 font-bold text-xs bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">WEEK OFF</span>
-                        ) : (r.start_time && r.end_time) ? (
-                          <span className="text-green-700 font-medium text-xs bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
+                        {(r.start_time && r.end_time) ? (
+                          <span className="text-[#2D3092] font-black text-xs bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
                             {formatTime12h(r.start_time)} - {formatTime12h(r.end_time)}
                           </span>
                         ) : (
-                          <span className="text-gray-400 text-xs italic">No assignment</span>
+                          <span className="text-gray-400 text-xs italic">No timing assigned</span>
                         )}
                       </td>
                     </tr>

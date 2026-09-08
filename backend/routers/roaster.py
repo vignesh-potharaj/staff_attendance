@@ -321,12 +321,16 @@ def activate_session(
         session_title = payload.title.strip() if payload.title and payload.title.strip() else "Parade / Drill Session"
 
         if session:
+            old_start = session.start_time
+            old_end = session.end_time
             session.title = session_title
             session.start_time = start_time_parsed
             session.end_time = end_time_parsed
             session.is_active = 1
             session.notes = payload.notes
         else:
+            old_start = None
+            old_end = None
             session = AttendanceSession(
                 tenant_id=current_user.tenant_id,
                 date=payload.date,
@@ -364,6 +368,13 @@ def activate_session(
                     is_week_off=0
                 )
                 db.add(new_roaster)
+            else:
+                r = existing_roasters[cadet.id]
+                # If cadet timing was empty or matched old session timing, update to new session timing
+                if not r.start_time or (old_start and r.start_time == old_start):
+                    r.start_time = start_time_parsed
+                if not r.end_time or (old_end and r.end_time == old_end):
+                    r.end_time = end_time_parsed
 
         db.commit()
         db.refresh(session)
