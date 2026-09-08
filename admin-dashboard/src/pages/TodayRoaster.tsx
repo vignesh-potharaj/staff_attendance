@@ -235,12 +235,6 @@ const TodayRoaster: React.FC = () => {
     fetchHistory(historyDate);
   }, []);
 
-  const handleTimeChange = (userId: number, field: 'startTime' | 'endTime', value: string) => {
-    setSchedules(prev => ({ 
-      ...prev, 
-      [userId]: { ...prev[userId], [field]: value } 
-    }));
-  };
 
   const handleToggle = (userId: number, field: 'isLeave' | 'isWeekOff' | 'isPresent', value: boolean) => {
     setSchedules(prev => {
@@ -281,10 +275,10 @@ const TodayRoaster: React.FC = () => {
       const payload = users.map(u => ({
         user_id: u.id,
         date: todayDate,
-        start_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : null),
-        end_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : null),
+        start_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.start_time ? sessionStatus.session.start_time : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : '07:00:00')),
+        end_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.end_time ? sessionStatus.session.end_time : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : '09:30:00')),
         is_leave: schedules[u.id]?.isLeave || false,
-        is_week_off: schedules[u.id]?.isWeekOff || false
+        is_week_off: false
       }));
 
       await api.post(`/roaster/bulk?date=${todayDate}`, payload);
@@ -311,10 +305,8 @@ const TodayRoaster: React.FC = () => {
 
         if (schedule && schedule.isLeave) {
           statusText = '🔴 *ON LEAVE*';
-        } else if (schedule && schedule.isWeekOff) {
-          statusText = '🟡 *WEEK OFF*';
-        } else if (schedule && schedule.startTime && schedule.endTime) {
-          statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
+        } else if (schedule && schedule.isPresent) {
+          statusText = '🟢 *PRESENT*';
         } else {
           statusText = '⚪ Not Assigned';
         }
@@ -340,10 +332,10 @@ const TodayRoaster: React.FC = () => {
       const payload = users.map(u => ({
         user_id: u.id,
         date: todayDate,
-        start_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : null),
-        end_time: (schedules[u.id]?.isLeave || schedules[u.id]?.isWeekOff) ? null : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : null),
+        start_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.start_time ? sessionStatus.session.start_time : (schedules[u.id]?.startTime ? schedules[u.id].startTime + ':00' : '07:00:00')),
+        end_time: schedules[u.id]?.isLeave ? null : (sessionStatus?.session?.end_time ? sessionStatus.session.end_time : (schedules[u.id]?.endTime ? schedules[u.id].endTime + ':00' : '09:30:00')),
         is_leave: schedules[u.id]?.isLeave || false,
-        is_week_off: schedules[u.id]?.isWeekOff || false
+        is_week_off: false
       }));
 
       await api.post(`/roaster/bulk?date=${todayDate}`, payload);
@@ -370,10 +362,8 @@ const TodayRoaster: React.FC = () => {
 
         if (schedule && schedule.isLeave) {
           statusText = '🔴 ON LEAVE';
-        } else if (schedule && schedule.isWeekOff) {
-          statusText = '🟡 WEEK OFF';
-        } else if (schedule && schedule.startTime && schedule.endTime) {
-          statusText = `🔵 ${formatTime12h(schedule.startTime)} - ${formatTime12h(schedule.endTime)}`;
+        } else if (schedule && schedule.isPresent) {
+          statusText = '🟢 PRESENT';
         } else {
           statusText = '⚪ Not Assigned';
         }
@@ -554,8 +544,6 @@ const TodayRoaster: React.FC = () => {
                 className={`relative rounded-2xl border transition-all duration-300 overflow-hidden p-4 sm:p-5 shadow-xs hover:shadow-md ${
                   schedule?.isLeave
                     ? 'bg-red-50/40 border-red-200'
-                    : schedule?.isWeekOff
-                    ? 'bg-amber-50/40 border-amber-200'
                     : 'bg-white border-slate-200 hover:border-[#2D3092]/40'
                 }`}
               >
@@ -568,145 +556,79 @@ const TodayRoaster: React.FC = () => {
 
                 {/* Card content */}
                 <div className="space-y-3.5 pt-1">
-                  {/* Header: Cadet Avatar + Name + Regimental No */}
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
-                      <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFCB06]" />
+                  {/* Header: Cadet Avatar + Name + Regimental No + Status Badge */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
+                        <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFCB06]" />
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+                            {user.name}
+                          </h3>
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#2D3092]/10 text-[#2D3092] border border-[#2D3092]/20">
+                            Cadet
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            Regt No: {user.employee_id}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
-                          {user.name}
-                        </h3>
-                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#2D3092]/10 text-[#2D3092] border border-[#2D3092]/20">
-                          Cadet
+
+                    {/* Status Badge in Header */}
+                    <div className="shrink-0">
+                      {schedule?.isLeave ? (
+                        <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-red-100 text-red-800 border border-red-200 items-center gap-1.5 shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                          ON LEAVE
                         </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                          Regt No: {user.employee_id}
+                      ) : schedule?.isPresent ? (
+                        <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5 shadow-2xs">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                          PRESENT
                         </span>
-                      </div>
+                      ) : (
+                        <span className="px-3 py-1.5 inline-flex text-xs font-bold rounded-xl bg-slate-100 text-slate-600 border border-slate-200">
+                          PENDING
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  {/* Duty Status Selector Pills */}
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                      Session Drill Status
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
+                  {/* Duty Status Selector: Present vs Leave */}
+                  <div className="pt-0.5">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => handleToggle(user.id, 'isPresent', true)}
-                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
                           schedule?.isPresent
                             ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-500/20'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        <span className={`w-2 h-2 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
-                        <span>Present</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleToggle(user.id, 'isWeekOff', true)}
-                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
-                          schedule?.isWeekOff
-                            ? 'bg-amber-600 text-white border-amber-700 shadow-sm ring-2 ring-amber-500/20'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${schedule?.isWeekOff ? 'bg-white' : 'bg-amber-500'}`}></span>
-                        <span>Week Off</span>
+                        <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
+                        <span>Present (Fall-In)</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleToggle(user.id, 'isLeave', true)}
-                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
                           schedule?.isLeave
                             ? 'bg-[#EF1C25] text-white border-red-700 shadow-sm ring-2 ring-red-500/20'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
-                        <span className={`w-2 h-2 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
-                        <span>Leave</span>
+                        <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
+                        <span>On Leave</span>
                       </button>
                     </div>
-                  </div>
-
-                  {/* Parade Timing Display Box */}
-                  <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                        Parade / Drill Timing
-                      </p>
-                      <p className="text-base sm:text-lg font-black text-[#2D3092]">
-                        {schedule?.isLeave
-                          ? 'Sanctioned Leave'
-                          : schedule?.isWeekOff
-                          ? 'Exempt / Week Off'
-                          : schedule?.isPresent && schedule?.startTime && schedule?.endTime
-                          ? `${formatTime12h(schedule.startTime)} → ${formatTime12h(schedule.endTime)}`
-                          : 'Timing Not Assigned'
-                        }
-                      </p>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#2D3092] shadow-xs">
-                      <Clock className="w-4 h-4 text-[#2D3092]" />
-                    </div>
-                  </div>
-
-                  {/* Time Inputs - Show when Present */}
-                  {schedule?.isPresent && (
-                    <div className="flex items-center gap-2 bg-[#2D3092]/5 p-2.5 rounded-xl border border-[#2D3092]/20">
-                      <span className="text-xs font-bold text-[#2D3092] min-w-fit flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-[#2D3092]" />
-                        <span>Drill Hours:</span>
-                      </span>
-                      <input 
-                        type="time" 
-                        title="Start Time"
-                        value={schedule?.startTime || ''}
-                        onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
-                        className="block rounded-lg border-slate-300 shadow-xs focus:border-[#2D3092] focus:ring-2 focus:ring-[#2D3092] text-xs font-bold text-slate-800 p-1.5 border bg-white flex-1"
-                      />
-                      <span className="text-slate-400 text-xs font-bold px-1">to</span>
-                      <input 
-                        type="time" 
-                        title="End Time"
-                        value={schedule?.endTime || ''}
-                        onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
-                        className="block rounded-lg border-slate-300 shadow-xs focus:border-[#2D3092] focus:ring-2 focus:ring-[#2D3092] text-xs font-bold text-slate-800 p-1.5 border bg-white flex-1"
-                      />
-                    </div>
-                  )}
-
-                  {/* Status Badge Footer */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Duty Record</span>
-                    {schedule?.isLeave ? (
-                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-red-100 text-red-800 border border-red-200 items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                        LEAVE
-                      </span>
-                    ) : schedule?.isWeekOff ? (
-                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-amber-100 text-amber-900 border border-amber-200">
-                        WEEK OFF
-                      </span>
-                    ) : schedule?.isPresent && (schedule?.startTime && schedule?.endTime) ? (
-                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                        ON PARADE ({formatTime12h(schedule.startTime)} - {formatTime12h(schedule.endTime)})
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-1 inline-flex text-xs font-bold rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
-                        PENDING
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
