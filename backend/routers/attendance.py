@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, AttendanceSession, IST, RoleEnum
+from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, AttendanceSession, SavedLocation, IST, RoleEnum
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.services.cloudinary_storage import get_cloudinary_manager, compress_image_bytes
@@ -34,7 +34,7 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000").rstrip("/")
 
 
 def distance_in_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    earth_radius_meters = 6371000
+    earth_radius_meters = 6371000.0
     lat1_rad = math.radians(lat1)
     lat2_rad = math.radians(lat2)
     delta_lat = math.radians(lat2 - lat1)
@@ -48,22 +48,80 @@ def distance_in_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return earth_radius_meters * c
 
 
-def enforce_geofence(latitude: float, longitude: float, current_user: User):
+def enforce_geofence(
+    latitude: float,
+    longitude: float,
+    current_user: User,
+    db: Session,
+    active_session: Optional[AttendanceSession] = None,
+    today_str: Optional[str] = None
+):
     tenant = current_user.tenant
-    if not tenant or tenant.geofence_latitude is None or tenant.geofence_longitude is None:
+    target_lat = None
+    target_lng = None
+    target_radius = 100
+    location_name = "Session Ground"
+
+    if today_str is None:
+        today_str = datetime.now(IST).strftime("%Y-%m-%d")
+
+    # 1. Check if cadet has a specific DailyRoaster location assigned for today
+    cadet_roaster = db.query(DailyRoaster).filter(
+        DailyRoaster.user_id == current_user.id,
+        DailyRoaster.date == today_str
+    ).first()
+
+    if cadet_roaster and cadet_roaster.location_id:
+        loc = db.query(SavedLocation).filter(SavedLocation.id == cadet_roaster.location_id).first()
+        if loc:
+            target_lat = loc.latitude
+            target_lng = loc.longitude
+            target_radius = loc.radius_meters or 100
+            location_name = loc.name
+
+    # 2. Check if active session has a location assigned
+    if target_lat is None and active_session and active_session.location_id:
+        loc = db.query(SavedLocation).filter(SavedLocation.id == active_session.location_id).first()
+        if loc:
+            target_lat = loc.latitude
+            target_lng = loc.longitude
+            target_radius = loc.radius_meters or 100
+            location_name = loc.name
+
+    # 3. Check if tenant has a default SavedLocation
+    if target_lat is None and tenant:
+        default_loc = db.query(SavedLocation).filter(
+            SavedLocation.tenant_id == tenant.id,
+            SavedLocation.is_default == 1
+        ).first()
+        if default_loc:
+            target_lat = default_loc.latitude
+            target_lng = default_loc.longitude
+            target_radius = default_loc.radius_meters or 100
+            location_name = default_loc.name
+
+    # 4. Fallback to tenant geofence coordinates
+    if target_lat is None and tenant and tenant.geofence_latitude is not None and tenant.geofence_longitude is not None:
+        target_lat = tenant.geofence_latitude
+        target_lng = tenant.geofence_longitude
+        target_radius = tenant.geofence_radius_meters or 100
+        location_name = "Unit Parade Ground"
+
+    # If no coordinates defined at all, skip check
+    if target_lat is None or target_lng is None:
         return
 
-    radius = tenant.geofence_radius_meters or 100
     distance = distance_in_meters(
         latitude,
         longitude,
-        tenant.geofence_latitude,
-        tenant.geofence_longitude,
+        target_lat,
+        target_lng,
     )
-    if distance > radius:
+
+    if distance > target_radius:
         raise HTTPException(
             status_code=403,
-            detail=f"You are {round(distance)} meters away from the allowed attendance location. Please mark attendance within {radius} meters.",
+            detail=f"You are {round(distance)} meters away from '{location_name}'. Please mark attendance within {target_radius} meters.",
         )
 
 def upload_photo_to_cloudinary(
@@ -131,7 +189,7 @@ def mark_attendance(
                 status_code=400,
                 detail="Location verification is required for this session. Please allow GPS location permissions."
             )
-        enforce_geofence(latitude, longitude, current_user)
+        enforce_geofence(latitude, longitude, current_user, db, active_session, today_str)
 
     # Save photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
@@ -257,7 +315,7 @@ def check_out_attendance(
                 status_code=400,
                 detail="Location verification is required for this session. Please allow GPS location permissions."
             )
-        enforce_geofence(latitude, longitude, current_user)
+        enforce_geofence(latitude, longitude, current_user, db, active_session, today_str)
 
     # Save check-out photo
     timestamp_str = datetime.now(IST).strftime("%Y%m%d%H%M%S")
@@ -647,19 +705,51 @@ def get_staff_attendance_summary(
         AttendanceSession.date == today_str
     ).first()
 
+    cadet_roaster = db.query(DailyRoaster).filter(
+        DailyRoaster.tenant_id == current_user.tenant_id,
+        DailyRoaster.user_id == staff_id,
+        DailyRoaster.date == today_str
+    ).first()
+
+    duty_location = None
+    if cadet_roaster and getattr(cadet_roaster, "location", None):
+        duty_location = {
+            "id": cadet_roaster.location.id,
+            "name": cadet_roaster.location.name,
+            "radius_meters": cadet_roaster.location.radius_meters,
+            "maps_link": cadet_roaster.location.maps_link,
+            "is_custom_post": True,
+        }
+    elif today_session and getattr(today_session, "location", None):
+        duty_location = {
+            "id": today_session.location.id,
+            "name": today_session.location.name,
+            "radius_meters": today_session.location.radius_meters,
+            "maps_link": today_session.location.maps_link,
+            "is_custom_post": False,
+        }
+
     session_info = {
         "has_session": bool(today_session),
         "is_active": bool(today_session.is_active) if today_session else False,
         "title": today_session.title if today_session else None,
         "start_time": today_session.start_time.strftime("%H:%M") if today_session and today_session.start_time else None,
         "end_time": today_session.end_time.strftime("%H:%M") if today_session and today_session.end_time else None,
+        "require_location": bool(today_session.require_location) if today_session else True,
+        "location": {
+            "id": today_session.location.id,
+            "name": today_session.location.name,
+            "radius_meters": today_session.location.radius_meters,
+            "maps_link": today_session.location.maps_link,
+        } if today_session and getattr(today_session, "location", None) else None,
     }
 
     return {
         "month_present_days": month_present_days,
         "overall_present_days": overall_present_days,
         "today": today_data,
-        "session": session_info
+        "session": session_info,
+        "duty_location": duty_location,
     }
 
 

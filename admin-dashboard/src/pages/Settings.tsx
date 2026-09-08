@@ -9,9 +9,28 @@ import {
   Save,
   ShieldCheck,
   Wand2,
+  Plus,
+  Trash2,
+  Edit2,
+  Star,
+  ExternalLink,
+  X,
+  Check
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+
+interface SavedLocation {
+  id: number;
+  tenant_id: number;
+  name: string;
+  maps_link?: string | null;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  is_default: boolean;
+  created_at?: string;
+}
 
 interface SettingsData {
   business_name: string;
@@ -75,6 +94,35 @@ const Settings: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Saved locations state
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [locLoading, setLocLoading] = useState(false);
+  const [isLocModalOpen, setIsLocModalOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<SavedLocation | null>(null);
+  const [locForm, setLocForm] = useState({
+    name: '',
+    maps_link: '',
+    latitude: '',
+    longitude: '',
+    radius_meters: 100,
+    is_default: false,
+  });
+  const [locSaving, setLocSaving] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+  const [locSuccess, setLocSuccess] = useState<string | null>(null);
+
+  const fetchLocations = async () => {
+    setLocLoading(true);
+    try {
+      const res = await api.get<SavedLocation[]>('/locations/');
+      setSavedLocations(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch locations', err);
+    } finally {
+      setLocLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -97,7 +145,99 @@ const Settings: React.FC = () => {
     };
 
     fetchSettings();
+    fetchLocations();
   }, []);
+
+  const handleOpenAddLocation = () => {
+    setEditingLocation(null);
+    setLocForm({
+      name: '',
+      maps_link: '',
+      latitude: '',
+      longitude: '',
+      radius_meters: 100,
+      is_default: savedLocations.length === 0,
+    });
+    setLocError(null);
+    setIsLocModalOpen(true);
+  };
+
+  const handleOpenEditLocation = (loc: SavedLocation) => {
+    setEditingLocation(loc);
+    setLocForm({
+      name: loc.name,
+      maps_link: loc.maps_link || '',
+      latitude: loc.latitude ? loc.latitude.toString() : '',
+      longitude: loc.longitude ? loc.longitude.toString() : '',
+      radius_meters: loc.radius_meters || 100,
+      is_default: loc.is_default,
+    });
+    setLocError(null);
+    setIsLocModalOpen(true);
+  };
+
+  const handleSaveLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocSaving(true);
+    setLocError(null);
+    try {
+      const payload: any = {
+        name: locForm.name.trim(),
+        maps_link: locForm.maps_link.trim() || null,
+        radius_meters: Number(locForm.radius_meters) || 100,
+        is_default: locForm.is_default,
+      };
+      if (locForm.latitude.trim() && locForm.longitude.trim()) {
+        payload.latitude = parseFloat(locForm.latitude.trim());
+        payload.longitude = parseFloat(locForm.longitude.trim());
+      }
+
+      if (editingLocation) {
+        await api.put(`/locations/${editingLocation.id}`, payload);
+        setLocSuccess('Location updated successfully.');
+      } else {
+        await api.post('/locations/', payload);
+        setLocSuccess('New duty location saved.');
+      }
+      setIsLocModalOpen(false);
+      await fetchLocations();
+      // Also refresh settings to reflect any updated default coordinates
+      const sRes = await api.get<SettingsData>('/settings/');
+      setSettings(sRes.data);
+    } catch (err: unknown) {
+      console.error('Failed to save location', err);
+      setLocError(getApiErrorMessage(err, 'Failed to save location. Please check coordinates or Maps link.'));
+    } finally {
+      setLocSaving(false);
+    }
+  };
+
+  const handleSetDefaultLocation = async (id: number) => {
+    try {
+      await api.post(`/locations/${id}/set-default`);
+      await fetchLocations();
+      const sRes = await api.get<SettingsData>('/settings/');
+      setSettings(sRes.data);
+      setLocSuccess('Default ground updated.');
+    } catch (err) {
+      console.error('Failed to set default location', err);
+      alert(getApiErrorMessage(err, 'Failed to set default location'));
+    }
+  };
+
+  const handleDeleteLocation = async (id: number, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+    try {
+      await api.delete(`/locations/${id}`);
+      await fetchLocations();
+      const sRes = await api.get<SettingsData>('/settings/');
+      setSettings(sRes.data);
+      setLocSuccess('Location deleted successfully.');
+    } catch (err) {
+      console.error('Failed to delete location', err);
+      alert(getApiErrorMessage(err, 'Failed to delete location'));
+    }
+  };
 
   useEffect(() => {
     localStorage.setItem('smartAttendPreferences', JSON.stringify(preferences));
@@ -324,6 +464,125 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
+            {/* Saved Duty & Parade Locations Card */}
+            <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="rounded-xl bg-[#2D3092]/10 p-2 text-[#2D3092]">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-[#2D3092] text-base">Saved Duty & Parade Locations</h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Configure grounds, unit HQ, gates, and duty stations for multi-post deployment.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleOpenAddLocation}
+                  className="px-3.5 py-2 rounded-xl bg-[#2D3092] hover:bg-[#3F43B5] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Duty Post</span>
+                </button>
+              </div>
+
+              {locSuccess && (
+                <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-between">
+                  <span>{locSuccess}</span>
+                  <button type="button" onClick={() => setLocSuccess(null)} className="text-emerald-600 hover:text-emerald-900 cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2.5">
+                {locLoading ? (
+                  <div className="py-6 text-center text-xs font-bold text-slate-400">Loading saved locations...</div>
+                ) : savedLocations.length === 0 ? (
+                  <div className="p-6 rounded-xl border border-dashed border-slate-300 text-center space-y-2">
+                    <p className="text-xs font-bold text-slate-600">No saved duty locations yet.</p>
+                    <p className="text-[11px] text-slate-400">
+                      Add your main parade ground, guard posts, or external duty venues to reuse them easily in daily rosters.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddLocation}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add First Location
+                    </button>
+                  </div>
+                ) : (
+                  savedLocations.map((loc) => (
+                    <div
+                      key={loc.id}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-[#2D3092]/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-black text-slate-900 text-sm">{loc.name}</span>
+                          {loc.is_default ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              <Check className="w-3 h-3" />
+                              Primary Default
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetDefaultLocation(loc.id)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-600 hover:text-[#2D3092] hover:bg-blue-50 border border-slate-300 transition cursor-pointer"
+                              title="Set as default unit location"
+                            >
+                              <Star className="w-3 h-3" />
+                              Set as Default
+                            </button>
+                          )}
+                          <span className="text-[11px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
+                            {loc.radius_meters}m radius
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+                          <span>{loc.latitude.toFixed(5)}, {loc.longitude.toFixed(5)}</span>
+                          {loc.maps_link && (
+                            <a
+                              href={loc.maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#00AEEF] hover:underline inline-flex items-center gap-0.5 font-sans font-semibold"
+                            >
+                              <span>Maps</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditLocation(loc)}
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#2D3092] hover:bg-slate-100 transition cursor-pointer"
+                          title="Edit Location"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                          title="Delete Location"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </form>
 
         </div>
@@ -384,6 +643,141 @@ const Settings: React.FC = () => {
           </section>
         </div>
       </div>
+      {/* Add / Edit Location Modal */}
+      {isLocModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#2D3092]" />
+                <h3 className="text-sm font-black text-slate-900">
+                  {editingLocation ? 'Edit Duty Location' : 'Add New Duty Location'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsLocModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveLocation} className="p-5 space-y-4">
+              {locError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+                  {locError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Location Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={locForm.name}
+                  onChange={(e) => setLocForm({ ...locForm, name: e.target.value })}
+                  placeholder="e.g. Main Parade Ground, Unit HQ, Main Gate"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Google Maps Link (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={locForm.maps_link}
+                  onChange={(e) => setLocForm({ ...locForm, maps_link: e.target.value })}
+                  placeholder="https://maps.google.com/?q=..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Paste the Google Maps link to auto-extract coordinates, or enter latitude/longitude below.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Latitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={locForm.latitude}
+                    onChange={(e) => setLocForm({ ...locForm, latitude: e.target.value })}
+                    placeholder="e.g. 12.9716"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Longitude
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={locForm.longitude}
+                    onChange={(e) => setLocForm({ ...locForm, longitude: e.target.value })}
+                    placeholder="e.g. 77.5946"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Geofence Radius (meters) *
+                </label>
+                <input
+                  type="number"
+                  min={10}
+                  max={5000}
+                  required
+                  value={locForm.radius_meters}
+                  onChange={(e) => setLocForm({ ...locForm, radius_meters: Number(e.target.value) || 100 })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                />
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={locForm.is_default}
+                    onChange={(e) => setLocForm({ ...locForm, is_default: e.target.checked })}
+                    className="w-4 h-4 text-[#2D3092] border-gray-300 rounded focus:ring-[#2D3092] cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    Set as default primary unit ground
+                  </span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsLocModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={locSaving}
+                  className="px-5 py-2 rounded-xl bg-[#2D3092] hover:bg-[#3F43B5] text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer"
+                >
+                  {locSaving ? 'Saving...' : (editingLocation ? 'Update Location' : 'Save Location')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

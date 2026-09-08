@@ -56,6 +56,7 @@ class Tenant(Base):
     users = relationship("User", back_populates="tenant")
     billing_payments = relationship("BillingPayment", back_populates="tenant")
     attendance_sessions = relationship("AttendanceSession", back_populates="tenant")
+    saved_locations = relationship("SavedLocation", back_populates="tenant", cascade="all, delete-orphan")
 
 class BillingPayment(Base):
     __tablename__ = "billing_payments"
@@ -91,6 +92,21 @@ class SuperAdminAuditLog(Base):
     notes = Column(Text, nullable=True)
     performed_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None), nullable=False)
 
+class SavedLocation(Base):
+    __tablename__ = "saved_locations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    name = Column(String, nullable=False)  # e.g. "College Parade Ground", "Unit HQ", "Main Gate"
+    maps_link = Column(String, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    radius_meters = Column(Integer, default=100, nullable=False)
+    is_default = Column(Integer, default=0, nullable=False)  # 1 = default location for tenant
+    created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
+
+    tenant = relationship("Tenant", back_populates="saved_locations")
+
 class DailyRoaster(Base):
     __tablename__ = "daily_roasters"
 
@@ -102,9 +118,11 @@ class DailyRoaster(Base):
     end_time = Column(Time, nullable=True)
     is_leave = Column(Integer, default=0) # SQLite doesn't have strict boolean, but Integer 0/1 works
     is_week_off = Column(Integer, default=0)
+    location_id = Column(Integer, ForeignKey("saved_locations.id"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     user = relationship("User")
+    location = relationship("SavedLocation")
 
 class AttendanceSession(Base):
     __tablename__ = "attendance_sessions"
@@ -117,12 +135,14 @@ class AttendanceSession(Base):
     end_time = Column(Time, nullable=True)
     is_active = Column(Integer, default=1, nullable=False)  # 1 = Active / Open, 0 = Inactive / Closed
     require_location = Column(Integer, default=1, nullable=False)  # 1 = Location required/geofenced, 0 = Location off/optional
+    location_id = Column(Integer, ForeignKey("saved_locations.id"), nullable=True)
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(IST).replace(tzinfo=None))
 
     tenant = relationship("Tenant", back_populates="attendance_sessions")
     creator = relationship("User", foreign_keys=[created_by])
+    location = relationship("SavedLocation")
 
 class User(Base):
     __tablename__ = "users"

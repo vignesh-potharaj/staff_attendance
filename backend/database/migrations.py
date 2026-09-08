@@ -52,6 +52,33 @@ def run_migrations():
                 "ALTER TABLE daily_roasters ADD COLUMN tenant_id INTEGER NULL",
                 "tenant_id column ensured on daily_roasters",
             )
+        if "location_id" not in columns:
+            _execute_migration(
+                "ALTER TABLE daily_roasters ADD COLUMN location_id INTEGER NULL",
+                "location_id column ensured on daily_roasters",
+            )
+
+    if "saved_locations" not in tables:
+        datetime_type = "TIMESTAMP" if engine.dialect.name == "postgresql" else "DATETIME"
+        id_definition = "id SERIAL PRIMARY KEY" if engine.dialect.name == "postgresql" else "id INTEGER PRIMARY KEY AUTOINCREMENT"
+        _execute_migration(
+            f"CREATE TABLE IF NOT EXISTS saved_locations ("
+            f"{id_definition}, "
+            f"tenant_id INTEGER NOT NULL REFERENCES tenants(id), "
+            f"name VARCHAR NOT NULL, "
+            f"maps_link VARCHAR NULL, "
+            f"latitude FLOAT NOT NULL, "
+            f"longitude FLOAT NOT NULL, "
+            f"radius_meters INTEGER DEFAULT 100 NOT NULL, "
+            f"is_default INTEGER DEFAULT 0 NOT NULL, "
+            f"created_at {datetime_type} DEFAULT CURRENT_TIMESTAMP"
+            f")",
+            "saved_locations table ensured successfully"
+        )
+        _execute_migration(
+            "CREATE INDEX IF NOT EXISTS ix_saved_locations_tenant_id ON saved_locations (tenant_id)",
+            "index on saved_locations(tenant_id) ensured"
+        )
 
     if "attendance_sessions" not in tables:
         time_type = "TIME" if engine.dialect.name == "postgresql" else "TIME"
@@ -66,6 +93,7 @@ def run_migrations():
             f"end_time {time_type} NULL, "
             f"is_active INTEGER DEFAULT 1 NOT NULL, "
             f"require_location INTEGER DEFAULT 1 NOT NULL, "
+            f"location_id INTEGER REFERENCES saved_locations(id) NULL, "
             f"notes TEXT NULL, "
             f"created_by INTEGER REFERENCES users(id) NULL, "
             f"created_at {datetime_type} DEFAULT CURRENT_TIMESTAMP"
@@ -92,6 +120,38 @@ def run_migrations():
                 "ALTER TABLE attendance_sessions ADD COLUMN require_location INTEGER DEFAULT 1",
                 "require_location column ensured on attendance_sessions"
             )
+        if "location_id" not in columns:
+            _execute_migration(
+                "ALTER TABLE attendance_sessions ADD COLUMN location_id INTEGER NULL",
+                "location_id column ensured on attendance_sessions"
+            )
+
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    if "saved_locations" in tables and "tenants" in tables:
+        try:
+            with engine.begin() as conn:
+                count = conn.execute(text("SELECT COUNT(*) FROM saved_locations")).scalar()
+                if count == 0:
+                    tenants_with_geo = conn.execute(
+                        text("SELECT id, geofence_maps_link, geofence_latitude, geofence_longitude, geofence_radius_meters FROM tenants WHERE geofence_latitude IS NOT NULL AND geofence_longitude IS NOT NULL")
+                    ).fetchall()
+                    for t in tenants_with_geo:
+                        conn.execute(
+                            text("INSERT INTO saved_locations (tenant_id, name, maps_link, latitude, longitude, radius_meters, is_default, created_at) "
+                                 "VALUES (:tenant_id, 'Main Parade Ground', :maps_link, :lat, :lng, :radius, 1, CURRENT_TIMESTAMP)"),
+                            {
+                                "tenant_id": t[0],
+                                "maps_link": t[1],
+                                "lat": t[2],
+                                "lng": t[3],
+                                "radius": t[4] or 100
+                            }
+                        )
+                    if tenants_with_geo:
+                        logger.info("Auto-seeded initial saved_locations from tenant geofence coordinates")
+        except Exception as exc:
+            logger.error("Auto-seeding saved_locations failed: %s", exc)
 
     if "attendance" in tables:
         columns = {col["name"] for col in inspector.get_columns("attendance")}

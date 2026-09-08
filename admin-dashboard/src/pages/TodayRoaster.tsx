@@ -17,9 +17,21 @@ interface User {
   shift?: Shift;
 }
 
+interface SavedLocation {
+  id: number;
+  tenant_id: number;
+  name: string;
+  maps_link?: string | null;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+  is_default: boolean;
+}
+
 interface ScheduleInput {
   startTime: string;
   endTime: string;
+  locationId?: number | null;
 }
 
 interface SessionData {
@@ -30,6 +42,12 @@ interface SessionData {
   end_time: string | null;
   is_active: boolean;
   require_location?: boolean;
+  location_id?: number | null;
+  location?: {
+    id: number;
+    name: string;
+    radius_meters: number;
+  } | null;
   notes?: string | null;
 }
 
@@ -62,6 +80,8 @@ const TodayRoaster: React.FC = () => {
   const [sessionNotes, setSessionNotes] = useState('');
   const [notifyCadets, setNotifyCadets] = useState(true);
   const [sessionSubmitting, setSessionSubmitting] = useState(false);
+  const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+  const [sessionLocationId, setSessionLocationId] = useState<number | null>(null);
 
   // Preset Drill Names for Identification
   const PRESET_DRILL_TITLES = ['Sunday Regular Parade', 'Regular Parade', 'Weapon Drill Training', 'Weapon Drill', 'Camp Drill Training', 'Camp Training'];
@@ -87,6 +107,7 @@ const TodayRoaster: React.FC = () => {
       if (session.end_time) setSessionEndTime(session.end_time.substring(0, 5));
       if (session.notes) setSessionNotes(session.notes);
       setRequireLocation(session.require_location !== false);
+      setSessionLocationId(session.location_id || null);
     } else {
       setDrillType('Sunday Regular Parade');
       setSessionTitle('Sunday Regular Parade');
@@ -95,6 +116,8 @@ const TodayRoaster: React.FC = () => {
       setSessionEndTime('09:30');
       setRequireLocation(true);
       setSessionNotes('');
+      const defaultLoc = savedLocations.find(l => l.is_default);
+      setSessionLocationId(defaultLoc ? defaultLoc.id : null);
     }
   };
 
@@ -115,18 +138,24 @@ const TodayRoaster: React.FC = () => {
         throw new Error('No authentication token found. Please log in again.');
       }
       
-      const [uRes, rRes, sRes] = await Promise.all([
+      const [uRes, rRes, sRes, locRes] = await Promise.all([
         api.get('/users/'),
         api.get(`/roaster/?date=${todayDate}`),
-        api.get(`/roaster/session/status?date=${todayDate}`)
+        api.get(`/roaster/session/status?date=${todayDate}`),
+        api.get('/locations/')
       ]);
       
       const staffOnly = uRes.data.filter((u: User) => u.role === 'STAFF');
       setUsers(staffOnly);
       setSessionStatus(sRes.data);
+      const locationsList: SavedLocation[] = locRes.data || [];
+      setSavedLocations(locationsList);
 
       if (sRes.data?.session) {
         populateSessionFields(sRes.data.session);
+      } else {
+        const defLoc = locationsList.find(l => l.is_default);
+        if (defLoc) setSessionLocationId(defLoc.id);
       }
 
       const existingRoasters = rRes.data || [];
@@ -144,7 +173,8 @@ const TodayRoaster: React.FC = () => {
         const r = roasterMap[u.id];
         initialSchedules[u.id] = {
            startTime: (r && r.start_time) ? r.start_time.substring(0, 5) : defStartTime,
-           endTime: (r && r.end_time) ? r.end_time.substring(0, 5) : defEndTime
+           endTime: (r && r.end_time) ? r.end_time.substring(0, 5) : defEndTime,
+           locationId: r?.location_id || null
         };
       });
       setSchedules(initialSchedules);
@@ -194,6 +224,7 @@ const TodayRoaster: React.FC = () => {
         start_time: sessionStartTime,
         end_time: sessionEndTime,
         require_location: requireLocation,
+        location_id: requireLocation ? sessionLocationId : null,
         notes: sessionNotes,
         send_notification: notifyCadets
       });
@@ -237,7 +268,19 @@ const TodayRoaster: React.FC = () => {
       [userId]: {
         startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00'),
         endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30'),
+        locationId: prev[userId]?.locationId || null,
         [field]: value
+      }
+    }));
+  };
+
+  const handleLocationChange = (userId: number, locationId: number | null) => {
+    setSchedules(prev => ({
+      ...prev,
+      [userId]: {
+        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00'),
+        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30'),
+        locationId: locationId
       }
     }));
   };
@@ -250,7 +293,8 @@ const TodayRoaster: React.FC = () => {
       ...prev,
       [userId]: {
         startTime: defStartTime,
-        endTime: defEndTime
+        endTime: defEndTime,
+        locationId: null
       }
     }));
   };
@@ -264,7 +308,8 @@ const TodayRoaster: React.FC = () => {
       users.forEach(u => {
         updated[u.id] = {
           startTime: defStartTime,
-          endTime: defEndTime
+          endTime: defEndTime,
+          locationId: null
         };
       });
       return updated;
@@ -297,7 +342,8 @@ const TodayRoaster: React.FC = () => {
         start_time: st.length === 5 ? `${st}:00` : st,
         end_time: et.length === 5 ? `${et}:00` : et,
         is_leave: false,
-        is_week_off: false
+        is_week_off: false,
+        location_id: s?.locationId || null
       };
     });
 
@@ -334,6 +380,9 @@ const TodayRoaster: React.FC = () => {
       if (sessionStatus?.is_active && sessionObj?.title) {
         message += `🎖️ *Parade Session*: ${sessionObj.title}\n`;
         message += `⏰ *Session Timings*: ${formatTime12h(defStartTime)} - ${formatTime12h(defEndTime)}\n`;
+        if (sessionObj.location?.name) {
+          message += `📍 *Session Ground*: ${sessionObj.location.name}\n`;
+        }
       }
       message += `------------------------------------------\n\n`;
       message += `*Cadet Reporting Schedule*:\n`;
@@ -344,13 +393,16 @@ const TodayRoaster: React.FC = () => {
         const eTime = schedule?.endTime || defEndTime;
         const isCustom = sTime !== defStartTime || eTime !== defEndTime;
         const customTag = sTime < defStartTime ? ' *(Early Duty)*' : (sTime > defStartTime ? ' *(Late Reporting)*' : (isCustom ? ' *(Special Timing)*' : ''));
+        const sLocId = schedule?.locationId;
+        const assignedLoc = savedLocations.find(l => l.id === sLocId);
+        const locTag = assignedLoc ? ` • 📍 Post: ${assignedLoc.name}` : '';
 
         message += `${index + 1}. *${user.name}* (${user.employee_id})\n`;
-        message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}\n`;
+        message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}${locTag}\n`;
       });
 
       message += `\n------------------------------------------\n`;
-      message += `_Fall-in at parade ground in proper uniform. Jai Hind!_`;
+      message += `_Fall-in at assigned ground/post in proper uniform. Jai Hind!_`;
 
       const encodedMessage = encodeURIComponent(message);
       window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
@@ -378,6 +430,9 @@ const TodayRoaster: React.FC = () => {
       if (sessionStatus?.is_active && sessionObj?.title) {
         message += `🎖️ Parade Session: ${sessionObj.title}\n`;
         message += `⏰ Session Timings: ${formatTime12h(defStartTime)} - ${formatTime12h(defEndTime)}\n`;
+        if (sessionObj.location?.name) {
+          message += `📍 Session Ground: ${sessionObj.location.name}\n`;
+        }
       }
       message += `------------------------------------------\n\n`;
       message += `Cadet Reporting Schedule:\n`;
@@ -388,13 +443,16 @@ const TodayRoaster: React.FC = () => {
         const eTime = schedule?.endTime || defEndTime;
         const isCustom = sTime !== defStartTime || eTime !== defEndTime;
         const customTag = sTime < defStartTime ? ' (Early Duty)' : (sTime > defStartTime ? ' (Late Reporting)' : (isCustom ? ' (Special Timing)' : ''));
+        const sLocId = schedule?.locationId;
+        const assignedLoc = savedLocations.find(l => l.id === sLocId);
+        const locTag = assignedLoc ? ` • Post: ${assignedLoc.name}` : '';
 
         message += `${index + 1}. ${user.name} (${user.employee_id})\n`;
-        message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}\n`;
+        message += `   Timing: ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}${locTag}\n`;
       });
 
       message += `\n------------------------------------------\n`;
-      message += `Fall-in at parade ground in proper uniform. Jai Hind!`;
+      message += `Fall-in at assigned ground/post in proper uniform. Jai Hind!`;
 
       await navigator.clipboard.writeText(message);
       setCopySuccess(true);
@@ -527,7 +585,11 @@ const TodayRoaster: React.FC = () => {
                       : 'bg-blue-50 text-[#2D3092] border-[#2D3092]/30'
                   }`}>
                     <MapPin className="w-3 h-3" />
-                    <span>{sessionStatus.session?.require_location === false ? 'Location: OFF (Multi-Post Open Duty)' : 'Location: ON (Ground Geofenced)'}</span>
+                    <span>
+                      {sessionStatus.session?.require_location === false 
+                        ? 'Location: OFF (Multi-Post Open Duty)' 
+                        : `Location: ON (${sessionStatus.session?.location?.name || 'Ground Geofenced'} • ${sessionStatus.session?.location?.radius_meters || 100}m)`}
+                    </span>
                   </span>
                 )}
                 <span className="text-xs font-mono font-bold text-slate-500">
@@ -734,6 +796,41 @@ const TodayRoaster: React.FC = () => {
                           />
                         </div>
                       </div>
+
+                      {/* Duty Post / Station Selector */}
+                      {savedLocations.length > 0 && (
+                        <div className="pt-2.5 border-t border-slate-100 mt-2.5">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-[#2D3092]" />
+                              Assigned Duty Post / Station:
+                            </span>
+                            {schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || null) && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                                Special Post Assigned
+                              </span>
+                            )}
+                          </div>
+                          <select
+                            value={schedule?.locationId || ''}
+                            onChange={(e) => handleLocationChange(user.id, e.target.value ? Number(e.target.value) : null)}
+                            className={`w-full px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                              schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || null)
+                                ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-300/40'
+                                : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 focus:bg-white focus:border-[#2D3092]'
+                            }`}
+                          >
+                            <option value="">
+                              Session Ground (Default: {sessionStatus?.session?.location?.name || 'Main Parade Ground'})
+                            </option>
+                            {savedLocations.map((loc) => (
+                              <option key={loc.id} value={loc.id}>
+                                {loc.name} {loc.id === sessionStatus?.session?.location_id ? '(Current Session Ground)' : ''} • {loc.radius_meters}m
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1030,6 +1127,33 @@ const TodayRoaster: React.FC = () => {
                     className="mt-1 w-4 h-4 text-[#EF1C25] border-gray-300 rounded focus:ring-[#EF1C25] cursor-pointer"
                   />
                 </label>
+
+                {/* If location verification is enabled, select primary session ground */}
+                {requireLocation && (
+                  <div className="pt-2.5 border-t border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Primary Session Duty Ground / Station
+                    </label>
+                    {savedLocations.length === 0 ? (
+                      <p className="text-[11px] text-slate-500 italic">
+                        No saved locations found. Go to Settings to add parade grounds or duty posts.
+                      </p>
+                    ) : (
+                      <select
+                        value={sessionLocationId || ''}
+                        onChange={(e) => setSessionLocationId(e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                      >
+                        <option value="">Default Unit Ground</option>
+                        {savedLocations.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name} {loc.is_default ? '(Default Ground)' : ''} • {loc.radius_meters}m
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="pt-1">

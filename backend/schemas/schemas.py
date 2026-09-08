@@ -82,7 +82,36 @@ class SettingsUpdate(BaseModel):
 class DeleteAccountRequest(BaseModel):
     confirmation: str
 
-# Shift schemas are removed as per requirements.
+# Saved Location Schemas
+class SavedLocationBase(BaseModel):
+    name: str
+    maps_link: Optional[str] = None
+    latitude: float
+    longitude: float
+    radius_meters: int = 100
+    is_default: bool = False
+
+class SavedLocationCreate(BaseModel):
+    name: str
+    maps_link: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    radius_meters: int = 100
+    is_default: bool = False
+
+class SavedLocationUpdate(BaseModel):
+    name: Optional[str] = None
+    maps_link: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    radius_meters: Optional[int] = None
+    is_default: Optional[bool] = None
+
+class SavedLocationResponse(SavedLocationBase):
+    id: int
+    tenant_id: int
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class DailyRoasterBase(BaseModel):
     user_id: int
@@ -91,12 +120,14 @@ class DailyRoasterBase(BaseModel):
     end_time: Optional[str] = None    # Changed from time to str for SQLite compatibility
     is_leave: bool = False
     is_week_off: bool = False
+    location_id: Optional[int] = None
 
 class DailyRoasterCreate(DailyRoasterBase):
     pass
 
 class DailyRoasterResponse(DailyRoasterBase):
     id: int
+    location: Optional[SavedLocationResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
 class AttendanceSessionBase(BaseModel):
@@ -106,6 +137,7 @@ class AttendanceSessionBase(BaseModel):
     end_time: Optional[str] = None
     notes: Optional[str] = None
     require_location: bool = True
+    location_id: Optional[int] = None
 
 class AttendanceSessionCreate(AttendanceSessionBase):
     send_notification: bool = True
@@ -115,6 +147,7 @@ class AttendanceSessionResponse(AttendanceSessionBase):
     tenant_id: int
     is_active: bool
     require_location: bool = True
+    location: Optional[SavedLocationResponse] = None
     created_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
 

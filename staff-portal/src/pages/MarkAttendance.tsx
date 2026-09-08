@@ -2,9 +2,19 @@ import React, { useRef, useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { useNavigate } from 'react-router-dom';
 import api, { getApiErrorMessage } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { Camera, MapPin, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
+interface DutyLocationInfo {
+  id?: number;
+  name: string;
+  radius_meters: number;
+  maps_link?: string;
+  is_custom_post: boolean;
+}
+
 const MarkAttendance: React.FC = () => {
+  const { user } = useAuth();
   const webcamRef = useRef<Webcam>(null);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -15,6 +25,7 @@ const MarkAttendance: React.FC = () => {
   const [sessionActive, setSessionActive] = useState<boolean>(true);
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [requireLocation, setRequireLocation] = useState<boolean>(true);
+  const [dutyLocation, setDutyLocation] = useState<DutyLocationInfo | null>(null);
   const navigate = useNavigate();
 
   const getLocation = () => {
@@ -50,6 +61,39 @@ const MarkAttendance: React.FC = () => {
           if (res.data.session) {
             setSessionTitle(res.data.session.title);
             setRequireLocation(res.data.session.require_location !== false);
+            if (res.data.session.location) {
+              setDutyLocation({
+                id: res.data.session.location.id,
+                name: res.data.session.location.name,
+                radius_meters: res.data.session.location.radius_meters,
+                maps_link: res.data.session.location.maps_link,
+                is_custom_post: false,
+              });
+            }
+          }
+        }
+
+        // Check if current cadet has a specific duty assignment for today
+        if (user?.id) {
+          const todayDate = new Date().toISOString().split('T')[0];
+          try {
+            const roasterRes = await api.get('/roaster/staff/my-roaster', {
+              params: { start_date: todayDate, end_date: todayDate }
+            });
+            if (Array.isArray(roasterRes.data) && roasterRes.data.length > 0) {
+              const cadetRoaster = roasterRes.data[0];
+              if (cadetRoaster.location) {
+                setDutyLocation({
+                  id: cadetRoaster.location.id,
+                  name: cadetRoaster.location.name,
+                  radius_meters: cadetRoaster.location.radius_meters,
+                  maps_link: cadetRoaster.location.maps_link,
+                  is_custom_post: true,
+                });
+              }
+            }
+          } catch {
+            // Optional
           }
         }
       } catch {
@@ -59,7 +103,7 @@ const MarkAttendance: React.FC = () => {
       }
     };
     checkSession();
-  }, []);
+  }, [user?.id]);
 
   const capture = () => {
     if (webcamRef.current) {
@@ -231,9 +275,9 @@ const MarkAttendance: React.FC = () => {
               ? 'bg-[#00AEEF]/10 border-[#00AEEF]/40' 
               : 'bg-white border-slate-200 shadow-sm'
         }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl ${
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-3">
+              <div className={`p-2.5 rounded-xl shrink-0 mt-0.5 ${
                 !requireLocation
                   ? 'bg-amber-500 text-white'
                   : location 
@@ -243,22 +287,45 @@ const MarkAttendance: React.FC = () => {
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-black text-[#2D3092] text-sm">
-                  {!requireLocation ? 'Open Location Mode (Geofence OFF)' : 'Session Ground GPS Access'}
-                </p>
-                <p className="text-xs font-semibold text-slate-500">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="font-black text-[#2D3092] text-sm">
+                    {!requireLocation
+                      ? 'Open Location Mode (Geofence OFF)'
+                      : dutyLocation
+                        ? `${dutyLocation.is_custom_post ? 'Assigned Duty Post' : 'Parade Ground'}: ${dutyLocation.name}`
+                        : 'Session Ground GPS Access'}
+                  </p>
+                  {requireLocation && dutyLocation?.is_custom_post && (
+                    <span className="px-2 py-0.5 bg-[#EF1C25] text-white text-[10px] font-black uppercase rounded-md tracking-wider">
+                      Specific Station
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
                   {!requireLocation
                     ? 'Instructor disabled geofence for multi-post/distributed duty. GPS optional.'
-                    : location 
-                      ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` 
-                      : 'Required for geofence verification'}
+                    : dutyLocation
+                      ? `Within ${dutyLocation.radius_meters}m perimeter • ${location ? `GPS: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Waiting for GPS fix...'}`
+                      : location 
+                        ? `GPS: ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` 
+                        : 'Required for geofence verification'}
                 </p>
+                {requireLocation && dutyLocation?.maps_link && (
+                  <a
+                    href={dutyLocation.maps_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#EF1C25] hover:underline mt-1"
+                  >
+                    Open Post on Google Maps →
+                  </a>
+                )}
               </div>
             </div>
             {requireLocation && !location && (
               <button
                 onClick={getLocation}
-                className="text-xs font-black text-[#EF1C25] bg-[#EF1C25]/10 px-3 py-1.5 rounded-xl hover:bg-[#EF1C25] hover:text-white transition-all cursor-pointer"
+                className="text-xs font-black text-[#EF1C25] bg-[#EF1C25]/10 px-3 py-1.5 rounded-xl hover:bg-[#EF1C25] hover:text-white transition-all cursor-pointer shrink-0"
               >
                 Allow GPS
               </button>

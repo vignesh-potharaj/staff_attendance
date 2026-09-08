@@ -29,6 +29,20 @@ interface CadetAttendanceSummary {
     title?: string | null;
     start_time?: string | null;
     end_time?: string | null;
+    require_location?: boolean;
+    location?: {
+      id: number;
+      name: string;
+      radius_meters: number;
+      maps_link?: string;
+    } | null;
+  } | null;
+  duty_location?: {
+    id: number;
+    name: string;
+    radius_meters: number;
+    maps_link?: string;
+    is_custom_post: boolean;
   } | null;
 }
 
@@ -428,7 +442,7 @@ const Dashboard: React.FC = () => {
               )}
             </div>
           ) : summary?.session?.is_active ? (
-            <div className="space-y-1 mt-2">
+            <div className="space-y-1.5 mt-2">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
                 <span>Live Session: {summary.session.title || 'Parade / Drill'} (OPEN)</span>
@@ -436,6 +450,19 @@ const Dashboard: React.FC = () => {
               <p className="text-xs text-slate-500">
                 Drill Timings: {summary.session.start_time || '07:00'} → {summary.session.end_time || '09:30'} • Mark your attendance with GPS + Selfie
               </p>
+              {summary.session.require_location === false ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold">
+                  <MapPin className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Open Location Mode (Instructor disabled geofence for multi-station deployment)</span>
+                </div>
+              ) : summary.duty_location ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#2D3092] text-xs font-semibold">
+                  <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" />
+                  <span>
+                    {summary.duty_location.is_custom_post ? 'Assigned Duty Post' : 'Parade Ground'}: <strong className="font-bold text-[#2D3092]">{summary.duty_location.name}</strong> (within {summary.duty_location.radius_meters}m)
+                  </span>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="space-y-1 mt-2">
@@ -523,23 +550,41 @@ const Dashboard: React.FC = () => {
 
           {/* Location & Attendance Rules Card */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-            <p className="text-xs font-bold text-[#2D3092] uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" /> Session Ground Geofence
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-[#2D3092] uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-[#EF1C25]" />
+                {summary?.duty_location?.is_custom_post ? 'Assigned Duty Station' : 'Session Ground Geofence'}
+              </p>
+              {summary?.duty_location?.is_custom_post && (
+                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-800">
+                  Cadet Station
+                </span>
+              )}
+            </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600 font-medium">Reporting Location</span>
+                <span className="text-sm font-black text-slate-900 truncate max-w-[200px]" title={summary?.duty_location?.name || user?.tenant_name}>
+                  {summary?.duty_location?.name || user?.tenant_name || 'Designated Ground'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-600 font-medium">Allowed Radius</span>
-                <span className="text-sm font-black text-slate-900">{user?.geofence_radius_meters || 100} meters</span>
+                <span className="text-sm font-black text-slate-900">
+                  {summary?.duty_location?.radius_meters || user?.geofence_radius_meters || 100} meters
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-slate-600 font-medium">Verification</span>
-                <span className="text-sm font-bold text-[#00AEEF]">GPS & Selfie Photo</span>
+                <span className="text-sm font-bold text-[#00AEEF]">
+                  {summary?.session?.require_location === false ? 'GPS Optional (Open)' : 'GPS & Selfie Photo'}
+                </span>
               </div>
-              {user?.geofence_maps_link && (
+              {(summary?.duty_location?.maps_link || user?.geofence_maps_link) && (
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-sm text-slate-600 font-medium">Session Location</span>
+                  <span className="text-sm text-slate-600 font-medium">Map Link</span>
                   <a
-                    href={user.geofence_maps_link}
+                    href={summary?.duty_location?.maps_link || user?.geofence_maps_link}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-bold text-[#EF1C25] hover:underline flex items-center gap-1"

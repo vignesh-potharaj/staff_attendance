@@ -61,6 +61,12 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
                 "end_time": end_str,
                 "is_leave": bool(record.is_leave) if record.is_leave is not None else False,
                 "is_week_off": bool(record.is_week_off) if record.is_week_off is not None else False,
+                "location_id": record.location_id,
+                "location": {
+                    "id": record.location.id,
+                    "name": record.location.name,
+                    "radius_meters": record.location.radius_meters
+                } if getattr(record, "location", None) else None,
             })
         
         logger.info(f"Returned {len(result)} roaster records for date {date}")
@@ -121,6 +127,7 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                     
                 setattr(record, 'is_leave', 1 if schedule.is_leave else 0)
                 setattr(record, 'is_week_off', 1 if schedule.is_week_off else 0)
+                setattr(record, 'location_id', schedule.location_id)
             else:
                 # Create new record
                 start_time = None
@@ -147,8 +154,10 @@ def update_daily_roaster(date: str, schedules: List[DailyRoasterCreate], db: Ses
                     start_time=start_time,
                     end_time=end_time,
                     is_leave=1 if schedule.is_leave else 0,
-                    is_week_off=1 if schedule.is_week_off else 0
+                    is_week_off=1 if schedule.is_week_off else 0,
+                    location_id=schedule.location_id
                 )
+                db.add(new_record)
         db.commit()
 
         # Trigger Web Push notification to affected staff users
@@ -221,6 +230,13 @@ def get_my_roaster(
                 "end_time": end_str,
                 "is_leave": bool(record.is_leave) if record.is_leave is not None else False,
                 "is_week_off": bool(record.is_week_off) if record.is_week_off is not None else False,
+                "location_id": record.location_id,
+                "location": {
+                    "id": record.location.id,
+                    "name": record.location.name,
+                    "radius_meters": record.location.radius_meters,
+                    "maps_link": record.location.maps_link,
+                } if getattr(record, "location", None) else None,
             })
 
         return result
@@ -288,6 +304,12 @@ def get_session_status(
             "end_time": _format_time_obj(session.end_time),
             "is_active": bool(session.is_active),
             "require_location": bool(getattr(session, "require_location", 1)),
+            "location_id": session.location_id,
+            "location": {
+                "id": session.location.id,
+                "name": session.location.name,
+                "radius_meters": session.location.radius_meters
+            } if getattr(session, "location", None) else None,
             "notes": session.notes
         }
     }
@@ -330,6 +352,7 @@ def activate_session(
             session.end_time = end_time_parsed
             session.is_active = 1
             session.require_location = require_location_val
+            session.location_id = payload.location_id
             session.notes = payload.notes
         else:
             old_start = None
@@ -342,6 +365,7 @@ def activate_session(
                 end_time=end_time_parsed,
                 is_active=1,
                 require_location=require_location_val,
+                location_id=payload.location_id,
                 notes=payload.notes,
                 created_by=current_user.id
             )
@@ -407,7 +431,13 @@ def activate_session(
                 "start_time": _format_time_obj(session.start_time),
                 "end_time": _format_time_obj(session.end_time),
                 "is_active": True,
-                "require_location": bool(getattr(session, "require_location", 1))
+                "require_location": bool(getattr(session, "require_location", 1)),
+                "location_id": session.location_id,
+                "location": {
+                    "id": session.location.id,
+                    "name": session.location.name,
+                    "radius_meters": session.location.radius_meters
+                } if getattr(session, "location", None) else None
             }
         }
     except HTTPException:
