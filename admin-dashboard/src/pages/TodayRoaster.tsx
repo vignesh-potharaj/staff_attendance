@@ -551,130 +551,160 @@ const TodayRoaster: React.FC = () => {
             return (
               <div 
                 key={user.id}
-                className={`relative rounded-xl border backdrop-blur-sm transition-all duration-300 overflow-hidden p-4 sm:p-5 ${
-                  schedule?.isWeekOff
-                    ? 'bg-slate-50 border-slate-200'
-                    : schedule?.isLeave
-                    ? 'bg-amber-50 border-amber-200'
-                    : 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-md'
+                className={`relative rounded-2xl border transition-all duration-300 overflow-hidden p-4 sm:p-5 shadow-xs hover:shadow-md ${
+                  schedule?.isLeave
+                    ? 'bg-red-50/40 border-red-200'
+                    : schedule?.isWeekOff
+                    ? 'bg-amber-50/40 border-amber-200'
+                    : 'bg-white border-slate-200 hover:border-[#2D3092]/40'
                 }`}
               >
-                {/* Timeline top border */}
-                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
-                  schedule?.isWeekOff
-                    ? 'from-slate-300 to-slate-400'
-                    : schedule?.isLeave
-                    ? 'from-amber-400 to-orange-500'
-                    : 'from-indigo-400 to-blue-600'
-                }`} />
+                {/* NCC Tri-Color Ribbon Top Bar */}
+                <div className="absolute top-0 left-0 right-0 h-1.5 flex z-10">
+                  <div className="h-full flex-1 bg-[#EF1C25]" title="Army Red" />
+                  <div className="h-full flex-1 bg-[#2D3092]" title="Navy Deep Blue" />
+                  <div className="h-full flex-1 bg-[#00AEEF]" title="Air Force Light Blue" />
+                </div>
 
-                {/* Card content - vertical layout */}
-                <div className="space-y-3">
-                  {/* Header: Avatar + Name + ID */}
+                {/* Card content */}
+                <div className="space-y-3.5 pt-1">
+                  {/* Header: Cadet Avatar + Name + Regimental No */}
                   <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gradient-to-br from-indigo-400 to-blue-500 flex items-center justify-center shadow-md">
-                      <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
+                      <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFCB06]" />
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-base sm:text-lg font-bold text-slate-900">
-                        {user.name}
-                      </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        ID: {user.employee_id}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+                          {user.name}
+                        </h3>
+                        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#2D3092]/10 text-[#2D3092] border border-[#2D3092]/20">
+                          Cadet
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          Regt No: {user.employee_id}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Status Options: Present, Week Off, Leave */}
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center cursor-pointer gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={schedule?.isPresent || false}
-                        onChange={(e) => handleToggle(user.id, 'isPresent', e.target.checked)}
-                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer"
-                      />
-                      <span className="text-sm font-medium text-gray-700">Present</span>
-                    </label>
+                  {/* Duty Status Selector Pills */}
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Session Drill Status
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(user.id, 'isPresent', true)}
+                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          schedule?.isPresent
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-500/20'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
+                        <span>Present</span>
+                      </button>
 
-                    <label className="flex items-center cursor-pointer gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={schedule?.isWeekOff || false}
-                        onChange={(e) => handleToggle(user.id, 'isWeekOff', e.target.checked)}
-                        className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500 cursor-pointer"
-                      />
-                      <span className="text-sm font-medium text-gray-700">Week Off</span>
-                    </label>
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(user.id, 'isWeekOff', true)}
+                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          schedule?.isWeekOff
+                            ? 'bg-amber-600 text-white border-amber-700 shadow-sm ring-2 ring-amber-500/20'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${schedule?.isWeekOff ? 'bg-white' : 'bg-amber-500'}`}></span>
+                        <span>Week Off</span>
+                      </button>
 
-                    <label className="flex items-center cursor-pointer gap-2">
-                      <input 
-                        type="checkbox" 
-                        checked={schedule?.isLeave || false}
-                        onChange={(e) => handleToggle(user.id, 'isLeave', e.target.checked)}
-                        className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
-                      />
-                      <span className="text-sm font-medium text-gray-700">Leave</span>
-                    </label>
+                      <button
+                        type="button"
+                        onClick={() => handleToggle(user.id, 'isLeave', true)}
+                        className={`px-2.5 py-2 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-1.5 cursor-pointer ${
+                          schedule?.isLeave
+                            ? 'bg-[#EF1C25] text-white border-red-700 shadow-sm ring-2 ring-red-500/20'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
+                        <span>Leave</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Time Display */}
-                  <div className="bg-white/60 backdrop-blur rounded-lg p-3 border border-white/80">
-                    <p className="text-xs text-slate-600 font-medium mb-1 uppercase tracking-wide">Shift Time</p>
-                    <p className="text-lg sm:text-xl font-bold text-slate-900">
-                      {schedule?.isLeave
-                        ? 'On Leave'
-                        : schedule?.isWeekOff
-                        ? 'Week Off'
-                        : schedule?.isPresent && schedule?.startTime && schedule?.endTime
-                        ? `${schedule.startTime} → ${schedule.endTime}`
-                        : 'Not set'
-                      }
-                    </p>
+                  {/* Parade Timing Display Box */}
+                  <div className="bg-slate-50/90 rounded-xl p-3 border border-slate-200/80 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        Parade / Drill Timing
+                      </p>
+                      <p className="text-base sm:text-lg font-black text-[#2D3092]">
+                        {schedule?.isLeave
+                          ? 'Sanctioned Leave'
+                          : schedule?.isWeekOff
+                          ? 'Exempt / Week Off'
+                          : schedule?.isPresent && schedule?.startTime && schedule?.endTime
+                          ? `${formatTime12h(schedule.startTime)} → ${formatTime12h(schedule.endTime)}`
+                          : 'Timing Not Assigned'
+                        }
+                      </p>
+                    </div>
+                    <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-[#2D3092] shadow-xs">
+                      <Clock className="w-4 h-4 text-[#2D3092]" />
+                    </div>
                   </div>
 
-                  {/* Time Inputs - Only show when Present is selected */}
+                  {/* Time Inputs - Show when Present */}
                   {schedule?.isPresent && (
-                    <div className="flex items-center gap-2 bg-green-50 p-3 rounded-lg border border-green-200">
-                      <span className="text-xs font-medium text-green-700 min-w-fit">Time:</span>
+                    <div className="flex items-center gap-2 bg-[#2D3092]/5 p-2.5 rounded-xl border border-[#2D3092]/20">
+                      <span className="text-xs font-bold text-[#2D3092] min-w-fit flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-[#2D3092]" />
+                        <span>Drill Hours:</span>
+                      </span>
                       <input 
                         type="time" 
                         title="Start Time"
                         value={schedule?.startTime || ''}
                         onChange={(e) => handleTimeChange(user.id, 'startTime', e.target.value)}
-                        className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
+                        className="block rounded-lg border-slate-300 shadow-xs focus:border-[#2D3092] focus:ring-2 focus:ring-[#2D3092] text-xs font-bold text-slate-800 p-1.5 border bg-white flex-1"
                       />
-                      <span className="text-gray-400 text-xs px-1">to</span>
+                      <span className="text-slate-400 text-xs font-bold px-1">to</span>
                       <input 
                         type="time" 
                         title="End Time"
                         value={schedule?.endTime || ''}
                         onChange={(e) => handleTimeChange(user.id, 'endTime', e.target.value)}
-                        className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-xs p-1.5 border bg-white flex-1"
+                        className="block rounded-lg border-slate-300 shadow-xs focus:border-[#2D3092] focus:ring-2 focus:ring-[#2D3092] text-xs font-bold text-slate-800 p-1.5 border bg-white flex-1"
                       />
                     </div>
                   )}
 
-                  {/* Status Badge */}
-                  <div className="flex justify-end pt-2 border-t border-slate-200">
+                  {/* Status Badge Footer */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Duty Record</span>
                     {schedule?.isLeave ? (
-                      <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-red-100 text-red-800 items-center gap-1">
+                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-red-100 text-red-800 border border-red-200 items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                        Leave
+                        LEAVE
                       </span>
                     ) : schedule?.isWeekOff ? (
-                      <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-amber-100 text-amber-800">
-                        Week Off
+                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-amber-100 text-amber-900 border border-amber-200">
+                        WEEK OFF
                       </span>
                     ) : schedule?.isPresent && (schedule?.startTime && schedule?.endTime) ? (
-                      <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-bold rounded-lg bg-green-100 text-green-800 items-center gap-1">
-                         <Clock className="w-3 h-3" />
-                         On Duty
+                      <span className="px-2.5 py-1 inline-flex text-xs font-black rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                        ON PARADE ({formatTime12h(schedule.startTime)} - {formatTime12h(schedule.endTime)})
                       </span>
                     ) : (
-                      <span className="px-3 py-1.5 inline-flex text-xs leading-5 font-medium rounded-lg bg-gray-100 text-gray-800">
-                        Pending
+                      <span className="px-2.5 py-1 inline-flex text-xs font-bold rounded-lg bg-slate-100 text-slate-600 border border-slate-200">
+                        PENDING
                       </span>
                     )}
                   </div>
