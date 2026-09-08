@@ -426,27 +426,29 @@ const TodayRoaster: React.FC = () => {
             </h2>
             <p className="text-xs text-slate-500 font-bold mt-1">Assign drill timings and publish the session schedule</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleSaveAndCopy}
-              className={`px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-sm ${
-                copySuccess 
-                  ? 'bg-[#00AEEF] text-white' 
-                  : 'bg-[#2D3092] hover:bg-[#3F43B5] text-white border-b-2 border-[#FFCB06]'
-              }`}
-              title="Save roaster and copy to clipboard"
-            >
-              <Copy className="w-4 h-4 text-[#FFCB06]" />
-              <span>{copySuccess ? 'Copied!' : 'Save & Copy'}</span>
-            </button>
-            <button
-              onClick={handleSaveAndShare}
-              className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all font-bold text-sm"
-            >
-              <Share2 className="w-4 h-4 text-[#FFCB06]" />
-              <span>Share on WhatsApp</span>
-            </button>
-          </div>
+          {sessionStatus?.is_active && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleSaveAndCopy}
+                className={`px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md transition-all font-bold text-sm cursor-pointer ${
+                  copySuccess 
+                    ? 'bg-[#00AEEF] text-white' 
+                    : 'bg-[#2D3092] hover:bg-[#3F43B5] text-white border-b-2 border-[#FFCB06]'
+                }`}
+                title="Save roaster and copy to clipboard"
+              >
+                <Copy className="w-4 h-4 text-[#FFCB06]" />
+                <span>{copySuccess ? 'Copied!' : 'Save & Copy'}</span>
+              </button>
+              <button
+                onClick={handleSaveAndShare}
+                className="bg-[#EF1C25] hover:bg-[#C7131B] text-white px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-md border-b-2 border-[#FFCB06] transition-all font-bold text-sm cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-[#FFCB06]" />
+                <span>Share on WhatsApp</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* NCC On-Demand Parade Session Status & Activation Card */}
@@ -534,107 +536,132 @@ const TodayRoaster: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {users.map((user) => {
-            const schedule = schedules[user.id];
-            
-            return (
-              <div 
-                key={user.id}
-                className={`relative rounded-2xl border transition-all duration-300 overflow-hidden p-4 sm:p-5 shadow-xs hover:shadow-md ${
-                  schedule?.isLeave
-                    ? 'bg-red-50/40 border-red-200'
-                    : 'bg-white border-slate-200 hover:border-[#2D3092]/40'
-                }`}
-              >
-                {/* NCC Tri-Color Ribbon Top Bar */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 flex z-10">
-                  <div className="h-full flex-1 bg-[#EF1C25]" title="Army Red" />
-                  <div className="h-full flex-1 bg-[#2D3092]" title="Navy Deep Blue" />
-                  <div className="h-full flex-1 bg-[#00AEEF]" title="Air Force Light Blue" />
-                </div>
-
-                {/* Card content */}
-                <div className="space-y-3.5 pt-1">
-                  {/* Header: Cadet Avatar + Name + Regimental No + Status Badge */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
-                        <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFCB06]" />
-                      </div>
-                      
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
-                            {user.name}
-                          </h3>
-                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#2D3092]/10 text-[#2D3092] border border-[#2D3092]/20">
-                            Cadet
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                            Regt No: {user.employee_id}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Status Badge in Header */}
-                    <div className="shrink-0">
-                      {schedule?.isLeave ? (
-                        <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-red-100 text-red-800 border border-red-200 items-center gap-1.5 shadow-2xs">
-                          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                          ON LEAVE
-                        </span>
-                      ) : schedule?.isPresent ? (
-                        <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5 shadow-2xs">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                          PRESENT
-                        </span>
-                      ) : (
-                        <span className="px-3 py-1.5 inline-flex text-xs font-bold rounded-xl bg-slate-100 text-slate-600 border border-slate-200">
-                          PENDING
-                        </span>
-                      )}
-                    </div>
+        {sessionStatus?.is_active ? (
+          <div className="space-y-3">
+            {users.map((user) => {
+              const schedule = schedules[user.id];
+              
+              return (
+                <div 
+                  key={user.id}
+                  className={`relative rounded-2xl border transition-all duration-300 overflow-hidden p-4 sm:p-5 shadow-xs hover:shadow-md ${
+                    schedule?.isLeave
+                      ? 'bg-red-50/40 border-red-200'
+                      : 'bg-white border-slate-200 hover:border-[#2D3092]/40'
+                  }`}
+                >
+                  {/* NCC Tri-Color Ribbon Top Bar */}
+                  <div className="absolute top-0 left-0 right-0 h-1.5 flex z-10">
+                    <div className="h-full flex-1 bg-[#EF1C25]" title="Army Red" />
+                    <div className="h-full flex-1 bg-[#2D3092]" title="Navy Deep Blue" />
+                    <div className="h-full flex-1 bg-[#00AEEF]" title="Air Force Light Blue" />
                   </div>
 
-                  {/* Duty Status Selector: Present vs Leave */}
-                  <div className="pt-0.5">
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <button
-                        type="button"
-                        onClick={() => handleToggle(user.id, 'isPresent', true)}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
-                          schedule?.isPresent
-                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-500/20'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
-                        <span>Present (Fall-In)</span>
-                      </button>
+                  {/* Card content */}
+                  <div className="space-y-3.5 pt-1">
+                    {/* Header: Cadet Avatar + Name + Regimental No + Status Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[#2D3092] border-2 border-[#FFCB06]/40 flex items-center justify-center shadow-xs text-white">
+                          <UserIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#FFCB06]" />
+                        </div>
+                        
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+                              {user.name}
+                            </h3>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-[#2D3092]/10 text-[#2D3092] border border-[#2D3092]/20">
+                              Cadet
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              Regt No: {user.employee_id}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleToggle(user.id, 'isLeave', true)}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
-                          schedule?.isLeave
-                            ? 'bg-[#EF1C25] text-white border-red-700 shadow-sm ring-2 ring-red-500/20'
-                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                        }`}
-                      >
-                        <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
-                        <span>On Leave</span>
-                      </button>
+                      {/* Status Badge in Header */}
+                      <div className="shrink-0">
+                        {schedule?.isLeave ? (
+                          <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-red-100 text-red-800 border border-red-200 items-center gap-1.5 shadow-2xs">
+                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                            ON LEAVE
+                          </span>
+                        ) : schedule?.isPresent ? (
+                          <span className="px-3 py-1.5 inline-flex text-xs font-black rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 items-center gap-1.5 shadow-2xs">
+                            <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                            PRESENT
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1.5 inline-flex text-xs font-bold rounded-xl bg-slate-100 text-slate-600 border border-slate-200">
+                            PENDING
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Duty Status Selector: Present vs Leave */}
+                    <div className="pt-0.5">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(user.id, 'isPresent', true)}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                            schedule?.isPresent
+                              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-2 ring-emerald-500/20'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isPresent ? 'bg-white' : 'bg-emerald-500'}`}></span>
+                          <span>Present (Fall-In)</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleToggle(user.id, 'isLeave', true)}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-black transition-all border flex items-center justify-center gap-2 cursor-pointer ${
+                            schedule?.isLeave
+                              ? 'bg-[#EF1C25] text-white border-red-700 shadow-sm ring-2 ring-red-500/20'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className={`w-2.5 h-2.5 rounded-full ${schedule?.isLeave ? 'bg-white' : 'bg-[#EF1C25]'}`}></span>
+                          <span>On Leave</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-[#2D3092]/10 border border-[#2D3092]/20 flex items-center justify-center mx-auto mb-3.5 text-[#2D3092]">
+              <CalendarIcon className="w-7 h-7 text-[#2D3092]" />
+            </div>
+            <h3 className="text-base sm:text-lg font-black text-slate-900 uppercase tracking-tight">
+              Cadet Roster Hidden (No Active Session)
+            </h3>
+            <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto mt-1.5 leading-relaxed font-medium">
+              Individual cadet cards and drill rosters are only displayed during an active parade session. Click <span className="font-bold text-[#2D3092]">"Activate Session"</span> above to conduct a drill and take attendance.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                populateSessionFields(sessionStatus?.session);
+                setIsSessionModalOpen(true);
+              }}
+              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#EF1C25] hover:bg-[#C7131B] text-white font-black text-xs sm:text-sm shadow-md border-b-2 border-[#FFCB06] transition-all cursor-pointer active:scale-95"
+            >
+              <Zap className="w-4 h-4 text-[#FFCB06] fill-[#FFCB06]" />
+              <span>Activate Parade Session</span>
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Roaster History Section */}
