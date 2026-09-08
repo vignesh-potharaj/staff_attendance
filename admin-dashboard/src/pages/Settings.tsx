@@ -415,55 +415,6 @@ const Settings: React.FC = () => {
                 <p className="mt-1 text-xs font-semibold text-slate-500">Role: <span className="text-[#2D3092] font-black">{settings?.role}</span></p>
               </div>
             </div>
-
-            <div className="mt-6 rounded-2xl border border-[#00AEEF]/30 bg-[#00AEEF]/5 p-5">
-              <div className="flex items-start gap-3">
-                <div className="rounded-xl bg-[#00AEEF] p-2.5 text-white shrink-0 shadow-md">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-black text-[#2D3092] text-base">Session Ground Geofence</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-600 font-medium">
-                    Paste a Google Maps link for the session ground. Cadets can mark attendance only within the configured radius of this location.
-                  </p>
-                  <label className="mt-4 block">
-                    <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Google Maps Link</span>
-                    <input
-                      value={formData.geofence_maps_link}
-                      onChange={(event) => setFormData({ ...formData, geofence_maps_link: event.target.value })}
-                      className="mt-1.5 block w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20"
-                      placeholder="https://www.google.com/maps/@12.9716,77.5946,18z"
-                    />
-                  </label>
-                  <label className="mt-4 block">
-                    <span className="text-xs font-bold text-[#2D3092] uppercase tracking-wider">Geofence Radius (meters)</span>
-                    <input
-                      type="number"
-                      min={10}
-                      max={5000}
-                      value={formData.geofence_radius_meters}
-                      onChange={(event) =>
-                        setFormData({
-                          ...formData,
-                          geofence_radius_meters: Number(event.target.value) || 0,
-                        })
-                      }
-                      className="mt-1.5 block w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20"
-                      placeholder="100"
-                    />
-                  </label>
-                  <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-semibold text-slate-700">
-                    {settings?.geofence_latitude != null && settings?.geofence_longitude != null ? (
-                      <span>
-                        Active fence: {settings.geofence_latitude.toFixed(6)}, {settings.geofence_longitude.toFixed(6)} with {settings.geofence_radius_meters}m radius.
-                      </span>
-                    ) : (
-                      <span>No geofence is active yet. Leave the link empty to keep location enforcement disabled.</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
             {/* Saved Duty & Parade Locations Card */}
             <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
