@@ -107,7 +107,12 @@ const TodayRoaster: React.FC = () => {
       if (session.end_time) setSessionEndTime(session.end_time.substring(0, 5));
       if (session.notes) setSessionNotes(session.notes);
       setRequireLocation(session.require_location !== false);
-      setSessionLocationId(session.location_id || null);
+      if (session.location_id) {
+        setSessionLocationId(session.location_id);
+      } else {
+        const defaultLoc = savedLocations.find(l => l.is_default) || savedLocations[0];
+        setSessionLocationId(defaultLoc ? defaultLoc.id : null);
+      }
     } else {
       setDrillType('Sunday Regular Parade');
       setSessionTitle('Sunday Regular Parade');
@@ -116,7 +121,7 @@ const TodayRoaster: React.FC = () => {
       setSessionEndTime('09:30');
       setRequireLocation(true);
       setSessionNotes('');
-      const defaultLoc = savedLocations.find(l => l.is_default);
+      const defaultLoc = savedLocations.find(l => l.is_default) || savedLocations[0];
       setSessionLocationId(defaultLoc ? defaultLoc.id : null);
     }
   };
@@ -821,7 +826,7 @@ const TodayRoaster: React.FC = () => {
                             }`}
                           >
                             <option value="">
-                              Session Ground (Default: {sessionStatus?.session?.location?.name || 'Main Parade Ground'})
+                              Session Ground {sessionStatus?.session?.location?.name ? `(${sessionStatus.session.location.name})` : ''}
                             </option>
                             {savedLocations.map((loc) => (
                               <option key={loc.id} value={loc.id}>
@@ -1140,14 +1145,13 @@ const TodayRoaster: React.FC = () => {
                       </p>
                     ) : (
                       <select
-                        value={sessionLocationId || ''}
+                        value={sessionLocationId || (savedLocations.find(l => l.is_default)?.id || savedLocations[0]?.id || '')}
                         onChange={(e) => setSessionLocationId(e.target.value ? Number(e.target.value) : null)}
                         className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
                       >
-                        <option value="">Default Unit Ground</option>
                         {savedLocations.map((loc) => (
                           <option key={loc.id} value={loc.id}>
-                            {loc.name} {loc.is_default ? '(Default Ground)' : ''} • {loc.radius_meters}m
+                            {loc.name} {loc.is_default ? '(Default)' : ''} • {loc.radius_meters}m
                           </option>
                         ))}
                       </select>
