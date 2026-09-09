@@ -460,6 +460,7 @@ def export_attendance_csv(
 
     for r in records:
         check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
+        status_str = r.status.value if hasattr(r.status, 'value') else str(r.status)
         writer.writerow([
             r.user.name,
             r.user.employee_id,
@@ -467,17 +468,18 @@ def export_attendance_csv(
             getattr(r, 'expected_fall_in_time', '07:00 AM'),
             r.check_in_time.strftime("%H:%M:%S"),
             check_out_str,
-            r.status,
+            status_str,
             r.latitude,
             r.longitude,
             r.device_info
         ])
 
     output.seek(0)
+    filename_part = f"{employee_id}_{date}" if (employee_id and date) else (employee_id or date or "all")
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=attendance_{date or 'all'}.csv"}
+        headers={"Content-Disposition": f"attachment; filename=attendance_{filename_part}.csv"}
     )
 
 @router.get("/export/monthly", dependencies=[Depends(get_current_admin)])
@@ -646,8 +648,11 @@ def get_staff_attendance_summary(
 ):
     """
     Returns cadet session drill attendance analytics:
-    - month_present_days: count of sessions attended in current month
-    - overall_present_days: total lifetime sessions attended
+    - month_present_days, overall_present_days
+    - month_total_sessions, overall_total_sessions
+    - month_attendance_pct, overall_attendance_pct
+    - month_late_count, overall_late_count
+    - month_absent_count, overall_absent_count
     - today: today's fall-in/visarjan status
     """
     if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
@@ -674,6 +679,31 @@ def get_staff_attendance_summary(
 
     overall_present_days = len({r.date for r in cadet_records if r.date})
     month_present_days = len({r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)})
+
+    # Unique session dates in this month for the tenant (from AttendanceSession)
+    month_sessions_query = db.query(AttendanceSession.date).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id,
+        AttendanceSession.date.like(f"{month_prefix}%")
+    ).distinct().all()
+    tenant_month_sessions_count = len(month_sessions_query) if month_sessions_query else len({r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)})
+
+    # Unique session dates all-time for the tenant (from AttendanceSession)
+    all_sessions_query = db.query(AttendanceSession.date).filter(
+        AttendanceSession.tenant_id == current_user.tenant_id
+    ).distinct().all()
+    tenant_overall_sessions_count = len(all_sessions_query) if all_sessions_query else len({r.date for r in cadet_records if r.date})
+
+    month_total_sessions = max(tenant_month_sessions_count, month_present_days)
+    overall_total_sessions = max(tenant_overall_sessions_count, overall_present_days)
+
+    month_attendance_pct = round((month_present_days / month_total_sessions * 100.0), 1) if month_total_sessions > 0 else 0.0
+    overall_attendance_pct = round((overall_present_days / overall_total_sessions * 100.0), 1) if overall_total_sessions > 0 else 0.0
+
+    month_late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE and r.date and r.date.startswith(month_prefix))
+    overall_late_count = sum(1 for r in cadet_records if r.status == AttendanceStatus.LATE)
+
+    month_absent_count = max(0, month_total_sessions - month_present_days)
+    overall_absent_count = max(0, overall_total_sessions - overall_present_days)
 
     today_record = db.query(Attendance).filter(
         Attendance.user_id == staff_id,
@@ -747,6 +777,14 @@ def get_staff_attendance_summary(
     return {
         "month_present_days": month_present_days,
         "overall_present_days": overall_present_days,
+        "month_total_sessions": month_total_sessions,
+        "overall_total_sessions": overall_total_sessions,
+        "month_attendance_pct": month_attendance_pct,
+        "overall_attendance_pct": overall_attendance_pct,
+        "month_late_count": month_late_count,
+        "overall_late_count": overall_late_count,
+        "month_absent_count": month_absent_count,
+        "overall_absent_count": overall_absent_count,
         "today": today_data,
         "session": session_info,
         "duty_location": duty_location,
@@ -756,16 +794,34 @@ def get_staff_attendance_summary(
 @router.get("/staff/{staff_id}")
 def get_staff_attendance_history(
     staff_id: int,
+    month: Optional[str] = None,
+    date: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 200,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
         raise HTTPException(status_code=403, detail="Not authorized to view this staff member's attendance.")
 
-    records = db.query(Attendance).filter(
+    target_user = db.query(User).filter(
+        User.id == staff_id,
+        User.tenant_id == current_user.tenant_id
+    ).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Cadet not found in this unit.")
+
+    query = db.query(Attendance).filter(
         Attendance.user_id == staff_id,
         Attendance.tenant_id == current_user.tenant_id
-    ).order_by(Attendance.date.desc(), Attendance.created_at.desc()).all()
+    )
+
+    if month:
+        query = query.filter(Attendance.date.like(f"{month}%"))
+    if date:
+        query = query.filter(Attendance.date == date)
+
+    records = query.order_by(Attendance.date.desc(), Attendance.created_at.desc()).offset(skip).limit(limit).all()
 
     populate_expected_fall_in_time(records, db)
 
@@ -780,6 +836,11 @@ def get_staff_attendance_history(
         result.append({
             "id": r.id,
             "user_id": r.user_id,
+            "user": {
+                "id": target_user.id,
+                "name": target_user.name,
+                "employee_id": target_user.employee_id,
+            },
             "date": r.date,
             "check_in_time": r.check_in_time.isoformat() if r.check_in_time else None,
             "check_out_time": r.check_out_time.isoformat() if r.check_out_time else None,
@@ -793,6 +854,81 @@ def get_staff_attendance_history(
             "device_info": r.device_info,
         })
     return result
+
+
+@router.get("/staff/{staff_id}/export")
+def export_staff_attendance_csv(
+    staff_id: int,
+    month: Optional[str] = None,
+    date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Exports a dedicated CSV log of all drill records for an individual cadet.
+    """
+    if current_user.role != RoleEnum.ADMIN and current_user.id != staff_id:
+        raise HTTPException(status_code=403, detail="Not authorized to export this staff member's attendance.")
+
+    target_user = db.query(User).filter(
+        User.id == staff_id,
+        User.tenant_id == current_user.tenant_id
+    ).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Cadet not found in this unit.")
+
+    query = db.query(Attendance).filter(
+        Attendance.user_id == staff_id,
+        Attendance.tenant_id == current_user.tenant_id
+    )
+    if month:
+        query = query.filter(Attendance.date.like(f"{month}%"))
+    if date:
+        query = query.filter(Attendance.date == date)
+
+    records = query.order_by(Attendance.date.desc(), Attendance.created_at.desc()).all()
+    populate_expected_fall_in_time(records, db)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Cadet Name",
+        "Cadet Regt ID",
+        "Date",
+        "Expected Fall-In",
+        "Fall-In Time",
+        "Visarjan Time",
+        "Status",
+        "Latitude",
+        "Longitude",
+        "Device Info"
+    ])
+
+    for r in records:
+        fall_in_str = r.check_in_time.strftime("%H:%M:%S") if getattr(r, 'check_in_time', None) else "N/A"
+        visarjan_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
+        status_str = r.status.value if hasattr(r.status, 'value') else str(r.status)
+        writer.writerow([
+            target_user.name,
+            target_user.employee_id,
+            r.date,
+            getattr(r, 'expected_fall_in_time', '07:00 AM'),
+            fall_in_str,
+            visarjan_str,
+            status_str,
+            r.latitude,
+            r.longitude,
+            r.device_info or ""
+        ])
+
+    output.seek(0)
+    filename_suffix = month or date or "all"
+    filename = f"attendance_{target_user.employee_id}_{filename_suffix}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.get("/staff/{staff_id}/today")

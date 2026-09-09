@@ -33,6 +33,14 @@ interface CadetOption {
 interface CadetSummary {
   month_present_days: number;
   overall_present_days: number;
+  month_total_sessions?: number;
+  overall_total_sessions?: number;
+  month_attendance_pct?: number;
+  overall_attendance_pct?: number;
+  month_late_count?: number;
+  overall_late_count?: number;
+  month_absent_count?: number;
+  overall_absent_count?: number;
 }
 
 const Attendance: React.FC = () => {
@@ -208,47 +216,60 @@ const Attendance: React.FC = () => {
     );
   });
 
-  const handleExportIndividual = () => {
+  const handleExportIndividual = async () => {
     if (!selectedCadet || cadetRecords.length === 0) {
       alert('No attendance records to export for this cadet.');
       return;
     }
 
-    const headers = [
-      'Cadet Name',
-      'Cadet Regt ID',
-      'Date',
-      'Expected Fall-In',
-      'Fall-In Time',
-      'Visarjan Time',
-      'Status',
-      'Latitude',
-      'Longitude',
-      'Device Info'
-    ];
+    try {
+      const response = await api.get(`/attendance/staff/${selectedCadet.id}/export`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance_${selectedCadet.employee_id}_all.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      const headers = [
+        'Cadet Name',
+        'Cadet Regt ID',
+        'Date',
+        'Expected Fall-In',
+        'Fall-In Time',
+        'Visarjan Time',
+        'Status',
+        'Latitude',
+        'Longitude',
+        'Device Info'
+      ];
 
-    const rows = cadetRecords.map(r => [
-      `"${(selectedCadet.name || '').replace(/"/g, '""')}"`,
-      `"${(selectedCadet.employee_id || '').replace(/"/g, '""')}"`,
-      `"${r.date || ''}"`,
-      `"${r.expected_fall_in_time || ''}"`,
-      `"${r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}"`,
-      `"${r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}"`,
-      `"${r.status || ''}"`,
-      r.latitude ?? '',
-      r.longitude ?? '',
-      `"${(r.device_info || '').replace(/"/g, '""')}"`
-    ]);
+      const rows = cadetRecords.map(r => [
+        `"${(selectedCadet.name || '').replace(/"/g, '""')}"`,
+        `"${(selectedCadet.employee_id || '').replace(/"/g, '""')}"`,
+        `"${r.date || ''}"`,
+        `"${r.expected_fall_in_time || ''}"`,
+        `"${r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}"`,
+        `"${r.check_out_time ? new Date(r.check_out_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}"`,
+        `"${r.status || ''}"`,
+        r.latitude ?? '',
+        r.longitude ?? '',
+        `"${(r.device_info || '').replace(/"/g, '""')}"`
+      ]);
 
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `cadet_${selectedCadet.employee_id}_attendance_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+      const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `attendance_${selectedCadet.employee_id}_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   };
 
   const renderAttendanceCard = (record: AttendanceRecord, cadetInfo?: { name: string; employee_id: string }) => {
@@ -645,21 +666,52 @@ const Attendance: React.FC = () => {
                 </div>
 
                 {/* Summary Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="bg-gradient-to-br from-indigo-50 to-blue-50/50 p-4 rounded-xl border border-indigo-100 shadow-sm">
                     <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">All-Time Drills</p>
-                    <p className="text-2xl font-black text-[#2D3092] mt-1">
-                      {cadetSummary?.overall_present_days ?? '—'}
-                    </p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <p className="text-2xl font-black text-[#2D3092]">
+                        {cadetSummary?.overall_present_days ?? '—'}
+                      </p>
+                      {cadetSummary?.overall_total_sessions ? (
+                        <span className="text-xs font-bold text-slate-500">
+                          / {cadetSummary.overall_total_sessions} Drills
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Lifetime attended drill sessions</p>
                   </div>
 
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 p-4 rounded-xl border border-emerald-100 shadow-sm">
                     <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">This Month's Drills</p>
-                    <p className="text-2xl font-black text-emerald-700 mt-1">
-                      {cadetSummary?.month_present_days ?? '—'}
-                    </p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <p className="text-2xl font-black text-emerald-700">
+                        {cadetSummary?.month_present_days ?? '—'}
+                      </p>
+                      {cadetSummary?.month_total_sessions ? (
+                        <span className="text-xs font-bold text-slate-500">
+                          / {cadetSummary.month_total_sessions} Sessions
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Sessions attended this month</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50/50 p-4 rounded-xl border border-blue-100 shadow-sm">
+                    <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Attendance Rate</p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <p className="text-2xl font-black text-[#2D3092]">
+                        {cadetSummary?.overall_attendance_pct != null ? `${cadetSummary.overall_attendance_pct}%` : '—'}
+                      </p>
+                      {cadetSummary?.month_attendance_pct != null && (
+                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          {cadetSummary.month_attendance_pct}% mo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-0.5 font-medium">
+                      {cadetSummary?.overall_late_count ? `${cadetSummary.overall_late_count} late arrivals recorded` : 'Overall parade attendance rate'}
+                    </p>
                   </div>
 
                   <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 p-4 rounded-xl border border-amber-100 shadow-sm">

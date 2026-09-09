@@ -172,6 +172,14 @@ def run_migrations():
                 "ALTER TABLE attendance ADD COLUMN tenant_id INTEGER NULL",
                 "tenant_id column ensured on attendance",
             )
+        _execute_migration(
+            "CREATE INDEX IF NOT EXISTS ix_attendance_tenant_user_date ON attendance (tenant_id, user_id, date)",
+            "composite index ix_attendance_tenant_user_date ensured on attendance",
+        )
+        _execute_migration(
+            "CREATE INDEX IF NOT EXISTS ix_attendance_tenant_date ON attendance (tenant_id, date)",
+            "composite index ix_attendance_tenant_date ensured on attendance",
+        )
 
     if "users" in tables:
         columns = {col["name"] for col in inspector.get_columns("users")}
