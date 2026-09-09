@@ -810,30 +810,42 @@ const TodayRoaster: React.FC = () => {
                               <MapPin className="w-3.5 h-3.5 text-[#2D3092]" />
                               Assigned Duty Post / Station:
                             </span>
-                            {schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || null) && (
+                            {schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || (savedLocations.find(l => l.is_default)?.id) || savedLocations[0]?.id) && (
                               <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
                                 Special Post Assigned
                               </span>
                             )}
                           </div>
-                          <select
-                            value={schedule?.locationId || ''}
-                            onChange={(e) => handleLocationChange(user.id, e.target.value ? Number(e.target.value) : null)}
-                            className={`w-full px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
-                              schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || null)
-                                ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-300/40'
-                                : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 focus:bg-white focus:border-[#2D3092]'
-                            }`}
-                          >
-                            <option value="">
-                              Session Ground {sessionStatus?.session?.location?.name ? `(${sessionStatus.session.location.name})` : ''}
-                            </option>
-                            {savedLocations.map((loc) => (
-                              <option key={loc.id} value={loc.id}>
-                                {loc.name} {loc.id === sessionStatus?.session?.location_id ? '(Current Session Ground)' : ''} • {loc.radius_meters}m
+                          {savedLocations.length > 1 ? (
+                            <select
+                              value={schedule?.locationId || ''}
+                              onChange={(e) => handleLocationChange(user.id, e.target.value ? Number(e.target.value) : null)}
+                              className={`w-full px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                                schedule?.locationId && schedule.locationId !== (sessionStatus?.session?.location_id || (savedLocations.find(l => l.is_default)?.id) || savedLocations[0]?.id)
+                                  ? 'bg-amber-50 border-amber-400 text-amber-900 ring-2 ring-amber-300/40'
+                                  : 'bg-slate-50 border-slate-200 text-slate-800 hover:border-slate-300 focus:bg-white focus:border-[#2D3092]'
+                              }`}
+                            >
+                              <option value="">
+                                Session Ground: {sessionStatus?.session?.location?.name || savedLocations.find(l => l.id === sessionStatus?.session?.location_id)?.name || savedLocations.find(l => l.is_default)?.name || savedLocations[0]?.name} (Default)
                               </option>
-                            ))}
-                          </select>
+                              {savedLocations
+                                .filter((loc) => loc.id !== (sessionStatus?.session?.location_id || savedLocations.find(l => l.is_default)?.id || savedLocations[0]?.id))
+                                .map((loc) => (
+                                  <option key={loc.id} value={loc.id}>
+                                    Special Post: {loc.name} • {loc.radius_meters}m
+                                  </option>
+                                ))}
+                            </select>
+                          ) : (
+                            <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                              <span className="flex items-center gap-1.5">
+                                <span>{savedLocations[0]?.name || 'College Ground'}</span>
+                                <span className="text-[10px] text-slate-500 font-semibold">(Session Ground)</span>
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-semibold">{savedLocations[0]?.radius_meters}m perimeter</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
