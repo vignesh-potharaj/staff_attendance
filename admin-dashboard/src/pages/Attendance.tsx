@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Download, Search, FileSpreadsheet, MapPin, Image as ImageIcon, Calendar, User as UserIcon } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Download, Search, FileSpreadsheet, MapPin, Image as ImageIcon, Calendar, User as UserIcon, ChevronDown, X, Users } from 'lucide-react';
 import api from '../services/api';
 import { resolvePhotoUrl } from '../utils/urlHelper';
 
@@ -61,9 +61,22 @@ const Attendance: React.FC = () => {
   const [loadingCadets, setLoadingCadets] = useState(false);
   const [selectedCadetId, setSelectedCadetId] = useState<number | null>(null);
   const [cadetSearchQuery, setCadetSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const comboboxRef = useRef<HTMLDivElement>(null);
   const [cadetRecords, setCadetRecords] = useState<AttendanceRecord[]>([]);
   const [cadetSummary, setCadetSummary] = useState<CadetSummary | null>(null);
   const [loadingIndividual, setLoadingIndividual] = useState(false);
+
+  // Close combobox dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (comboboxRef.current && !comboboxRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchRecords = React.useCallback(async () => {
     try {
@@ -209,10 +222,11 @@ const Attendance: React.FC = () => {
 
   const filteredCadets = cadetList.filter(c => {
     if (!cadetSearchQuery.trim()) return true;
-    const q = cadetSearchQuery.toLowerCase();
+    const q = cadetSearchQuery.toLowerCase().trim();
     return (
       (c.name && c.name.toLowerCase().includes(q)) ||
-      (c.employee_id && c.employee_id.toLowerCase().includes(q))
+      (c.employee_id && c.employee_id.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.toLowerCase().includes(q))
     );
   });
 
@@ -586,47 +600,174 @@ const Attendance: React.FC = () => {
       ) : (
         <>
           {/* Individual Cadet View */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 border-t-4 border-t-[#2D3092] space-y-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex-1 min-w-[260px]">
-                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
-                  Select Cadet
+          {/* Individual Cadet View Controls */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 border-t-4 border-t-[#2D3092]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Unified Cadet Search & Select Combobox */}
+              <div className="flex-1 min-w-[280px] max-w-2xl relative" ref={comboboxRef}>
+                <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Cadet Selection</span>
+                  {filteredCadets.length > 0 && !selectedCadet && (
+                    <span className="text-[10px] text-slate-400 font-semibold normal-case">
+                      {filteredCadets.length} {filteredCadets.length === 1 ? 'cadet available' : 'cadets available'}
+                    </span>
+                  )}
                 </label>
-                <select
-                  value={selectedCadetId ?? ''}
-                  onChange={(e) => {
-                    const id = e.target.value ? Number(e.target.value) : null;
-                    handleSelectCadet(id);
-                  }}
-                  className="block w-full border border-slate-300 rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-[#2D3092] text-sm font-bold text-slate-900 bg-white"
-                  disabled={loadingCadets}
-                >
-                  <option value="">{loadingCadets ? 'Loading cadets...' : '-- Choose a Cadet --'}</option>
-                  {filteredCadets.map((cadet) => (
-                    <option key={cadet.id} value={cadet.id}>
-                      {cadet.name} ({cadet.employee_id})
-                    </option>
-                  ))}
-                </select>
+
+                {selectedCadet ? (
+                  /* Active Selected Cadet Chip */
+                  <div className="flex items-center justify-between p-2 pl-3 bg-gradient-to-r from-[#2D3092]/5 to-indigo-50/40 border-2 border-[#2D3092]/30 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-[#2D3092] text-white flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+                        {selectedCadet.name ? selectedCadet.name.slice(0, 2).toUpperCase() : 'CD'}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-[#2D3092] truncate">{selectedCadet.name}</span>
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#EF1C25]/10 text-[#EF1C25] border border-[#EF1C25]/20 shrink-0">
+                            {selectedCadet.employee_id}
+                          </span>
+                        </div>
+                        {selectedCadet.phone && (
+                          <span className="text-[11px] text-slate-500 font-medium">Ph: {selectedCadet.phone}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCadetId(null);
+                          setCadetSearchQuery('');
+                          setIsDropdownOpen(true);
+                        }}
+                        className="text-xs font-bold text-[#2D3092] hover:text-white px-3 py-1.5 rounded-xl border border-[#2D3092]/30 hover:bg-[#2D3092] transition-all shadow-sm"
+                      >
+                        Switch Cadet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSelectCadet(null);
+                          setCadetSearchQuery('');
+                        }}
+                        title="Clear selection"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200/60 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Search & Autocomplete Input */
+                  <div className="relative">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search cadet by Name or Regt ID (e.g. TG24SDA175845)..."
+                        className="block w-full border border-slate-300 rounded-xl py-2.5 pl-9 pr-20 focus:ring-2 focus:ring-[#2D3092] focus:border-[#2D3092] text-xs font-bold text-slate-900 bg-white placeholder:font-normal placeholder:text-slate-400 shadow-sm"
+                        value={cadetSearchQuery}
+                        onChange={(e) => {
+                          setCadetSearchQuery(e.target.value);
+                          setIsDropdownOpen(true);
+                        }}
+                        onFocus={() => setIsDropdownOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (filteredCadets.length > 0) {
+                              handleSelectCadet(filteredCadets[0].id);
+                              setIsDropdownOpen(false);
+                              setCadetSearchQuery('');
+                            }
+                          } else if (e.key === 'Escape') {
+                            setIsDropdownOpen(false);
+                          }
+                        }}
+                      />
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+
+                      <div className="absolute right-2 top-2 flex items-center gap-1">
+                        {cadetSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setCadetSearchQuery('')}
+                            className="p-1 text-slate-400 hover:text-slate-600 rounded-md"
+                            title="Clear search"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setIsDropdownOpen(prev => !prev)}
+                          className="p-1 text-slate-400 hover:text-slate-700 rounded-md"
+                          title="Toggle cadet list"
+                        >
+                          <ChevronDown className={`w-4 h-4 transition-transform duration-150 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Floating Dropdown Menu */}
+                    {isDropdownOpen && (
+                      <div className="absolute z-30 mt-1.5 w-full bg-white rounded-2xl shadow-xl border border-slate-200 max-h-72 overflow-y-auto py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                        {loadingCadets ? (
+                          <div className="px-4 py-3 text-xs text-slate-500 font-medium text-center">
+                            Loading cadets...
+                          </div>
+                        ) : filteredCadets.length === 0 ? (
+                          <div className="px-4 py-4 text-center">
+                            <p className="text-xs font-bold text-slate-700">No cadets found</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              No cadet matched "{cadetSearchQuery}"
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                              <span>Cadets ({filteredCadets.length})</span>
+                              <span className="normal-case font-normal text-[10px] text-slate-400">Click or press Enter to select</span>
+                            </div>
+                            {filteredCadets.map((cadet) => (
+                              <button
+                                key={cadet.id}
+                                type="button"
+                                onClick={() => {
+                                  handleSelectCadet(cadet.id);
+                                  setIsDropdownOpen(false);
+                                  setCadetSearchQuery('');
+                                }}
+                                className="w-full text-left px-3.5 py-2.5 hover:bg-indigo-50/40 flex items-center justify-between gap-3 border-b border-slate-50 last:border-0 transition-colors cursor-pointer group"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-7 h-7 rounded-lg bg-[#2D3092]/10 group-hover:bg-[#2D3092] group-hover:text-white text-[#2D3092] font-black text-xs flex items-center justify-center shrink-0 transition-colors">
+                                    {cadet.name ? cadet.name.slice(0, 2).toUpperCase() : 'CD'}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-black text-slate-900 group-hover:text-[#2D3092] truncate transition-colors">
+                                      {cadet.name}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 font-medium">
+                                      {cadet.phone || 'No phone'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 group-hover:bg-[#EF1C25]/10 group-hover:text-[#EF1C25] group-hover:border-[#EF1C25]/30 shrink-0 transition-colors">
+                                  {cadet.employee_id}
+                                </span>
+                              </button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Quick search input to filter the cadet list */}
-              <div className="w-full sm:w-64">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Filter Cadet List
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search by name / ID..."
-                    className="block w-full border border-slate-300 rounded-xl py-2 pl-9 pr-3 focus:ring-2 focus:ring-[#2D3092] text-xs font-semibold text-slate-900"
-                    value={cadetSearchQuery}
-                    onChange={(e) => setCadetSearchQuery(e.target.value)}
-                  />
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                </div>
-              </div>
-
+              {/* Export Cadet CSV Button */}
               {selectedCadet && (
                 <button
                   type="button"
@@ -755,12 +896,86 @@ const Attendance: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
-              <UserIcon className="w-14 h-14 mx-auto text-slate-300 mb-3" />
-              <h4 className="text-base font-bold text-[#2D3092]">No Cadet Selected</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 font-medium">
-                Choose a cadet from the dropdown above to inspect their individual drill logs, selfies, GPS locations, and attendance statistics.
-              </p>
+            <div className="space-y-4">
+              {loadingCadets ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-3 border-[#2D3092] border-t-transparent rounded-full mx-auto mb-3"></div>
+                  <p className="text-sm font-bold text-slate-700">Loading battalion cadets...</p>
+                </div>
+              ) : filteredCadets.length > 0 ? (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div>
+                      <h4 className="text-sm font-black text-[#2D3092] uppercase tracking-wider flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#00AEEF]" />
+                        <span>
+                          {cadetSearchQuery.trim() ? `Search Results for "${cadetSearchQuery}"` : 'Battalion Cadets'}
+                        </span>
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium mt-0.5">
+                        Select a cadet below to inspect individual attendance records, selfies, and GPS drill history.
+                      </p>
+                    </div>
+                    <span className="text-xs font-black text-[#2D3092] bg-[#2D3092]/10 px-3 py-1 rounded-full border border-[#2D3092]/20">
+                      {filteredCadets.length} {filteredCadets.length === 1 ? 'Cadet' : 'Cadets'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                    {filteredCadets.map((cadet) => (
+                      <button
+                        key={cadet.id}
+                        type="button"
+                        onClick={() => {
+                          handleSelectCadet(cadet.id);
+                          setIsDropdownOpen(false);
+                          setCadetSearchQuery('');
+                        }}
+                        className="p-4 rounded-xl border border-slate-200 hover:border-[#2D3092] bg-slate-50/60 hover:bg-indigo-50/40 transition-all cursor-pointer shadow-sm hover:shadow-md group flex flex-col justify-between text-left gap-3 w-full"
+                      >
+                        <div className="flex items-start gap-3 w-full">
+                          <div className="w-10 h-10 rounded-xl bg-[#2D3092] text-white flex items-center justify-center font-black text-sm shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                            {cadet.name ? cadet.name.slice(0, 2).toUpperCase() : 'CD'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h5 className="text-sm font-black text-slate-900 group-hover:text-[#2D3092] truncate transition-colors">
+                              {cadet.name}
+                            </h5>
+                            <p className="text-xs font-bold text-[#EF1C25] mt-0.5">
+                              {cadet.employee_id}
+                            </p>
+                            {cadet.phone && (
+                              <p className="text-[11px] text-slate-500 mt-0.5 font-medium">
+                                Ph: {cadet.phone}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="w-full pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs font-black text-[#2D3092] group-hover:text-[#EF1C25] transition-colors">
+                          <span>View Attendance Profile</span>
+                          <span>→</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center space-y-3">
+                  <Search className="w-12 h-12 mx-auto text-slate-300" />
+                  <h4 className="text-base font-bold text-slate-800">No Cadets Found</h4>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
+                    No cadet matched "{cadetSearchQuery}". Try checking the spelling or search by Cadet Regt ID.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCadetSearchQuery('')}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#2D3092] bg-[#2D3092]/10 hover:bg-[#2D3092]/20 transition-colors"
+                  >
+                    <span>Clear search filter</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>
