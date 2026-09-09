@@ -110,6 +110,8 @@ const Settings: React.FC = () => {
   const [locSaving, setLocSaving] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
   const [locSuccess, setLocSuccess] = useState<string | null>(null);
+  const [resolvingLink, setResolvingLink] = useState(false);
+  const [showManualCoords, setShowManualCoords] = useState(false);
 
   const fetchLocations = async () => {
     setLocLoading(true);
@@ -120,6 +122,42 @@ const Settings: React.FC = () => {
       console.error('Failed to fetch locations', err);
     } finally {
       setLocLoading(false);
+    }
+  };
+
+  const resolveLinkCoordinates = async (link: string) => {
+    const trimmed = link.trim();
+    if (!trimmed) return;
+    setResolvingLink(true);
+    try {
+      const res = await api.post<{ latitude: number; longitude: number }>('/locations/resolve-link', {
+        maps_link: trimmed,
+      });
+      if (res.data?.latitude != null && res.data?.longitude != null) {
+        setLocForm((prev) => ({
+          ...prev,
+          latitude: res.data.latitude.toString(),
+          longitude: res.data.longitude.toString(),
+        }));
+      }
+    } catch {
+      // Background resolution error can be ignored; save will validate or user can adjust
+    } finally {
+      setResolvingLink(false);
+    }
+  };
+
+  const handleMapsLinkChange = (value: string) => {
+    setLocForm((prev) => ({ ...prev, maps_link: value }));
+    // Quick client-side check if coordinates are already embedded in the URL
+    const match = value.match(/(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/);
+    if (match) {
+      setLocForm((prev) => ({
+        ...prev,
+        maps_link: value,
+        latitude: match[1],
+        longitude: match[2],
+      }));
     }
   };
 
@@ -159,6 +197,7 @@ const Settings: React.FC = () => {
       is_default: savedLocations.length === 0,
     });
     setLocError(null);
+    setShowManualCoords(false);
     setIsLocModalOpen(true);
   };
 
@@ -173,6 +212,7 @@ const Settings: React.FC = () => {
       is_default: loc.is_default,
     });
     setLocError(null);
+    setShowManualCoords(false);
     setIsLocModalOpen(true);
   };
 
@@ -181,12 +221,28 @@ const Settings: React.FC = () => {
     setLocSaving(true);
     setLocError(null);
     try {
+      const name = locForm.name.trim();
+      const mapsLink = locForm.maps_link.trim();
+
+      if (!name) {
+        setLocError('Location name is required.');
+        setLocSaving(false);
+        return;
+      }
+
+      if (!mapsLink) {
+        setLocError('Google Maps link is required. Cadets verify geofencing against this location.');
+        setLocSaving(false);
+        return;
+      }
+
       const payload: any = {
-        name: locForm.name.trim(),
-        maps_link: locForm.maps_link.trim() || null,
+        name,
+        maps_link: mapsLink,
         radius_meters: Number(locForm.radius_meters) || 100,
         is_default: locForm.is_default,
       };
+
       if (locForm.latitude.trim() && locForm.longitude.trim()) {
         payload.latitude = parseFloat(locForm.latitude.trim());
         payload.longitude = parseFloat(locForm.longitude.trim());
@@ -206,7 +262,7 @@ const Settings: React.FC = () => {
       setSettings(sRes.data);
     } catch (err: unknown) {
       console.error('Failed to save location', err);
-      setLocError(getApiErrorMessage(err, 'Failed to save location. Please check coordinates or Maps link.'));
+      setLocError(getApiErrorMessage(err, 'Failed to save location. Please check Google Maps link or coordinates.'));
     } finally {
       setLocSaving(false);
     }
@@ -636,48 +692,85 @@ const Settings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Google Maps Link (Optional)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Google Maps Link *
+                  </label>
+                  {resolvingLink && (
+                    <span className="text-[11px] font-semibold text-blue-600 flex items-center gap-1">
+                      <Clock3 className="w-3 h-3 animate-spin" /> Auto-detecting GPS...
+                    </span>
+                  )}
+                </div>
                 <input
                   type="text"
+                  required
                   value={locForm.maps_link}
-                  onChange={(e) => setLocForm({ ...locForm, maps_link: e.target.value })}
-                  placeholder="https://maps.google.com/?q=..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                  onChange={(e) => handleMapsLinkChange(e.target.value)}
+                  onBlur={() => {
+                    if (locForm.maps_link.trim() && (!locForm.latitude || !locForm.longitude)) {
+                      resolveLinkCoordinates(locForm.maps_link);
+                    }
+                  }}
+                  placeholder="https://maps.app.goo.gl/... or https://www.google.com/maps/..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Paste the Google Maps link to auto-extract coordinates, or enter latitude/longitude below.
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Mandatory: Cadets verify geofence boundaries against this location. Paste short link or browser address URL.
                 </p>
+
+                {locForm.latitude && locForm.longitude && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs text-emerald-800">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      GPS Detected: {Number(locForm.latitude).toFixed(6)}, {Number(locForm.longitude).toFixed(6)}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-200/60 px-2 py-0.5 rounded text-emerald-900">
+                      Coordinates Verified
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Latitude
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={locForm.latitude}
-                    onChange={(e) => setLocForm({ ...locForm, latitude: e.target.value })}
-                    placeholder="e.g. 12.9716"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Longitude
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={locForm.longitude}
-                    onChange={(e) => setLocForm({ ...locForm, longitude: e.target.value })}
-                    placeholder="e.g. 77.5946"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
-                  />
-                </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualCoords(!showManualCoords)}
+                  className="text-xs text-slate-500 hover:text-[#2D3092] font-semibold underline cursor-pointer"
+                >
+                  {showManualCoords ? 'Hide manual coordinates' : 'Advanced: View / Edit GPS Coordinates'}
+                </button>
+
+                {showManualCoords && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Latitude
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={locForm.latitude}
+                        onChange={(e) => setLocForm({ ...locForm, latitude: e.target.value })}
+                        placeholder="e.g. 17.561286"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        Longitude
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        value={locForm.longitude}
+                        onChange={(e) => setLocForm({ ...locForm, longitude: e.target.value })}
+                        placeholder="e.g. 78.456036"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold text-slate-900 bg-white"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

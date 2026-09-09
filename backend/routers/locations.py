@@ -9,6 +9,8 @@ from backend.schemas.schemas import (
     SavedLocationCreate,
     SavedLocationUpdate,
     SavedLocationResponse,
+    ResolveMapsLinkRequest,
+    ResolveMapsLinkResponse,
 )
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.routers.settings import _extract_coordinates_from_maps_link
@@ -19,6 +21,26 @@ router = APIRouter(
     prefix="/locations",
     tags=["Locations"]
 )
+
+@router.post("/resolve-link", response_model=ResolveMapsLinkResponse)
+def resolve_maps_link(
+    payload: ResolveMapsLinkRequest,
+    current_admin: User = Depends(get_current_admin)
+):
+    """
+    Resolve coordinates from a Google Maps link (including short links).
+    """
+    link = payload.maps_link.strip() if payload.maps_link else ""
+    if not link:
+        raise HTTPException(status_code=400, detail="Google Maps link is required")
+    coords = _extract_coordinates_from_maps_link(link)
+    if not coords:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract coordinates from the Google Maps link. Please ensure it is a valid Google Maps URL."
+        )
+    return ResolveMapsLinkResponse(latitude=coords[0], longitude=coords[1])
+
 
 @router.get("/", response_model=List[SavedLocationResponse])
 def get_saved_locations(
@@ -61,7 +83,7 @@ def create_saved_location(
 ):
     """
     Create a new saved duty / parade location.
-    Extracts coordinates from Google Maps link if direct lat/lng are not provided.
+    Requires Google Maps link to establish physical ground coordinates.
     """
     tenant = current_admin.tenant
     if not tenant:
@@ -71,26 +93,23 @@ def create_saved_location(
     if not name:
         raise HTTPException(status_code=400, detail="Location name is required")
 
+    maps_link = payload.maps_link.strip() if payload.maps_link else None
+    if not maps_link:
+        raise HTTPException(status_code=400, detail="Google Maps link is required. Cadets verify geofencing against this location.")
+
     latitude = payload.latitude
     longitude = payload.longitude
-    maps_link = payload.maps_link.strip() if payload.maps_link else None
 
-    # If coordinates not directly provided, try extracting from Google Maps link
-    if (latitude is None or longitude is None) and maps_link:
+    # If coordinates not directly provided, extract from Google Maps link
+    if latitude is None or longitude is None:
         extracted = _extract_coordinates_from_maps_link(maps_link)
         if extracted:
             latitude, longitude = extracted
         else:
             raise HTTPException(
                 status_code=400,
-                detail="Could not extract coordinates from the Google Maps link. Please enter coordinates directly or paste a full Google Maps address bar URL."
+                detail="Could not extract coordinates from the Google Maps link. Please ensure it is a valid Google Maps URL or enter coordinates directly."
             )
-
-    if latitude is None or longitude is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Latitude and longitude coordinates are required (or a valid Google Maps link)."
-        )
 
     if not -90 <= latitude <= 90 or not -180 <= longitude <= 180:
         raise HTTPException(status_code=400, detail="Invalid coordinates range")

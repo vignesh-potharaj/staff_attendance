@@ -25,52 +25,76 @@ router = APIRouter(
 )
 
 
-COORDINATE_RE = re.compile(r"(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)")
+COORDINATE_RE = re.compile(r"(-?\d{1,3}(?:\.\d+)?)[,\s+]+(-?\d{1,3}(?:\.\d+)?)")
 
 
 def _extract_coordinates_from_text(text: str) -> tuple[float, float] | None:
-    decoded = unquote(text)
-    parsed = urlparse(decoded)
-    query = parse_qs(parsed.query)
+    if not text:
+        return None
+    decoded = unquote(text).replace("+", " ")
+    
+    # 1. Check query parameters
+    try:
+        parsed = urlparse(decoded)
+        query = parse_qs(parsed.query)
+        for key in ("q", "query", "ll", "center"):
+            val = query.get(key, [None])[0]
+            if val:
+                m = COORDINATE_RE.search(val)
+                if m:
+                    lat, lng = float(m.group(1)), float(m.group(2))
+                    if -90 <= lat <= 90 and -180 <= lng <= 180:
+                        return lat, lng
+    except Exception:
+        pass
 
-    for key in ("q", "query", "ll"):
-        value = query.get(key, [None])[0]
-        if value:
-            match = COORDINATE_RE.search(value)
-            if match:
-                return float(match.group(1)), float(match.group(2))
-
-    for pattern in (
-        r"@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)",
-        r"!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)",
-        r"!2d(-?\d+(?:\.\d+)?)!3d(-?\d+(?:\.\d+)?)",
-    ):
+    # 2. Check path / specific Google Maps URL patterns
+    patterns = [
+        r"@(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)",
+        r"/search/(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)",
+        r"!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)",
+        r"!2d(-?\d{1,3}\.\d+)!3d(-?\d{1,3}\.\d+)",
+        r"(-?\d{1,3}\.\d{4,})[,\s]+(-?\d{1,3}\.\d{4,})",
+    ]
+    for pattern in patterns:
         match = re.search(pattern, decoded)
         if match:
             first = float(match.group(1))
             second = float(match.group(2))
             if pattern.startswith("!2d"):
-                return second, first
-            return first, second
-
-    match = COORDINATE_RE.search(decoded)
-    if match:
-        return float(match.group(1)), float(match.group(2))
+                lat, lng = second, first
+            else:
+                lat, lng = first, second
+            if -90 <= lat <= 90 and -180 <= lng <= 180:
+                return lat, lng
 
     return None
 
 
 def _extract_coordinates_from_maps_link(maps_link: str) -> tuple[float, float] | None:
+    if not maps_link:
+        return None
+
+    # Direct match on the input text/URL
     coordinates = _extract_coordinates_from_text(maps_link)
     if coordinates:
         return coordinates
 
+    # Follow redirects for short links (e.g. maps.app.goo.gl, goo.gl/maps)
     try:
-        request = Request(maps_link, headers={"User-Agent": "SmartAttend/1.0"})
-        with urlopen(request, timeout=5) as response:
+        request = Request(
+            maps_link,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        )
+        with urlopen(request, timeout=8) as response:
             final_url = response.geturl()
-        return _extract_coordinates_from_text(final_url)
-    except Exception:
+            coords = _extract_coordinates_from_text(final_url)
+            if coords:
+                return coords
+            
+            body = response.read().decode("utf-8", errors="ignore")
+            return _extract_coordinates_from_text(body)
+    except Exception as e:
         return None
 
 

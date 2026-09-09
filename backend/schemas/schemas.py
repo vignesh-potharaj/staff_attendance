@@ -93,7 +93,7 @@ class SavedLocationBase(BaseModel):
 
 class SavedLocationCreate(BaseModel):
     name: str
-    maps_link: Optional[str] = None
+    maps_link: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     radius_meters: int = 100
@@ -106,6 +106,13 @@ class SavedLocationUpdate(BaseModel):
     longitude: Optional[float] = None
     radius_meters: Optional[int] = None
     is_default: Optional[bool] = None
+
+class ResolveMapsLinkRequest(BaseModel):
+    maps_link: str
+
+class ResolveMapsLinkResponse(BaseModel):
+    latitude: float
+    longitude: float
 
 class SavedLocationResponse(SavedLocationBase):
     id: int
