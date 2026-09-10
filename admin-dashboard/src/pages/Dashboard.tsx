@@ -9,7 +9,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  Filler
 } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { Users, CheckCircle, Clock, Zap, Calendar } from 'lucide-react';
@@ -25,7 +26,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 interface SummaryData {
