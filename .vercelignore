@@ -1,0 +1,33 @@
+# Backend & Python
+backend/
+alembic/
+alembic.ini
+runtime.txt
+*.py
+__pycache__/
+sql_app.db
+*.db
+*.sqlite3
+
+# Mobile & Native Android
+mobile_app/
+admin-dashboard/android/
+staff-portal/android/
+**/android/
+*.apk
+dist-apks/
+
+# Super Admin (hosted separately)
+super-admin-dashboard/
+
+# Documentation & Markdown
+*.md
+admin-dashboard/*.md
+staff-portal/*.md
+super-admin-dashboard/*.md
+
+# Workflows & Developer Scratch
+.github/
+.vscode/
+scratch/
+test_*.py
