@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./admin-dashboard ./staff-portal ./vercel.json",
   "routes": [
     { "src": "^/staff/assets/(.*)$", "dest": "/staff-portal/dist/assets/$1" },
     { "src": "^/staff/favicon\\.svg$", "dest": "/staff-portal/dist/favicon.svg" },
