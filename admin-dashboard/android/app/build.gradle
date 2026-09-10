@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.smartadmin.app"
+    namespace = "com.nccadmin.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.smartadmin.app"
+        applicationId "com.nccadmin.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -37,7 +37,7 @@ android {
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             def envName = variant.flavorName == 'staging' ? 'test' : (variant.flavorName == 'production' ? 'production' : 'test')
-            outputFileName = "smart-admin-${envName}-${variant.buildType.name}.apk"
+            outputFileName = "ncc-admin-${envName}-${variant.buildType.name}.apk"
         }
     }
 }

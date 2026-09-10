@@ -1,4 +1,4 @@
-package com.smartstaff.app;
+package com.ncccadet.app;
 
 import android.content.Context;
 import android.content.Intent;

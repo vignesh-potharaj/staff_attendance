@@ -1,4 +1,4 @@
-package com.smartstaff.app;
+package com.ncccadet.app;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;

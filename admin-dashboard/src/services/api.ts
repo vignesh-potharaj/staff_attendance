@@ -1,7 +1,15 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
+export const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('custom_api_url');
+    if (custom && custom.trim()) return custom.trim();
+  }
+  return import.meta.env.VITE_API_URL || 'https://ncc-app-j78p.onrender.com';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: getBaseUrl(),
 });
 
 export const getApiErrorMessage = (err: unknown, fallback: string): string => {
@@ -26,6 +34,7 @@ export const getApiErrorMessage = (err: unknown, fallback: string): string => {
 
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  config.baseURL = getBaseUrl();
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

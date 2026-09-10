@@ -1,0 +1,73 @@
+name: Build Android APKs
+
+on:
+  push:
+    branches:
+      - ncc-app
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-apks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Root Dependencies
+        run: npm install --omit=dev
+
+      # 1. Build NCC Cadet Portal APK
+      - name: Build & Sync Cadet Portal Web Assets
+        working-directory: staff-portal
+        run: |
+          npm install --legacy-peer-deps
+          npm run build:production
+
+      - name: Make Gradle executable (Cadet)
+        working-directory: staff-portal/android
+        run: chmod +x ./gradlew
+
+      - name: Build Cadet Portal APK
+        working-directory: staff-portal/android
+        run: ./gradlew assembleProductionDebug --no-daemon
+
+      # 2. Build NCC Admin Portal APK
+      - name: Build & Sync Admin Portal Web Assets
+        working-directory: admin-dashboard
+        run: |
+          npm install --legacy-peer-deps
+          npm run build:production
+
+      - name: Make Gradle executable (Admin)
+        working-directory: admin-dashboard/android
+        run: chmod +x ./gradlew
+
+      - name: Build Admin Portal APK
+        working-directory: admin-dashboard/android
+        run: ./gradlew assembleProductionDebug --no-daemon
+
+      # 3. Upload APK Artifacts for 1-Click Download
+      - name: Upload NCC Cadet APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ncc-cadet-production-debug
+          path: staff-portal/android/app/build/outputs/apk/production/debug/*.apk
+
+      - name: Upload NCC Admin APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ncc-admin-production-debug
+          path: admin-dashboard/android/app/build/outputs/apk/production/debug/*.apk

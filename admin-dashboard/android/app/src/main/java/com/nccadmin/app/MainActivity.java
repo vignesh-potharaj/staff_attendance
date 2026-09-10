@@ -1,4 +1,4 @@
-package com.smartadmin.app.test;
+package com.nccadmin.app;
 
 import com.getcapacitor.BridgeActivity;
 

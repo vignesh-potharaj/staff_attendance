@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.smartstaff.app"
+    namespace = "com.ncccadet.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.smartstaff.app"
+        applicationId "com.ncccadet.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -37,7 +37,7 @@ android {
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             def envName = variant.flavorName == 'staging' ? 'test' : (variant.flavorName == 'production' ? 'production' : 'test')
-            outputFileName = "smart-staff-${envName}-${variant.buildType.name}.apk"
+            outputFileName = "ncc-cadet-${envName}-${variant.buildType.name}.apk"
         }
     }
 }

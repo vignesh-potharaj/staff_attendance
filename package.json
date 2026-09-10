@@ -9,7 +9,13 @@
     "dev:staff": "powershell -Command \"cd staff-portal; npm run dev\"",
     "dev:super-admin": "powershell -Command \"cd super-admin-dashboard; npm run dev\"",
     "dev": "npm run dev:dashboard",
-    "build": "npm install --prefix admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix admin-dashboard && npm install --prefix staff-portal --legacy-peer-deps --no-audit --no-fund && npm run build --prefix staff-portal && npm install --prefix super-admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix super-admin-dashboard"
+    "build": "npm install --prefix admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix admin-dashboard && npm install --prefix staff-portal --legacy-peer-deps --no-audit --no-fund && npm run build --prefix staff-portal && npm install --prefix super-admin-dashboard --legacy-peer-deps --no-audit --no-fund && npm run build --prefix super-admin-dashboard",
+    "sync:cadet": "npm run build:production --prefix staff-portal",
+    "sync:admin": "npm run build:production --prefix admin-dashboard",
+    "sync:apps": "npm run sync:cadet && npm run sync:admin",
+    "build:apk:cadet": "npm run build:apk:production --prefix staff-portal",
+    "build:apk:admin": "npm run build:apk:production --prefix admin-dashboard",
+    "build:apk:apps": "npm run build:apk:cadet && npm run build:apk:admin"
   },
   "dependencies": {
     "nodemailer": "^7.0.3"

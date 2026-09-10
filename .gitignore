@@ -48,4 +48,10 @@ admin-dashboard/dist/
 # Android / Google Services
 google-services.json
 **/google-services.json
+local.properties
+**/local.properties
+*.apk
+dist-apks/
+scratch/
+
 
