@@ -5,7 +5,7 @@ import csv
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -482,6 +482,56 @@ def export_attendance_csv(
         headers={"Content-Disposition": f"attachment; filename=attendance_{filename_part}.csv"}
     )
 
+def get_tenant_session_dates(db: Session, tenant_id: int, month_prefix: Optional[str] = None) -> Set[str]:
+    """
+    Returns the set of unique session dates conducted or currently active for a tenant.
+    Includes:
+    1. Past dates (< today) where an AttendanceSession was scheduled.
+    2. Past dates (< today) where attendance was recorded (covers legacy/ad-hoc sessions).
+    3. Today (= today) if a session is currently active OR if attendance has been marked today.
+    """
+    now = datetime.now(IST)
+    today_str = now.strftime("%Y-%m-%d")
+
+    # 1. Past session dates from AttendanceSession (date < today_str)
+    session_query = db.query(AttendanceSession.date).filter(
+        AttendanceSession.tenant_id == tenant_id,
+        AttendanceSession.date < today_str
+    )
+    if month_prefix:
+        session_query = session_query.filter(AttendanceSession.date.startswith(month_prefix))
+    past_session_dates = {s.date for s in session_query.all() if s.date}
+
+    # 2. Past attendance dates from Attendance table (date < today_str)
+    attendance_query = db.query(Attendance.date).filter(
+        Attendance.tenant_id == tenant_id,
+        Attendance.date < today_str
+    )
+    if month_prefix:
+        attendance_query = attendance_query.filter(Attendance.date.startswith(month_prefix))
+    past_attendance_dates = {a.date for a in attendance_query.all() if a.date}
+
+    valid_dates = past_session_dates | past_attendance_dates
+
+    # 3. Check today: Count today if session is active OR if attendance was marked today
+    if not month_prefix or today_str.startswith(month_prefix):
+        today_active_session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == tenant_id,
+            AttendanceSession.date == today_str,
+            AttendanceSession.is_active == 1
+        ).first()
+
+        has_attendance_today = db.query(Attendance.id).filter(
+            Attendance.tenant_id == tenant_id,
+            Attendance.date == today_str
+        ).first() is not None
+
+        if today_active_session or has_attendance_today:
+            valid_dates.add(today_str)
+
+    return valid_dates
+
+
 @router.get("/export/monthly", dependencies=[Depends(get_current_admin)])
 def export_monthly_summary_csv(
     month: Optional[str] = None,  # YYYY-MM
@@ -501,21 +551,9 @@ def export_monthly_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique session dates in this month for the tenant (from AttendanceSession)
-    session_dates_query = db.query(AttendanceSession.date).filter(
-        AttendanceSession.tenant_id == current_admin.tenant_id,
-        AttendanceSession.date.like(f"{month}%")
-    ).distinct().all()
-    
-    if session_dates_query:
-        tenant_session_dates_count = len(session_dates_query)
-    else:
-        # Fallback to distinct dates of attendance if no sessions were created
-        legacy_dates = db.query(Attendance.date).filter(
-            Attendance.tenant_id == current_admin.tenant_id,
-            Attendance.date.like(f"{month}%")
-        ).distinct().all()
-        tenant_session_dates_count = len(legacy_dates)
+    # Unique session dates in this month for the tenant (including today if active)
+    month_session_dates = get_tenant_session_dates(db, current_admin.tenant_id, month)
+    tenant_session_dates_count = len(month_session_dates)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -580,19 +618,9 @@ def export_total_summary_csv(
         
     cadets = user_query.order_by(User.name.asc()).all()
 
-    # Unique session dates across all time for tenant (from AttendanceSession)
-    session_dates_query = db.query(AttendanceSession.date).filter(
-        AttendanceSession.tenant_id == current_admin.tenant_id
-    ).distinct().all()
-    
-    if session_dates_query:
-        tenant_session_dates_count = len(session_dates_query)
-    else:
-        # Fallback to distinct dates of attendance if no sessions were created
-        legacy_dates = db.query(Attendance.date).filter(
-            Attendance.tenant_id == current_admin.tenant_id
-        ).distinct().all()
-        tenant_session_dates_count = len(legacy_dates)
+    # Unique session dates across all time for tenant (including today if active)
+    overall_session_dates = get_tenant_session_dates(db, current_admin.tenant_id)
+    tenant_session_dates_count = len(overall_session_dates)
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -677,24 +705,18 @@ def get_staff_attendance_summary(
         Attendance.status.in_(valid_statuses)
     ).all()
 
-    overall_present_days = len({r.date for r in cadet_records if r.date})
-    month_present_days = len({r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)})
+    cadet_overall_present_dates = {r.date for r in cadet_records if r.date}
+    cadet_month_present_dates = {r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)}
 
-    # Unique session dates in this month for the tenant (from AttendanceSession)
-    month_sessions_query = db.query(AttendanceSession.date).filter(
-        AttendanceSession.tenant_id == current_user.tenant_id,
-        AttendanceSession.date.like(f"{month_prefix}%")
-    ).distinct().all()
-    tenant_month_sessions_count = len(month_sessions_query) if month_sessions_query else len({r.date for r in cadet_records if r.date and r.date.startswith(month_prefix)})
+    overall_present_days = len(cadet_overall_present_dates)
+    month_present_days = len(cadet_month_present_dates)
 
-    # Unique session dates all-time for the tenant (from AttendanceSession)
-    all_sessions_query = db.query(AttendanceSession.date).filter(
-        AttendanceSession.tenant_id == current_user.tenant_id
-    ).distinct().all()
-    tenant_overall_sessions_count = len(all_sessions_query) if all_sessions_query else len({r.date for r in cadet_records if r.date})
+    # Unique session dates for the tenant (including past sessions + today if active/marked)
+    month_session_dates = get_tenant_session_dates(db, current_user.tenant_id, month_prefix)
+    overall_session_dates = get_tenant_session_dates(db, current_user.tenant_id)
 
-    month_total_sessions = max(tenant_month_sessions_count, month_present_days)
-    overall_total_sessions = max(tenant_overall_sessions_count, overall_present_days)
+    month_total_sessions = max(len(month_session_dates), month_present_days)
+    overall_total_sessions = max(len(overall_session_dates), overall_present_days)
 
     month_attendance_pct = round((month_present_days / month_total_sessions * 100.0), 1) if month_total_sessions > 0 else 0.0
     overall_attendance_pct = round((overall_present_days / overall_total_sessions * 100.0), 1) if overall_total_sessions > 0 else 0.0

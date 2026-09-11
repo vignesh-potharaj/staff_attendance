@@ -16,6 +16,14 @@ import {
 interface CadetAttendanceSummary {
   month_present_days: number;
   overall_present_days: number;
+  month_total_sessions?: number;
+  overall_total_sessions?: number;
+  month_attendance_pct?: number;
+  overall_attendance_pct?: number;
+  month_late_count?: number;
+  overall_late_count?: number;
+  month_absent_count?: number;
+  overall_absent_count?: number;
   today?: {
     marked: boolean;
     status?: string;
@@ -383,16 +391,28 @@ const Dashboard: React.FC = () => {
             <div className="w-11 h-11 rounded-xl bg-[#2D3092]/10 text-[#2D3092] flex items-center justify-center font-bold">
               <CalendarCheck className="w-6 h-6" />
             </div>
-            <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
-              {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
-            </span>
+            <div className="flex items-center gap-1.5">
+              {summary?.month_attendance_pct != null && (
+                <span className="text-[11px] font-bold px-2 py-0.5 bg-[#2D3092]/10 text-[#2D3092] rounded-full">
+                  {summary.month_attendance_pct}%
+                </span>
+              )}
+              <span className="text-[11px] font-bold px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full">
+                {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </span>
+            </div>
           </div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">This Month's Attendance</p>
-          <div className="flex items-baseline gap-2 mt-2">
+          <div className="flex items-baseline gap-1.5 mt-2">
             <p className="text-3xl font-black text-[#2D3092]">
               {loading ? '...' : (summary?.month_present_days ?? 0)}
             </p>
-            <span className="text-sm font-bold text-slate-500">
+            {summary?.month_total_sessions != null && (
+              <span className="text-lg font-bold text-slate-400">
+                / {summary.month_total_sessions}
+              </span>
+            )}
+            <span className="text-sm font-bold text-slate-500 ml-1">
               {(summary?.month_present_days ?? 0) === 1 ? 'Session Attended' : 'Sessions Attended'}
             </span>
           </div>
@@ -404,17 +424,29 @@ const Dashboard: React.FC = () => {
             <div className="w-11 h-11 rounded-xl bg-[#00AEEF]/10 text-[#00AEEF] flex items-center justify-center font-bold">
               <Award className="w-6 h-6" />
             </div>
-            <span className="text-[11px] font-bold px-2.5 py-1 bg-sky-50 text-[#00AEEF] rounded-full">
-              All-Time
-            </span>
+            <div className="flex items-center gap-1.5">
+              {summary?.overall_attendance_pct != null && (
+                <span className="text-[11px] font-bold px-2 py-0.5 bg-[#00AEEF]/10 text-[#00AEEF] rounded-full">
+                  {summary.overall_attendance_pct}%
+                </span>
+              )}
+              <span className="text-[11px] font-bold px-2.5 py-1 bg-sky-50 text-[#00AEEF] rounded-full">
+                All-Time
+              </span>
+            </div>
           </div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Overall Attendance</p>
-          <div className="flex items-baseline gap-2 mt-2">
+          <div className="flex items-baseline gap-1.5 mt-2">
             <p className="text-3xl font-black text-[#00AEEF]">
               {loading ? '...' : (summary?.overall_present_days ?? 0)}
             </p>
-            <span className="text-sm font-bold text-slate-500">
-              {(summary?.overall_present_days ?? 0) === 1 ? 'Total Session' : 'Total Sessions'}
+            {summary?.overall_total_sessions != null && (
+              <span className="text-lg font-bold text-slate-400">
+                / {summary.overall_total_sessions}
+              </span>
+            )}
+            <span className="text-sm font-bold text-slate-500 ml-1">
+              {(summary?.overall_present_days ?? 0) === 1 ? 'Session Attended' : 'Sessions Attended'}
             </span>
           </div>
         </div>
