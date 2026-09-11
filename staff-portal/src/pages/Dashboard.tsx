@@ -34,6 +34,7 @@ interface CadetAttendanceSummary {
   session?: {
     has_session: boolean;
     is_active: boolean;
+    is_visarjan_passed?: boolean;
     title?: string | null;
     start_time?: string | null;
     end_time?: string | null;
@@ -475,12 +476,24 @@ const Dashboard: React.FC = () => {
             </div>
           ) : summary?.session?.is_active ? (
             <div className="space-y-1.5 mt-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                <span>Live Session: {summary.session.title || 'Parade / Drill'} (OPEN)</span>
-              </div>
+              {summary.session.is_visarjan_passed ? (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span>Session Concluded: {summary.session.title || 'Parade / Drill'} (Visarjan Ended)</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  <span>Live Session: {summary.session.title || 'Parade / Drill'} (OPEN)</span>
+                </div>
+              )}
               <p className="text-xs text-slate-500">
-                Drill Timings: {summary.session.start_time || '07:00'} → {summary.session.end_time || '09:30'} • Mark your attendance with GPS + Selfie
+                Drill Timings: {summary.session.start_time || '07:00'} → {summary.session.end_time || '09:30'}
+                {summary.session.is_visarjan_passed ? (
+                  <span className="text-rose-600 font-bold ml-1">• Visarjan time has passed. Fall-In attendance is closed.</span>
+                ) : (
+                  <span> • Mark your attendance with GPS + Selfie</span>
+                )}
               </p>
               {summary.session.require_location === false ? (
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-800 text-xs font-semibold">
@@ -518,14 +531,25 @@ const Dashboard: React.FC = () => {
               <span>View / Visarjan (Check-Out)</span>
             </button>
           ) : summary?.session?.is_active ? (
-            <button
-              type="button"
-              onClick={() => navigate('/staff/mark-attendance')}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#EF1C25] text-white font-black text-base shadow-lg hover:bg-[#C7131B] border-b-2 border-[#FFCB06] transition-all cursor-pointer active:scale-95"
-            >
-              <CalendarCheck className="w-6 h-6 text-[#FFCB06]" />
-              <span>Mark Attendance (Selfie + GPS)</span>
-            </button>
+            summary.session.is_visarjan_passed ? (
+              <button
+                type="button"
+                onClick={() => alert(`Parade session concluded. Visarjan time was ${summary?.session?.end_time || '12:30'}. Attendance can no longer be marked.`)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm border border-slate-300 transition-all cursor-pointer hover:bg-slate-200"
+              >
+                <CalendarCheck className="w-5 h-5 text-slate-400" />
+                <span>Fall-In Closed (Visarjan Ended)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => navigate('/staff/mark-attendance')}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-[#EF1C25] text-white font-black text-base shadow-lg hover:bg-[#C7131B] border-b-2 border-[#FFCB06] transition-all cursor-pointer active:scale-95"
+              >
+                <CalendarCheck className="w-6 h-6 text-[#FFCB06]" />
+                <span>Mark Attendance (Selfie + GPS)</span>
+              </button>
+            )
           ) : (
             <button
               type="button"

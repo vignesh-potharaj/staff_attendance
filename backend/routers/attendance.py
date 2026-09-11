@@ -182,6 +182,34 @@ def mark_attendance(
     if existing:
         raise HTTPException(status_code=400, detail="Attendance already recorded")
 
+    # Check cadet daily roaster if assigned
+    roaster = db.query(DailyRoaster).filter(
+        DailyRoaster.tenant_id == current_user.tenant_id,
+        DailyRoaster.user_id == current_user.id,
+        DailyRoaster.date == today_str
+    ).first()
+
+    if roaster:
+        is_leave_val = getattr(roaster, 'is_leave', 0)
+        if isinstance(is_leave_val, int) and is_leave_val == 1:
+            raise HTTPException(status_code=400, detail="You are marked as ON LEAVE for today.")
+
+    # Visarjan Cut-Off: Cadets can mark attendance before fall-in and up until visarjan time, but NOT after visarjan time.
+    visarjan_time = None
+    if roaster and getattr(roaster, 'end_time', None) is not None:
+        visarjan_time = getattr(roaster, 'end_time')
+    elif active_session and active_session.end_time is not None:
+        visarjan_time = active_session.end_time
+
+    if visarjan_time is not None:
+        now_time = datetime.now(IST).time()
+        if now_time > visarjan_time:
+            visarjan_str = visarjan_time.strftime("%I:%M %p")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Parade / drill session has concluded. Visarjan time was {visarjan_str}. Fall-in attendance can no longer be marked."
+            )
+
     require_loc = bool(getattr(active_session, "require_location", 1))
     if require_loc:
         if latitude is None or longitude is None or (latitude == 0.0 and longitude == 0.0):
@@ -213,25 +241,12 @@ def mark_attendance(
 
     # Determine LATE or PRESENT based on DailyRoaster or active session
     status = AttendanceStatus.PRESENT
-    roaster = db.query(DailyRoaster).filter(
-        DailyRoaster.tenant_id == current_user.tenant_id,
-        DailyRoaster.user_id == current_user.id,
-        DailyRoaster.date == today_str
-    ).first()
-
-    if roaster:
-        # Use instance values, not Column objects or ColumnElement
-        is_leave_val = getattr(roaster, 'is_leave', 0)
-        if isinstance(is_leave_val, int) and is_leave_val == 1:
-            raise HTTPException(status_code=400, detail="You are marked as ON LEAVE for today.")
-        start_time_val = getattr(roaster, 'start_time', None)
-        if start_time_val is not None:
-            now_time = datetime.now(IST).time()
-            current_date = datetime.now(IST).date()
-            shift_start_dt = datetime.combine(current_date, start_time_val)
-            allowed_time = shift_start_dt.time()
-            if now_time > allowed_time:
-                status = AttendanceStatus.LATE
+    if roaster and getattr(roaster, 'start_time', None) is not None:
+        now_time = datetime.now(IST).time()
+        current_date = datetime.now(IST).date()
+        shift_start_dt = datetime.combine(current_date, roaster.start_time)
+        if now_time > shift_start_dt.time():
+            status = AttendanceStatus.LATE
     elif active_session and active_session.start_time is not None:
         now_time = datetime.now(IST).time()
         current_date = datetime.now(IST).date()
@@ -781,9 +796,16 @@ def get_staff_attendance_summary(
             "is_custom_post": False,
         }
 
+    is_visarjan_passed = False
+    if today_session and today_session.end_time:
+        now_time = datetime.now(IST).time()
+        if now_time > today_session.end_time:
+            is_visarjan_passed = True
+
     session_info = {
         "has_session": bool(today_session),
         "is_active": bool(today_session.is_active) if today_session else False,
+        "is_visarjan_passed": is_visarjan_passed,
         "title": today_session.title if today_session else None,
         "start_time": today_session.start_time.strftime("%H:%M") if today_session and today_session.start_time else None,
         "end_time": today_session.end_time.strftime("%H:%M") if today_session and today_session.end_time else None,

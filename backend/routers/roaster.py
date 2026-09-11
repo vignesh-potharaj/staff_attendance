@@ -292,6 +292,12 @@ def get_session_status(
             "session": None
         }
 
+    is_visarjan_passed = False
+    if session and session.end_time and date == datetime.now(IST).strftime("%Y-%m-%d"):
+        now_time = datetime.now(IST).time()
+        if now_time > session.end_time:
+            is_visarjan_passed = True
+
     return {
         "has_session": True,
         "is_active": bool(session.is_active),
@@ -303,6 +309,7 @@ def get_session_status(
             "start_time": _format_time_obj(session.start_time),
             "end_time": _format_time_obj(session.end_time),
             "is_active": bool(session.is_active),
+            "is_visarjan_passed": is_visarjan_passed,
             "require_location": bool(getattr(session, "require_location", 1)),
             "location_id": session.location_id,
             "location": {

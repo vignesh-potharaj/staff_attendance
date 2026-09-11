@@ -26,6 +26,8 @@ const MarkAttendance: React.FC = () => {
   const [sessionTitle, setSessionTitle] = useState<string | null>(null);
   const [requireLocation, setRequireLocation] = useState<boolean>(true);
   const [dutyLocation, setDutyLocation] = useState<DutyLocationInfo | null>(null);
+  const [isVisarjanPassed, setIsVisarjanPassed] = useState<boolean>(false);
+  const [visarjanTimeStr, setVisarjanTimeStr] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const getLocation = () => {
@@ -61,6 +63,8 @@ const MarkAttendance: React.FC = () => {
           if (res.data.session) {
             setSessionTitle(res.data.session.title);
             setRequireLocation(res.data.session.require_location !== false);
+            setIsVisarjanPassed(Boolean(res.data.session.is_visarjan_passed));
+            setVisarjanTimeStr(res.data.session.end_time || null);
             if (res.data.session.location) {
               setDutyLocation({
                 id: res.data.session.location.id,
@@ -333,6 +337,13 @@ const MarkAttendance: React.FC = () => {
           </div>
         </div>
 
+        {isVisarjanPassed && (
+          <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-bold">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>Visarjan time ({visarjanTimeStr || '12:30'}) has passed. Fall-In attendance is closed.</span>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs font-bold">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -343,14 +354,14 @@ const MarkAttendance: React.FC = () => {
         <div className="flex gap-4">
           <button
             onClick={() => handleSubmit('check-in')}
-            disabled={loading || !imgSrc || (requireLocation && !location)}
+            disabled={loading || isVisarjanPassed || !imgSrc || (requireLocation && !location)}
             className={`flex-1 py-4 rounded-2xl font-black shadow-xl flex items-center justify-center gap-2 transition-all border-b-2 border-[#FFCB06] text-sm uppercase tracking-wider ${
-              loading || !imgSrc || (requireLocation && !location)
+              loading || isVisarjanPassed || !imgSrc || (requireLocation && !location)
               ? 'bg-slate-200 text-slate-400 border-none cursor-not-allowed' 
               : 'bg-[#2D3092] text-white hover:bg-[#3F43B5] hover:-translate-y-0.5 cursor-pointer'
             }`}
           >
-            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Cadet Fall In</>}
+            {loading ? <RefreshCw className="w-6 h-6 animate-spin" /> : isVisarjanPassed ? <>Fall In Closed</> : <>Cadet Fall In</>}
           </button>
           
           <button
