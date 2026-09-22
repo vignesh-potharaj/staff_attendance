@@ -31,9 +31,9 @@ def run_migrations():
             "name, slug, role, status, subscription_status, subscription_plan_name, "
             "subscription_amount_paise, subscription_currency, geofence_radius_meters, created_at"
             ") "
-            "SELECT 'Default Workspace', 'default', 'tenant', 'ACTIVE', 'ACTIVE', "
+            "SELECT 'Admin', 'admin', 'tenant', 'ACTIVE', 'ACTIVE', "
             "'Smart Attend Monthly', 30000, 'INR', 100, CURRENT_TIMESTAMP "
-            "WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug = 'default')",
+            "WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug IN ('admin', 'default'))",
             "Default tenant ensured successfully",
         )
 
@@ -405,7 +405,7 @@ def run_migrations():
         try:
             with engine.begin() as conn:
                 default_tenant_id = conn.execute(
-                    text("SELECT id FROM tenants WHERE slug = 'default' LIMIT 1")
+                    text("SELECT id FROM tenants WHERE slug IN ('admin', 'default') ORDER BY id ASC LIMIT 1")
                 ).scalar()
                 if default_tenant_id:
                     conn.execute(

@@ -31,45 +31,117 @@ async def lifespan(app: FastAPI):
     logger.info("Running database migrations...")
     run_migrations()
 
-    # Ensure one default admin
+    # Ensure 4 isolated tenants and their admin profiles
     db = SessionLocal()
     try:
-        default_tenant = db.query(models.Tenant).filter(models.Tenant.slug == "default").first()
-        if not default_tenant:
-            default_tenant = models.Tenant(
-                name="Default Workspace",
-                slug="default",
-                status="ACTIVE",
-            )
-            db.add(default_tenant)
-            db.commit()
-            db.refresh(default_tenant)
+        tenants_config = [
+            {
+                "name": "Admin",
+                "slug": "admin",
+                "admin_id": "admin",
+                "admin_name": "System Admin",
+                "email": "admin@local.test",
+                "default_pwd": "admin123",
+            },
+            {
+                "name": "TS2024",
+                "slug": "ts2024",
+                "admin_id": "TS2024",
+                "admin_name": "TS2024",
+                "email": "ts2024@local.test",
+                "default_pwd": "mrcetncc",
+            },
+            {
+                "name": "TS2025",
+                "slug": "ts2025",
+                "admin_id": "TS2025",
+                "admin_name": "TS2025",
+                "email": "ts2025@local.test",
+                "default_pwd": "mrcetncc",
+            },
+            {
+                "name": "TS2026",
+                "slug": "ts2026",
+                "admin_id": "TS2026",
+                "admin_name": "TS2026",
+                "email": "ts2026@local.test",
+                "default_pwd": "mrcetncc",
+            },
+        ]
 
-        admin_exists = db.query(models.User).filter(models.User.employee_id == "admin").first()
-        if not admin_exists:
-            admin_user = models.User(
-                name="System Admin",
-                employee_id="admin",
-                email="admin@local.test",
-                password_hash=get_password_hash("admin123"),
-                role=models.RoleEnum.ADMIN,
-                phone="0000000000",
-                tenant_id=default_tenant.id,
-                status=models.UserStatus.ACTIVE,
-                is_email_verified=1,
-            )
-            db.add(admin_user)
-            db.commit()
-        else:
-            if admin_exists.tenant_id is None:
-                admin_exists.tenant_id = default_tenant.id  # type: ignore
-            admin_exists.status = models.UserStatus.ACTIVE  # type: ignore
-            admin_exists.is_email_verified = 1  # type: ignore
-            if not admin_exists.email:  # type: ignore
-                admin_exists.email = "admin@local.test"  # type: ignore
-            db.commit()
+        for cfg in tenants_config:
+            # Match slug ('admin' or legacy 'default' for admin tenant)
+            if cfg["slug"] == "admin":
+                tenant = db.query(models.Tenant).filter(models.Tenant.slug.in_(["admin", "default"])).first()
+            else:
+                tenant = db.query(models.Tenant).filter(models.Tenant.slug == cfg["slug"]).first()
+
+            if not tenant:
+                tenant = models.Tenant(
+                    name=cfg["name"],
+                    slug=cfg["slug"],
+                    role="tenant",
+                    status="ACTIVE",
+                    subscription_status="ACTIVE",
+                    subscription_plan_name="Smart Attend Monthly",
+                    subscription_amount_paise=30000,
+                    subscription_currency="INR",
+                    geofence_maps_link="https://maps.app.goo.gl/EiVg8Ppzp2VAP33r6",
+                    geofence_latitude=17.561286,
+                    geofence_longitude=78.456036,
+                    geofence_radius_meters=500,
+                )
+                db.add(tenant)
+                db.commit()
+                db.refresh(tenant)
+            else:
+                tenant.name = cfg["name"]
+                tenant.slug = cfg["slug"]
+                tenant.status = "ACTIVE"
+                tenant.subscription_status = "ACTIVE"
+                db.commit()
+
+            # Ensure default saved location exists for tenant
+            loc = db.query(models.SavedLocation).filter(models.SavedLocation.tenant_id == tenant.id).first()
+            if not loc:
+                loc = models.SavedLocation(
+                    tenant_id=tenant.id,
+                    name="College Ground",
+                    maps_link=tenant.geofence_maps_link or "https://maps.app.goo.gl/EiVg8Ppzp2VAP33r6",
+                    latitude=tenant.geofence_latitude or 17.561286,
+                    longitude=tenant.geofence_longitude or 78.456036,
+                    radius_meters=tenant.geofence_radius_meters or 500,
+                    is_default=1,
+                )
+                db.add(loc)
+                db.commit()
+
+            # Ensure admin user for this tenant
+            admin_user = db.query(models.User).filter(models.User.employee_id == cfg["admin_id"]).first()
+            if not admin_user:
+                admin_user = models.User(
+                    name=cfg["admin_name"],
+                    employee_id=cfg["admin_id"],
+                    email=cfg["email"],
+                    password_hash=get_password_hash(cfg["default_pwd"]),
+                    role=models.RoleEnum.ADMIN,
+                    phone="0000000000",
+                    tenant_id=tenant.id,
+                    status=models.UserStatus.ACTIVE,
+                    is_email_verified=1,
+                )
+                db.add(admin_user)
+                db.commit()
+            else:
+                admin_user.tenant_id = tenant.id
+                admin_user.role = models.RoleEnum.ADMIN
+                admin_user.status = models.UserStatus.ACTIVE
+                admin_user.is_email_verified = 1
+                if not admin_user.email:
+                    admin_user.email = cfg["email"]
+                db.commit()
     except Exception as e:
-        logger.error(f"Admin creation error: {e}")
+        logger.error(f"Tenant / Admin initialization error: {e}")
     finally:
         db.close()
     
