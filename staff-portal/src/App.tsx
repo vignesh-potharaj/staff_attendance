@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import MarkAttendance from './pages/MarkAttendance';
 import History from './pages/History';
+import Settings from './pages/Settings';
 import { useEffect } from 'react';
 import { initNativePushListeners } from './services/notificationService';
 import './App.css';
@@ -44,8 +45,10 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="mark-attendance" element={<MarkAttendance />} />
             <Route path="attendance-history" element={<History />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="/history" element={<Navigate to="/staff/attendance-history" replace />} />
+          <Route path="/settings" element={<Navigate to="/staff/settings" replace />} />
         </Routes>
       </AuthProvider>
     </Router>

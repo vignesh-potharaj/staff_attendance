@@ -52,6 +52,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db), current_admin: 
             tenant_id=current_admin.tenant_id,
             status=UserStatus.ACTIVE,
             is_email_verified=1,
+            roll_number=user.roll_number,
+            department=user.department,
         )
         db.add(db_user)
         db.commit()

@@ -5,7 +5,9 @@ interface User {
   id: number;
   name: string;
   employee_id: string;
-  email?: string | null;
+  phone?: string | null;
+  roll_number?: string | null;
+  department?: string | null;
   role: string;
   tenant_id?: number | null;
   tenant_slug?: string | null;

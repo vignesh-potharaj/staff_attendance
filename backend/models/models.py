@@ -155,6 +155,8 @@ class User(Base):
     password_hash = Column(String)
     role = Column(SQLEnum(RoleEnum), default=RoleEnum.STAFF)
     phone = Column(String)
+    roll_number = Column(String, index=True, nullable=True)
+    department = Column(String, index=True, nullable=True)
     hourly_pay = Column(Float, default=0, nullable=False)
     daily_pay = Column(Float, default=0, nullable=False)
     pay_type = Column(String, default="hourly", nullable=False)

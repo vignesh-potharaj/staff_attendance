@@ -51,6 +51,12 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
     confirm_password: str
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_password: str
+
+
 class ResendVerificationRequest(BaseModel):
     email: Optional[str] = None
     user_id: Optional[str] = None
@@ -173,6 +179,8 @@ class UserBase(BaseModel):
     hourly_pay: float = 0
     daily_pay: float = 0
     pay_type: str = "hourly"
+    roll_number: Optional[str] = None
+    department: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str
@@ -185,6 +193,8 @@ class UserUpdate(BaseModel):
     hourly_pay: Optional[float] = None
     daily_pay: Optional[float] = None
     pay_type: Optional[str] = None
+    roll_number: Optional[str] = None
+    department: Optional[str] = None
 
 class HourlyPayUpdate(BaseModel):
     hourly_pay: Optional[float] = None

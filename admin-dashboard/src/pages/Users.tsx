@@ -11,6 +11,8 @@ interface User {
   hourly_pay: number;
   daily_pay?: number;
   pay_type?: 'hourly' | 'daily';
+  roll_number?: string;
+  department?: string;
 }
 
 const Users: React.FC = () => {
@@ -24,6 +26,8 @@ const Users: React.FC = () => {
     name: '',
     employee_id: '',
     phone: '',
+    roll_number: '',
+    department: '',
     role: 'STAFF',
     password: '',
     pay_type: 'hourly' as 'hourly' | 'daily',
@@ -54,6 +58,8 @@ const Users: React.FC = () => {
       name: user.name,
       employee_id: user.employee_id,
       phone: user.phone,
+      roll_number: user.roll_number || '',
+      department: user.department || '',
       role: user.role || 'STAFF',
       password: '',
       pay_type: user.pay_type || 'hourly',
@@ -96,6 +102,8 @@ const Users: React.FC = () => {
 
       const payload: Record<string, string | number | null> = {
         ...formData,
+        roll_number: formData.roll_number.trim() || null,
+        department: formData.department.trim() || null,
         role: editingUser ? editingUser.role : 'STAFF',
         hourly_pay: hourlyPay,
         daily_pay: dailyPay,
@@ -116,6 +124,8 @@ const Users: React.FC = () => {
         name: '',
         employee_id: '',
         phone: '',
+        roll_number: '',
+        department: '',
         role: 'STAFF',
         password: '',
         pay_type: 'hourly',
@@ -142,6 +152,8 @@ const Users: React.FC = () => {
               name: '',
               employee_id: '',
               phone: '',
+              roll_number: '',
+              department: '',
               role: 'STAFF',
               password: '',
               pay_type: 'hourly',
@@ -200,10 +212,20 @@ const Users: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Contact Info */}
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <p className="text-xs text-slate-500 font-bold mb-0.5 uppercase tracking-wide">Phone Number</p>
-                    <p className="text-sm font-bold text-slate-900">{user.phone}</p>
+                  {/* Cadet Details Grid: Phone, Roll No, Department */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Phone Number</p>
+                      <p className="text-sm font-bold text-slate-900 truncate">{user.phone || 'N/A'}</p>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Roll Number</p>
+                      <p className="text-sm font-black text-[#2D3092] font-mono truncate">{user.roll_number || '—'}</p>
+                    </div>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Department</p>
+                      <p className="text-sm font-black text-[#EF1C25] truncate">{user.department || '—'}</p>
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -282,6 +304,34 @@ const Users: React.FC = () => {
                   value={formData.employee_id} 
                   onChange={e => setFormData({...formData, employee_id: e.target.value})} 
                 />
+              </div>
+
+              {/* Roll Number & Department */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                    Roll Number
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. 24N31A0501"
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20 font-mono uppercase" 
+                    value={formData.roll_number} 
+                    onChange={e => setFormData({...formData, roll_number: e.target.value.toUpperCase()})} 
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#2D3092] uppercase tracking-wider mb-1">
+                    Department
+                  </label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. CSE, ECE, MECH"
+                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm font-semibold focus:border-[#2D3092] focus:outline-none focus:ring-2 focus:ring-[#2D3092]/20 uppercase" 
+                    value={formData.department} 
+                    onChange={e => setFormData({...formData, department: e.target.value.toUpperCase()})} 
+                  />
+                </div>
               </div>
 
               <div>

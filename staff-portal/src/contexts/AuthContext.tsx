@@ -8,6 +8,8 @@ export interface User {
   role: string;
   email?: string;
   phone?: string;
+  roll_number?: string;
+  department?: string;
   hourly_pay?: number;
   tenant_id?: number;
   tenant_name?: string;

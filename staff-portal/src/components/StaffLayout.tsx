@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, CalendarCheck, History, LogOut, Menu, X } from 'lucide-react';
+import { BarChart3, CalendarCheck, History, LogOut, Menu, Settings, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationPermissionBanner } from './NotificationPermissionBanner';
 
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/staff/dashboard', label: 'Cadet Dashboard', icon: BarChart3 },
   { to: '/staff/mark-attendance', label: 'Mark Attendance (Fall In / Visarjan)', icon: CalendarCheck },
   { to: '/staff/attendance-history', label: 'Attendance History', icon: History },
+  { to: '/staff/settings', label: 'Settings', icon: Settings },
 ];
 
 const StaffLayout: React.FC = () => {
@@ -56,6 +57,21 @@ const StaffLayout: React.FC = () => {
             />
             <span className="font-black text-sm uppercase tracking-tight">Cadet Portal</span>
           </div>
+
+          <NavLink
+            to="/staff/settings"
+            className={({ isActive }) =>
+              `p-2 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                isActive
+                  ? 'bg-[#EF1C25] text-white border-[#FFCB06] shadow-sm'
+                  : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+              }`
+            }
+            aria-label="Settings"
+            title="Settings & Profile"
+          >
+            <Settings className="w-5 h-5 text-[#FFCB06]" />
+          </NavLink>
         </div>
 
         {/* NCC Tri-Color Accent Line below the gold border */}
@@ -105,15 +121,25 @@ const StaffLayout: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex items-center gap-3 min-w-0 bg-white/5 p-2.5 rounded-xl border border-white/10">
+          <NavLink
+            to="/staff/settings"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 min-w-0 bg-white/5 hover:bg-white/10 p-2.5 rounded-xl border border-white/10 transition-all cursor-pointer"
+            title="View Profile & Settings"
+          >
             <div className="w-10 h-10 rounded-xl bg-[#EF1C25] border-2 border-[#FFCB06] text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md">
               {initials}
             </div>
             <div className="min-w-0">
               <p className="font-black text-sm truncate text-white">{user?.name}</p>
               <p className="text-xs font-bold text-[#00AEEF] truncate">Cadet ID: {user?.employee_id}</p>
+              {(user?.roll_number || user?.department) && (
+                <p className="text-[11px] font-semibold text-[#FFCB06] truncate mt-0.5">
+                  {[user?.roll_number, user?.department].filter(Boolean).join(' • ')}
+                </p>
+              )}
             </div>
-          </div>
+          </NavLink>
 
         </div>
 

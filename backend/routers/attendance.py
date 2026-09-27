@@ -471,7 +471,7 @@ def export_attendance_csv(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Cadet Name", "Cadet Regt ID", "Date", "Expected Fall-In", "Fall-In Time", "Visarjan Time", "Status", "Latitude", "Longitude", "Device"])
+    writer.writerow(["Cadet Name", "Cadet Regt ID", "Roll Number", "Department", "Date", "Expected Fall-In", "Fall-In Time", "Visarjan Time", "Status", "Latitude", "Longitude", "Device"])
 
     for r in records:
         check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
@@ -479,6 +479,8 @@ def export_attendance_csv(
         writer.writerow([
             r.user.name,
             r.user.employee_id,
+            getattr(r.user, 'roll_number', '') or '',
+            getattr(r.user, 'department', '') or '',
             r.date,
             getattr(r, 'expected_fall_in_time', '07:00 AM'),
             r.check_in_time.strftime("%H:%M:%S"),
@@ -575,6 +577,8 @@ def export_monthly_summary_csv(
     writer.writerow([
         "Cadet Name",
         "Cadet Regt ID",
+        "Roll Number",
+        "Department",
         "Month",
         "Total Days",
         "Present",
@@ -603,6 +607,8 @@ def export_monthly_summary_csv(
         writer.writerow([
             cadet.name,
             cadet.employee_id,
+            cadet.roll_number or '',
+            cadet.department or '',
             month,
             total_days,
             present_count,
@@ -642,6 +648,8 @@ def export_total_summary_csv(
     writer.writerow([
         "Cadet Name",
         "Cadet Regt ID",
+        "Roll Number",
+        "Department",
         "Total Days",
         "Present",
         "Absent",
@@ -668,6 +676,8 @@ def export_total_summary_csv(
         writer.writerow([
             cadet.name,
             cadet.employee_id,
+            cadet.roll_number or '',
+            cadet.department or '',
             total_days,
             present_count,
             absent_count,
@@ -938,6 +948,8 @@ def export_staff_attendance_csv(
     writer.writerow([
         "Cadet Name",
         "Cadet Regt ID",
+        "Roll Number",
+        "Department",
         "Date",
         "Expected Fall-In",
         "Fall-In Time",
@@ -955,6 +967,8 @@ def export_staff_attendance_csv(
         writer.writerow([
             target_user.name,
             target_user.employee_id,
+            target_user.roll_number or '',
+            target_user.department or '',
             r.date,
             getattr(r, 'expected_fall_in_time', '07:00 AM'),
             fall_in_str,

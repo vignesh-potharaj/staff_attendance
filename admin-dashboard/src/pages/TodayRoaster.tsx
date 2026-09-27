@@ -14,6 +14,8 @@ interface User {
   name: string;
   employee_id: string;
   role: string;
+  roll_number?: string;
+  department?: string;
   shift?: Shift;
 }
 
@@ -402,7 +404,10 @@ const TodayRoaster: React.FC = () => {
         const assignedLoc = savedLocations.find(l => l.id === sLocId);
         const locTag = assignedLoc ? ` • 📍 Post: ${assignedLoc.name}` : '';
 
-        message += `${index + 1}. *${user.name}* (${user.employee_id})\n`;
+        const rollDept = [user.roll_number, user.department].filter(Boolean).join(' | ');
+        const cadetIdStr = rollDept ? `${user.employee_id} • ${rollDept}` : user.employee_id;
+
+        message += `${index + 1}. *${user.name}* (${cadetIdStr})\n`;
         message += `   ⏰ ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}${locTag}\n`;
       });
 
@@ -452,7 +457,10 @@ const TodayRoaster: React.FC = () => {
         const assignedLoc = savedLocations.find(l => l.id === sLocId);
         const locTag = assignedLoc ? ` • Post: ${assignedLoc.name}` : '';
 
-        message += `${index + 1}. ${user.name} (${user.employee_id})\n`;
+        const rollDept = [user.roll_number, user.department].filter(Boolean).join(' | ');
+        const cadetIdStr = rollDept ? `${user.employee_id} • ${rollDept}` : user.employee_id;
+
+        message += `${index + 1}. ${user.name} (${cadetIdStr})\n`;
         message += `   Timing: ${formatTime12h(sTime)} - ${formatTime12h(eTime)}${customTag}${locTag}\n`;
       });
 
@@ -709,10 +717,20 @@ const TodayRoaster: React.FC = () => {
                               Cadet
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 mt-1">
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                               Regt No: {user.employee_id}
                             </span>
+                            {user.roll_number && (
+                              <span className="text-xs font-mono font-bold text-[#2D3092] bg-[#2D3092]/10 px-2 py-0.5 rounded border border-[#2D3092]/20">
+                                Roll: {user.roll_number}
+                              </span>
+                            )}
+                            {user.department && (
+                              <span className="text-xs font-bold text-[#EF1C25] bg-[#EF1C25]/10 px-2 py-0.5 rounded border border-[#EF1C25]/20">
+                                Dept: {user.department}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

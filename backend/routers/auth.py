@@ -26,6 +26,7 @@ from backend.models.models import (
 )
 from backend.schemas.schemas import (
     ActionMessage,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     LoginRequest,
@@ -176,6 +177,8 @@ def build_login_response(user: User) -> dict:
             "employee_id": user_record.employee_id,
             "email": user_record.email,
             "phone": user_record.phone,
+            "roll_number": getattr(user_record, "roll_number", None),
+            "department": getattr(user_record, "department", None),
             "role": user_record.role,
             "hourly_pay": getattr(user_record, "hourly_pay", 0),
             "daily_pay": getattr(user_record, "daily_pay", 0),
@@ -201,6 +204,8 @@ def get_current_user_profile(current_user: User = Depends(get_current_user)):
         "employee_id": user_record.employee_id,
         "email": user_record.email,
         "phone": user_record.phone,
+        "roll_number": getattr(user_record, "roll_number", None),
+        "department": getattr(user_record, "department", None),
         "role": user_record.role,
         "hourly_pay": getattr(user_record, "hourly_pay", 0),
         "daily_pay": getattr(user_record, "daily_pay", 0),
@@ -407,3 +412,33 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
     db.commit()
 
     return ActionMessage(message="Password reset successfully. You can now sign in.")
+
+
+@router.post("/change-password", response_model=ActionMessage)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    user_record = orm_value(current_user)
+
+    if not payload.current_password or not payload.new_password:
+        raise HTTPException(status_code=400, detail="Current password and new password are required")
+
+    if not verify_password(payload.current_password, user_record.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    if payload.new_password != payload.confirm_password:
+        raise HTTPException(status_code=400, detail="New passwords do not match")
+
+    if len(payload.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
+
+    if verify_password(payload.new_password, user_record.password_hash):
+        raise HTTPException(status_code=400, detail="New password cannot be the same as your current password")
+
+    user_record.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+
+    return ActionMessage(message="Password changed successfully")
+

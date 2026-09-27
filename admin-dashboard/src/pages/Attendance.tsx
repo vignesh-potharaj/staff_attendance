@@ -9,6 +9,8 @@ interface AttendanceRecord {
   user?: {
     name: string;
     employee_id: string;
+    roll_number?: string;
+    department?: string;
   };
   date: string;
   check_in_time: string;
@@ -28,6 +30,8 @@ interface CadetOption {
   employee_id: string;
   phone?: string;
   role?: string;
+  roll_number?: string;
+  department?: string;
 }
 
 interface CadetSummary {
@@ -310,9 +314,23 @@ const Attendance: React.FC = () => {
               <h3 className="text-base sm:text-lg font-black text-[#2D3092]">
                 {cadetName}
               </h3>
-              <p className="text-xs font-bold text-slate-500 mt-0.5">
-                Cadet ID: <span className="text-[#EF1C25] font-black">{regtId}</span> • Date: {record.date}
-              </p>
+              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                <span className="text-xs font-bold text-slate-500">
+                  Cadet ID: <span className="text-[#EF1C25] font-black">{regtId}</span>
+                </span>
+                {record.user?.roll_number && (
+                  <span className="text-[11px] font-mono font-bold text-[#2D3092] bg-[#2D3092]/10 px-2 py-0.5 rounded border border-[#2D3092]/20">
+                    Roll: {record.user.roll_number}
+                  </span>
+                )}
+                {record.user?.department && (
+                  <span className="text-[11px] font-bold text-[#EF1C25] bg-[#EF1C25]/10 px-2 py-0.5 rounded border border-[#EF1C25]/20">
+                    Dept: {record.user.department}
+                  </span>
+                )}
+                <span className="text-xs text-slate-400 font-bold">•</span>
+                <span className="text-xs font-bold text-slate-600">Date: {record.date}</span>
+              </div>
             </div>
 
             {/* Status Badge */}
@@ -622,11 +640,21 @@ const Attendance: React.FC = () => {
                         {selectedCadet.name ? selectedCadet.name.slice(0, 2).toUpperCase() : 'CD'}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-black text-[#2D3092] truncate">{selectedCadet.name}</span>
                           <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-[#EF1C25]/10 text-[#EF1C25] border border-[#EF1C25]/20 shrink-0">
                             {selectedCadet.employee_id}
                           </span>
+                          {selectedCadet.roll_number && (
+                            <span className="text-[10px] font-mono font-bold text-[#2D3092] bg-[#2D3092]/10 px-1.5 py-0.5 rounded border border-[#2D3092]/20 shrink-0">
+                              {selectedCadet.roll_number}
+                            </span>
+                          )}
+                          {selectedCadet.department && (
+                            <span className="text-[10px] font-bold text-[#EF1C25] bg-[#EF1C25]/10 px-1.5 py-0.5 rounded border border-[#EF1C25]/20 shrink-0">
+                              {selectedCadet.department}
+                            </span>
+                          )}
                         </div>
                         {selectedCadet.phone && (
                           <span className="text-[11px] text-slate-500 font-medium">Ph: {selectedCadet.phone}</span>
@@ -751,6 +779,11 @@ const Attendance: React.FC = () => {
                                     </p>
                                     <p className="text-[10px] text-slate-500 font-medium">
                                       {cadet.phone || 'No phone'}
+                                      {(cadet.roll_number || cadet.department) && (
+                                        <span className="text-[#2D3092] font-semibold">
+                                          {' • '}{[cadet.roll_number, cadet.department].filter(Boolean).join(' | ')}
+                                        </span>
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -793,10 +826,22 @@ const Attendance: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-[#2D3092]">{selectedCadet.name}</h3>
-                      <p className="text-xs font-bold text-slate-500">
-                        Cadet Regt ID: <span className="text-[#EF1C25] font-black">{selectedCadet.employee_id}</span>
-                        {selectedCadet.phone && <span> • Ph: {selectedCadet.phone}</span>}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                        <p className="text-xs font-bold text-slate-500">
+                          Cadet Regt ID: <span className="text-[#EF1C25] font-black">{selectedCadet.employee_id}</span>
+                          {selectedCadet.phone && <span> • Ph: {selectedCadet.phone}</span>}
+                        </p>
+                        {selectedCadet.roll_number && (
+                          <span className="text-xs font-mono font-bold text-[#2D3092] bg-[#2D3092]/10 px-2 py-0.5 rounded border border-[#2D3092]/20">
+                            Roll No: {selectedCadet.roll_number}
+                          </span>
+                        )}
+                        {selectedCadet.department && (
+                          <span className="text-xs font-bold text-[#EF1C25] bg-[#EF1C25]/10 px-2 py-0.5 rounded border border-[#EF1C25]/20">
+                            Branch: {selectedCadet.department}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

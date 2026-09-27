@@ -229,6 +229,16 @@ def run_migrations():
                 "ALTER TABLE users ADD COLUMN pay_type VARCHAR DEFAULT 'hourly' NOT NULL",
                 "pay_type column ensured on users",
             )
+        if "roll_number" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN roll_number VARCHAR NULL",
+                "roll_number column ensured on users",
+            )
+        if "department" not in columns:
+            _execute_migration(
+                "ALTER TABLE users ADD COLUMN department VARCHAR NULL",
+                "department column ensured on users",
+            )
 
     if "tenants" in tables:
         columns = {col["name"] for col in inspector.get_columns("tenants")}
