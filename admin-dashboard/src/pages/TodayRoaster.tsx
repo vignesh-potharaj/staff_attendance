@@ -986,8 +986,8 @@ const TodayRoaster: React.FC = () => {
 
       {/* Session Activation / Edit Modal */}
       {isSessionModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="bg-[#2D3092] p-5 text-white flex items-center justify-between border-b border-[#1E216B]">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-[#FFCB06]">
@@ -1009,7 +1009,7 @@ const TodayRoaster: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleActivateSession} className="p-6 space-y-4">
+            <form onSubmit={handleActivateSession} className="p-4 space-y-3 overflow-y-auto flex-1">
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -1126,66 +1126,46 @@ const TodayRoaster: React.FC = () => {
                 />
               </div>
 
-              {/* Location Verification (Geofencing) Toggle Card */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
-                <label className="flex items-start justify-between gap-3 cursor-pointer select-none">
-                  <div className="flex items-start gap-2.5">
-                    <div className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      requireLocation ? 'bg-[#2D3092]/10 text-[#2D3092]' : 'bg-slate-200 text-slate-500'
+              {/* Location Verification (Geofencing) Toggle */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                <label className="flex items-center justify-between gap-2 cursor-pointer select-none">
+                  <div className="flex items-center gap-2">
+                    <MapPin className={`w-4 h-4 shrink-0 ${requireLocation ? 'text-[#2D3092]' : 'text-slate-400'}`} />
+                    <span className="text-xs font-black text-slate-900 uppercase tracking-wide">Geofencing</span>
+                    <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded-md border ${
+                      requireLocation
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300'
                     }`}>
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
-                          Location Verification (Geofencing)
-                        </span>
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md border ${
-                          requireLocation
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : 'bg-amber-100 text-amber-800 border-amber-300'
-                        }`}>
-                          {requireLocation ? 'ENABLED (ON)' : 'DISABLED (OFF)'}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug">
-                        {requireLocation
-                          ? 'Enforced: Cadets must be physically present within the unit parade ground perimeter.'
-                          : 'Location check OFF: Useful when cadets are posted across multiple gates, auditorium, or distributed stations.'}
-                      </p>
-                    </div>
+                      {requireLocation ? 'ON' : 'OFF'}
+                    </span>
                   </div>
                   <input
                     type="checkbox"
                     checked={requireLocation}
                     onChange={(e) => setRequireLocation(e.target.checked)}
-                    className="mt-1 w-4 h-4 text-[#EF1C25] border-gray-300 rounded focus:ring-[#EF1C25] cursor-pointer"
+                    className="w-4 h-4 text-[#EF1C25] border-gray-300 rounded focus:ring-[#EF1C25] cursor-pointer"
                   />
                 </label>
 
                 {/* If location verification is enabled, select primary session ground */}
                 {requireLocation && (
-                  <div className="pt-2.5 border-t border-slate-200">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Primary Session Duty Ground / Station
-                    </label>
-                    {savedLocations.length === 0 ? (
-                      <p className="text-[11px] text-slate-500 italic">
-                        No saved locations found. Go to Settings to add parade grounds or duty posts.
-                      </p>
-                    ) : (
-                      <select
-                        value={sessionLocationId || (savedLocations.find(l => l.is_default)?.id || savedLocations[0]?.id || '')}
-                        onChange={(e) => setSessionLocationId(e.target.value ? Number(e.target.value) : null)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
-                      >
-                        {savedLocations.map((loc) => (
+                  <div className="pt-2 mt-2 border-t border-slate-200">
+                    <select
+                      value={sessionLocationId || (savedLocations.find(l => l.is_default)?.id || savedLocations[0]?.id || '')}
+                      onChange={(e) => setSessionLocationId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#2D3092]"
+                    >
+                      {savedLocations.length === 0 ? (
+                        <option value="">No saved locations</option>
+                      ) : (
+                        savedLocations.map((loc) => (
                           <option key={loc.id} value={loc.id}>
                             {loc.name} {loc.is_default ? '(Default)' : ''} • {loc.radius_meters}m
                           </option>
-                        ))}
-                      </select>
-                    )}
+                        ))
+                      )}
+                    </select>
                   </div>
                 )}
               </div>
@@ -1205,7 +1185,7 @@ const TodayRoaster: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsSessionModalOpen(false)}
