@@ -10,9 +10,12 @@ load_dotenv()
 # However, for production it should be PostgreSQL.
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 
-# Fix for SQLAlchemy 2.0+ which requires 'postgresql://' instead of 'postgres://'
-if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+# Fix for SQLAlchemy 2.0+ which defaults to psycopg (v3) unless psycopg2 is explicitly specified
+if SQLALCHEMY_DATABASE_URL:
+    if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and not SQLALCHEMY_DATABASE_URL.startswith("postgresql+"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 # For SQLite, we need connect_args={"check_same_thread": False}. For Postgres, we don't.
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
