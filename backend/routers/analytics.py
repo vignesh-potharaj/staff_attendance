@@ -5,6 +5,7 @@ from sqlalchemy import func
 
 from backend.database.database import get_db
 from backend.models.models import Attendance, User, AttendanceStatus, RoleEnum, IST, AttendanceSession
+from backend.services.session_service import get_or_create_auto_session
 from backend.auth.dependencies import get_current_admin
 from backend.schemas.schemas import AnalyticsSummary
 
@@ -19,6 +20,9 @@ def get_analytics(db: Session = Depends(get_db), current_admin: User = Depends(g
     today_str = datetime.now(IST).strftime("%Y-%m-%d")
     
     # Check if an active session is conducted today
+    if current_admin.tenant_id:
+        get_or_create_auto_session(db, current_admin.tenant_id, today_str)
+
     active_session = db.query(AttendanceSession).filter(
         AttendanceSession.tenant_id == current_admin.tenant_id,
         AttendanceSession.date == today_str,

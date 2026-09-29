@@ -59,6 +59,7 @@ const Attendance: React.FC = () => {
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7));
   const [empIdFilter, setEmpIdFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PRESENT' | 'LATE' | 'ABSENT'>('ALL');
 
   // Individual mode state
   const [cadetList, setCadetList] = useState<CadetOption[]>([]);
@@ -337,7 +338,9 @@ const Attendance: React.FC = () => {
             <span className={`px-3.5 py-1 inline-flex text-xs leading-5 font-black rounded-full flex-shrink-0 border ${
               record.status === 'PRESENT'
                 ? 'bg-[#00AEEF]/10 text-[#00AEEF] border-[#00AEEF]/40'
-                : 'bg-[#FFCB06]/20 text-[#D9AB00] border-[#FFCB06]'
+                : record.status === 'ABSENT'
+                  ? 'bg-rose-50 text-rose-600 border-rose-300'
+                  : 'bg-[#FFCB06]/20 text-[#D9AB00] border-[#FFCB06]'
             }`}>
               {record.status}
             </span>
@@ -355,102 +358,115 @@ const Attendance: React.FC = () => {
                 )}
               </div>
               <p className="text-sm font-black text-slate-900 mt-1">
-                {record.check_in_time 
-                  ? new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                  : '—'}
+                {record.status === 'ABSENT'
+                  ? '—'
+                  : record.check_in_time 
+                    ? new Date(record.check_in_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    : '—'}
               </p>
             </div>
             <div className="bg-[#EF1C25]/10 p-3 rounded-xl border border-[#EF1C25]/30">
               <p className="text-xs text-[#EF1C25] font-bold uppercase tracking-wider">Visarjan Time</p>
               <p className="text-sm font-black text-slate-900 mt-1">
-                {record.check_out_time 
-                  ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                  : 'Pending'}
+                {record.status === 'ABSENT'
+                  ? '—'
+                  : record.check_out_time 
+                    ? new Date(record.check_out_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    : 'Pending'}
               </p>
             </div>
           </div>
 
-          {/* Selfies & Location Section */}
-          <div className="border-t border-slate-100 pt-3 space-y-3">
-            {/* Selfies Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Fall-In Selfie */}
-              <div>
-                <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Fall-In Selfie</p>
-                {record.photo_url ? (
-                  <a 
-                    href={resolvePhotoUrl(record.photo_url) || '#'} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="block w-full rounded-lg overflow-hidden border border-green-200 hover:border-green-500 hover:shadow-md transition-all"
-                  >
-                    <img 
-                      src={resolvePhotoUrl(record.photo_url) || ''}
-                      alt="Fall-in selfie"
-                      className="w-full h-48 object-cover"
-                    />
-                  </a>
-                ) : (
-                  <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                      <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                      <p className="text-xs text-gray-400">No image</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Visarjan Selfie */}
-              <div>
-                <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Visarjan Selfie</p>
-                {record.check_out_photo_url ? (
-                  <a 
-                    href={resolvePhotoUrl(record.check_out_photo_url) || '#'} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="block w-full rounded-lg overflow-hidden border border-red-200 hover:border-red-500 hover:shadow-md transition-all"
-                  >
-                    <img 
-                      src={resolvePhotoUrl(record.check_out_photo_url) || ''}
-                      alt="Visarjan selfie"
-                      className="w-full h-48 object-cover"
-                    />
-                  </a>
-                ) : (
-                  <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                      <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                      <p className="text-xs text-gray-400">Pending Visarjan</p>
-                    </div>
-                  </div>
-                )}
-              </div>
+          {record.status === 'ABSENT' ? (
+            <div className="bg-rose-50/70 p-4 rounded-xl border border-rose-200 text-center">
+              <p className="text-xs font-black text-rose-700 uppercase tracking-wider">Cadet Absent</p>
+              <p className="text-[11px] text-rose-600 mt-0.5 font-medium">No drill check-in or selfie recorded for this session</p>
             </div>
+          ) : (
+            <>
+              {/* Selfies & Location Section */}
+              <div className="border-t border-slate-100 pt-3 space-y-3">
+                {/* Selfies Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Fall-In Selfie */}
+                  <div>
+                    <p className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">📸 Fall-In Selfie</p>
+                    {record.photo_url ? (
+                      <a 
+                        href={resolvePhotoUrl(record.photo_url) || '#'} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="block w-full rounded-lg overflow-hidden border border-green-200 hover:border-green-500 hover:shadow-md transition-all"
+                      >
+                        <img 
+                          src={resolvePhotoUrl(record.photo_url) || ''}
+                          alt="Fall-in selfie"
+                          className="w-full h-48 object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                          <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                          <p className="text-xs text-gray-400">No image</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-            {/* Location */}
-            <div>
-              <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">📍 Location</p>
-              <a 
-                href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`} 
-                target="_blank" 
-                rel="noreferrer"
-                className="w-full rounded-lg border border-blue-200 hover:border-blue-500 p-4 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all"
-              >
-                <div className="text-center">
-                  <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-                  <p className="text-xs font-medium text-blue-600">View Location</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {typeof record.latitude === 'number' ? record.latitude.toFixed(4) : record.latitude}, {typeof record.longitude === 'number' ? record.longitude.toFixed(4) : record.longitude}
-                  </p>
+                  {/* Visarjan Selfie */}
+                  <div>
+                    <p className="text-xs text-red-600 font-medium mb-2 uppercase tracking-wide">📸 Visarjan Selfie</p>
+                    {record.check_out_photo_url ? (
+                      <a 
+                        href={resolvePhotoUrl(record.check_out_photo_url) || '#'} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="block w-full rounded-lg overflow-hidden border border-red-200 hover:border-red-500 hover:shadow-md transition-all"
+                      >
+                        <img 
+                          src={resolvePhotoUrl(record.check_out_photo_url) || ''}
+                          alt="Visarjan selfie"
+                          className="w-full h-48 object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-full h-48 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                        <div className="text-center">
+                          <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-1" />
+                          <p className="text-xs text-gray-400">Pending Visarjan</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </a>
-            </div>
-          </div>
 
-          {/* Device Info */}
-          <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-600 font-medium">Device: <span className="text-gray-700">{record.device_info}</span></p>
-          </div>
+                {/* Location */}
+                <div>
+                  <p className="text-xs text-gray-600 font-medium mb-2 uppercase tracking-wide">📍 Location</p>
+                  <a 
+                    href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="w-full rounded-lg border border-blue-200 hover:border-blue-500 p-4 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 hover:shadow-md transition-all"
+                  >
+                    <div className="text-center">
+                      <MapPin className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                      <p className="text-xs font-medium text-blue-600">View Location</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {typeof record.latitude === 'number' ? record.latitude.toFixed(4) : record.latitude}, {typeof record.longitude === 'number' ? record.longitude.toFixed(4) : record.longitude}
+                      </p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              {/* Device Info */}
+              <div className="bg-gray-50 p-2 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-600 font-medium">Device: <span className="text-gray-700">{record.device_info}</span></p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -595,15 +611,70 @@ const Attendance: React.FC = () => {
 
           </div>
 
+          {/* Status Filter Tabs & Header */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === 'ALL'
+                    ? 'bg-[#2D3092] text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                All ({records.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('PRESENT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === 'PRESENT'
+                    ? 'bg-[#00AEEF] text-white shadow-sm'
+                    : 'text-[#00AEEF] hover:bg-[#00AEEF]/10'
+                }`}
+              >
+                Present ({records.filter(r => r.status === 'PRESENT').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('LATE')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === 'LATE'
+                    ? 'bg-[#FFCB06] text-slate-900 shadow-sm'
+                    : 'text-amber-700 hover:bg-amber-100/50'
+                }`}
+              >
+                Late ({records.filter(r => r.status === 'LATE').length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('ABSENT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  statusFilter === 'ABSENT'
+                    ? 'bg-[#EF1C25] text-white shadow-sm'
+                    : 'text-rose-600 hover:bg-rose-50'
+                }`}
+              >
+                Absent ({records.filter(r => r.status === 'ABSENT').length})
+              </button>
+            </div>
+            <p className="text-xs font-bold text-slate-500">
+              Showing {records.filter(r => statusFilter === 'ALL' || r.status === statusFilter).length} of {records.length} Cadets
+            </p>
+          </div>
+
           {/* Timeline Attendance Records */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden p-4">
             <div className="space-y-4">
-              {records.map((record) => renderAttendanceCard(record))}
+              {records
+                .filter(r => statusFilter === 'ALL' || r.status === statusFilter)
+                .map((record) => renderAttendanceCard(record))}
               
-              {records.length === 0 && !loading && (
+              {records.filter(r => statusFilter === 'ALL' || r.status === statusFilter).length === 0 && !loading && (
                 <div className="text-center py-8 text-gray-500">
                   <ImageIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                  <p>No attendance records found for this criteria.</p>
+                  <p>No attendance records match the selected filter ({statusFilter}).</p>
                 </div>
               )}
 

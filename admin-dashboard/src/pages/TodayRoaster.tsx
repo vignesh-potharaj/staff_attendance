@@ -76,8 +76,8 @@ const TodayRoaster: React.FC = () => {
   const [drillType, setDrillType] = useState('Sunday Regular Parade');
   const [sessionTitle, setSessionTitle] = useState('Sunday Regular Parade');
   const [customEventTitle, setCustomEventTitle] = useState('');
-  const [sessionStartTime, setSessionStartTime] = useState('07:00');
-  const [sessionEndTime, setSessionEndTime] = useState('09:30');
+  const [sessionStartTime, setSessionStartTime] = useState('09:30');
+  const [sessionEndTime, setSessionEndTime] = useState('12:30');
   const [requireLocation, setRequireLocation] = useState(true);
   const [sessionNotes, setSessionNotes] = useState('');
   const [notifyCadets, setNotifyCadets] = useState(true);
@@ -119,8 +119,8 @@ const TodayRoaster: React.FC = () => {
       setDrillType('Sunday Regular Parade');
       setSessionTitle('Sunday Regular Parade');
       setCustomEventTitle('');
-      setSessionStartTime('07:00');
-      setSessionEndTime('09:30');
+      setSessionStartTime('09:30');
+      setSessionEndTime('12:30');
       setRequireLocation(true);
       setSessionNotes('');
       const defaultLoc = savedLocations.find(l => l.is_default) || savedLocations[0];
@@ -172,8 +172,8 @@ const TodayRoaster: React.FC = () => {
       });
 
       const sessionObj = sRes.data?.session;
-      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
 
       const initialSchedules: Record<number, ScheduleInput> = {};
       staffOnly.forEach((u: User) => {
@@ -273,8 +273,8 @@ const TodayRoaster: React.FC = () => {
     setSchedules(prev => ({
       ...prev,
       [userId]: {
-        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00'),
-        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30'),
+        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '09:30'),
+        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '12:30'),
         locationId: prev[userId]?.locationId || null,
         [field]: value
       }
@@ -285,8 +285,8 @@ const TodayRoaster: React.FC = () => {
     setSchedules(prev => ({
       ...prev,
       [userId]: {
-        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00'),
-        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30'),
+        startTime: prev[userId]?.startTime || (sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '09:30'),
+        endTime: prev[userId]?.endTime || (sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '12:30'),
         locationId: locationId
       }
     }));
@@ -294,8 +294,8 @@ const TodayRoaster: React.FC = () => {
 
   const handleResetCadetTime = (userId: number) => {
     const sessionObj = sessionStatus?.session;
-    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
     setSchedules(prev => ({
       ...prev,
       [userId]: {
@@ -308,8 +308,8 @@ const TodayRoaster: React.FC = () => {
 
   const handleResetAllCadets = () => {
     const sessionObj = sessionStatus?.session;
-    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
     setSchedules(prev => {
       const updated: Record<number, ScheduleInput> = { ...prev };
       users.forEach(u => {
@@ -336,8 +336,8 @@ const TodayRoaster: React.FC = () => {
   const saveRoasterPayload = async () => {
     const todayDate = new Date().toLocaleDateString('en-CA');
     const sessionObj = sessionStatus?.session;
-    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+    const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+    const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
 
     const payload = users.map(u => {
       const s = schedules[u.id];
@@ -380,8 +380,8 @@ const TodayRoaster: React.FC = () => {
       });
 
       const sessionObj = sessionStatus?.session;
-      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
 
       let message = `📅 *Cadet Drill Duty Roster - ${todayFormatted}*\n`;
       if (sessionStatus?.is_active && sessionObj?.title) {
@@ -433,8 +433,8 @@ const TodayRoaster: React.FC = () => {
       });
 
       const sessionObj = sessionStatus?.session;
-      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+      const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+      const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
 
       let message = `📅 Cadet Drill Duty Roster - ${todayFormatted}\n`;
       if (sessionStatus?.is_active && sessionObj?.title) {
@@ -520,8 +520,8 @@ const TodayRoaster: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2.5">
               {users.some(u => {
                 const s = schedules[u.id];
-                const defSt = sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '07:00';
-                const defEt = sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '09:30';
+                const defSt = sessionStatus?.session?.start_time ? sessionStatus.session.start_time.substring(0, 5) : '09:30';
+                const defEt = sessionStatus?.session?.end_time ? sessionStatus.session.end_time.substring(0, 5) : '12:30';
                 return s && (s.startTime !== defSt || s.endTime !== defEt);
               }) && (
                 <button
@@ -619,7 +619,7 @@ const TodayRoaster: React.FC = () => {
               <p className="text-xs text-slate-600">
                 {sessionStatus?.is_active ? (
                   <span className="font-semibold text-emerald-700">
-                    Drill Timings: {formatTime12h(sessionStatus.session?.start_time || '07:00')} → {formatTime12h(sessionStatus.session?.end_time || '09:30')} • Fall-In attendance is open for cadets.
+                    Drill Timings: {formatTime12h(sessionStatus.session?.start_time || '09:30')} → {formatTime12h(sessionStatus.session?.end_time || '12:30')} • Fall-In attendance is open for cadets.
                   </span>
                 ) : (
                   <span>
@@ -674,8 +674,8 @@ const TodayRoaster: React.FC = () => {
             {users.map((user) => {
               const schedule = schedules[user.id];
               const sessionObj = sessionStatus?.session;
-              const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '07:00';
-              const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '09:30';
+              const defStartTime = sessionObj?.start_time ? sessionObj.start_time.substring(0, 5) : '09:30';
+              const defEndTime = sessionObj?.end_time ? sessionObj.end_time.substring(0, 5) : '12:30';
               
               const cadetStartTime = schedule?.startTime || defStartTime;
               const cadetEndTime = schedule?.endTime || defEndTime;

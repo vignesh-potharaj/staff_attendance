@@ -181,6 +181,7 @@ class UserBase(BaseModel):
     pay_type: str = "hourly"
     roll_number: Optional[str] = None
     department: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class UserCreate(UserBase):
     password: str
@@ -223,17 +224,17 @@ class UserResponse(UserBase):
 
 class AttendanceBase(BaseModel):
     date: str
-    check_in_time: datetime
-    photo_url: str
-    latitude: float
-    longitude: float
-    status: AttendanceStatus
-    device_info: str
+    check_in_time: Optional[datetime] = None
+    photo_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: str
+    device_info: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
     @field_serializer('check_in_time')
-    def _serialize_check_in_time(self, v: datetime, _info):
+    def _serialize_check_in_time(self, v: Optional[datetime], _info):
         from backend.models.models import IST
         if v is None:
             return None

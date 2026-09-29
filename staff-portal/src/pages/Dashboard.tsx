@@ -292,7 +292,7 @@ const Dashboard: React.FC = () => {
                 </div>
               )}
               <p className="text-xs text-slate-500">
-                Drill Timings: {summary.session.start_time || '07:00'} → {summary.session.end_time || '09:30'}
+                Drill Timings: {summary.session.start_time || '09:30'} → {summary.session.end_time || '12:30'}
                 {summary.session.is_visarjan_passed ? (
                   <span className="text-rose-600 font-bold ml-1">• Visarjan time has passed. Fall-In attendance is closed.</span>
                 ) : (

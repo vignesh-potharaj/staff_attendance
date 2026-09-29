@@ -86,10 +86,10 @@ async def lifespan(app: FastAPI):
                     subscription_plan_name="Smart Attend Monthly",
                     subscription_amount_paise=30000,
                     subscription_currency="INR",
-                    geofence_maps_link="https://maps.app.goo.gl/EiVg8Ppzp2VAP33r6",
-                    geofence_latitude=17.561286,
-                    geofence_longitude=78.456036,
-                    geofence_radius_meters=500,
+                    geofence_maps_link="https://maps.app.goo.gl/Xqp5zD6b8tcRwFsc7",
+                    geofence_latitude=17.560878,
+                    geofence_longitude=78.45516,
+                    geofence_radius_meters=300,
                 )
                 db.add(tenant)
                 db.commit()
@@ -107,10 +107,10 @@ async def lifespan(app: FastAPI):
                 loc = models.SavedLocation(
                     tenant_id=tenant.id,
                     name="College Ground",
-                    maps_link=tenant.geofence_maps_link or "https://maps.app.goo.gl/EiVg8Ppzp2VAP33r6",
-                    latitude=tenant.geofence_latitude or 17.561286,
-                    longitude=tenant.geofence_longitude or 78.456036,
-                    radius_meters=tenant.geofence_radius_meters or 500,
+                    maps_link=tenant.geofence_maps_link or "https://maps.app.goo.gl/Xqp5zD6b8tcRwFsc7",
+                    latitude=tenant.geofence_latitude or 17.560878,
+                    longitude=tenant.geofence_longitude or 78.45516,
+                    radius_meters=tenant.geofence_radius_meters or 300,
                     is_default=1,
                 )
                 db.add(loc)
@@ -200,4 +200,5 @@ def read_root():
     return {"message": "Welcome to Smart Staff Attendance System API. View docs at /docs"}
 
 if __name__ == "__main__":
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=True)

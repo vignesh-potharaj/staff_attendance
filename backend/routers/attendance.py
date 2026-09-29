@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database.database import get_db
-from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, AttendanceSession, SavedLocation, IST, RoleEnum
+from backend.models.models import Attendance, User, AttendanceStatus, DailyRoaster, AttendanceSession, SavedLocation, IST, RoleEnum, UserStatus
+from backend.services.session_service import get_or_create_auto_session
 from backend.schemas.schemas import AttendanceResponse
 from backend.auth.dependencies import get_current_user, get_current_admin
 from backend.services.cloudinary_storage import get_cloudinary_manager, compress_image_bytes
@@ -160,6 +161,10 @@ def mark_attendance(
 ):
     today_str = datetime.now(IST).strftime("%Y-%m-%d")
 
+    # Ensure auto-session is created if today is Wednesday/Saturday
+    if current_user.tenant_id:
+        get_or_create_auto_session(db, current_user.tenant_id, today_str)
+
     # Verify there is an active parade/drill session for today
     active_session = db.query(AttendanceSession).filter(
         AttendanceSession.tenant_id == current_user.tenant_id,
@@ -255,10 +260,10 @@ def mark_attendance(
         if now_time > allowed_time:
             status = AttendanceStatus.LATE
     else:
-        # Default NCC morning parade fallback: 07:00 AM start
+        # Default NCC morning parade fallback: 09:30 AM start
         now_time = datetime.now(IST).time()
         current_date = datetime.now(IST).date()
-        default_start = datetime.combine(current_date, datetime.strptime("07:00", "%H:%M").time())
+        default_start = datetime.combine(current_date, datetime.strptime("09:30", "%H:%M").time())
         allowed_time = default_start.time()
         if now_time > allowed_time:
             status = AttendanceStatus.LATE
@@ -317,6 +322,9 @@ def check_out_attendance(
 
     if getattr(existing, 'check_out_time', None) is not None:
         raise HTTPException(status_code=400, detail="You have already checked out for today.")
+
+    if current_user.tenant_id:
+        get_or_create_auto_session(db, current_user.tenant_id, today_str)
 
     active_session = db.query(AttendanceSession).filter(
         AttendanceSession.tenant_id == current_user.tenant_id,
@@ -422,7 +430,7 @@ def populate_expected_fall_in_time(records: List[Attendance], db: Session):
                 except Exception:
                     st_str = str(st)
         else:
-            st_str = "07:00 AM"
+            st_str = "09:30 AM"
             
         setattr(r, 'expected_fall_in_time', st_str)
 
@@ -432,25 +440,200 @@ def get_attendance_history(skip: int = 0, limit: int = 100, db: Session = Depend
     populate_expected_fall_in_time(records, db)
     return records
 
+def get_department_rank(dept: Optional[str]) -> tuple:
+    """
+    Ranks departments for sorting:
+    1. ANE / AERO first
+    2. AIML / CSM second
+    3. CIVIL third
+    4. CS (Cyber Security) / CSE-CS fourth
+    5. CSD / DS / CSE-DS fifth
+    6. CSIT sixth
+    7. Core CSE (CSE, CSE-A...G) seventh
+    8. ECE (ECE, ECE-A...D) eighth
+    9. EEE ninth
+    10. IT tenth
+    11. MECH eleventh
+    Any other department sorted alphabetically after.
+    """
+    if not dept or not str(dept).strip():
+        return (999, "ZZZ")
+    d = str(dept).strip().upper()
+    
+    # 1. ANE / AERO
+    if d.startswith("ANE") or "AERO" in d:
+        return (1, d)
+    # 2. AIML / CSM / CSE-AIML
+    if "AIML" in d or "CSM" in d:
+        return (2, d)
+    # 3. CIVIL
+    if "CIVIL" in d:
+        return (3, d)
+    # 4. Cyber Security / CS (Cyber)
+    if "CYBER" in d or d == "CS" or d.startswith("CS-") or d.startswith("CSE-CS"):
+        return (4, d)
+    # 5. Data Science / CSD / DS / CSE-DS
+    if "DS" in d or "DATA" in d or "CSD" in d:
+        return (5, d)
+    # 6. CSIT
+    if "CSIT" in d:
+        return (6, d)
+    # 7. Core CSE
+    if d.startswith("CSE"):
+        return (7, d)
+    # 8. ECE
+    if "ECE" in d:
+        return (8, d)
+    # 9. EEE
+    if "EEE" in d:
+        return (9, d)
+    # 10. IT
+    if d == "IT":
+        return (10, d)
+    # 11. MECH
+    if "MECH" in d:
+        return (11, d)
+        
+    return (50, d)
+
+
+class AbsentAttendance:
+    """Placeholder record for absent cadets in daily attendance views."""
+    def __init__(self, cadet_id: int, user: User, target_date: str, expected_time: str):
+        self.id = -cadet_id
+        self.user_id = cadet_id
+        self.user = user
+        self.date = target_date
+        self.check_in_time = None
+        self.check_out_time = None
+        self.photo_url = None
+        self.check_out_photo_url = None
+        self.latitude = None
+        self.longitude = None
+        self.status = "ABSENT"
+        self.device_info = "N/A"
+        self.expected_fall_in_time = expected_time
+
+
+def check_has_session_on_date(db: Session, tenant_id: int, target_date: str) -> bool:
+    """
+    Checks if a drill/parade session was conducted or is active on target_date for the given tenant.
+    A date has a session if:
+    1. Any attendance record was actually marked on target_date for this tenant.
+    2. An AttendanceSession exists for target_date:
+       - If target_date == today, it must be active (is_active == 1), or attendance was marked.
+       - If target_date < today, an AttendanceSession was scheduled.
+    Future dates (> today) return False.
+    """
+    now = datetime.now(IST)
+    today_str = now.strftime("%Y-%m-%d")
+
+    # 1. Any marked attendance means a session definitely occurred
+    has_attendance = db.query(Attendance.id).filter(
+        Attendance.tenant_id == tenant_id,
+        Attendance.date == target_date
+    ).first() is not None
+    if has_attendance:
+        return True
+
+    # 2. Future dates have not occurred yet
+    if target_date > today_str:
+        return False
+
+    # 3. Check AttendanceSession table
+    if target_date == today_str:
+        get_or_create_auto_session(db, tenant_id, today_str)
+        today_active_session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == tenant_id,
+            AttendanceSession.date == today_str,
+            AttendanceSession.is_active == 1
+        ).first()
+        return today_active_session is not None
+    else:
+        past_session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == tenant_id,
+            AttendanceSession.date == target_date
+        ).first()
+        return past_session is not None
+
+
 @router.get("/records", response_model=List[AttendanceResponse], dependencies=[Depends(get_current_admin)])
 def get_attendance_records(
     date: Optional[str] = None,
     employee_id: Optional[str] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 500,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
-    query = db.query(Attendance).join(User).filter(Attendance.tenant_id == current_admin.tenant_id)
-    
     if date:
-        query = query.filter(Attendance.date == date)
-    if employee_id:
-        query = query.filter(User.employee_id == employee_id)
-        
-    records = query.order_by(Attendance.created_at.desc()).offset(skip).limit(limit).all()
-    populate_expected_fall_in_time(records, db)
-    return records
+        # If there is no session conducted or active on this date, don't display records
+        if not check_has_session_on_date(db, current_admin.tenant_id, date):
+            return []
+
+        # Fetch active staff cadets for the tenant
+        cadet_query = db.query(User).filter(
+            User.tenant_id == current_admin.tenant_id,
+            User.role == RoleEnum.STAFF,
+            User.status == UserStatus.ACTIVE
+        )
+        if employee_id:
+            cadet_query = cadet_query.filter(User.employee_id == employee_id)
+        active_cadets = cadet_query.all()
+
+        # Fetch marked attendance for this date
+        att_query = db.query(Attendance).join(User).filter(
+            Attendance.tenant_id == current_admin.tenant_id,
+            Attendance.date == date
+        )
+        if employee_id:
+            att_query = att_query.filter(User.employee_id == employee_id)
+        records = att_query.all()
+        populate_expected_fall_in_time(records, db)
+        att_by_user_id = {r.user_id: r for r in records}
+
+        # Expected fall-in time default from session
+        session = db.query(AttendanceSession).filter(
+            AttendanceSession.tenant_id == current_admin.tenant_id,
+            AttendanceSession.date == date
+        ).first()
+        default_expected_time = "09:30 AM"
+        if session and session.start_time:
+            try:
+                default_expected_time = session.start_time.strftime("%I:%M %p")
+            except Exception:
+                default_expected_time = str(session.start_time)
+
+        combined_records = []
+        for cadet in active_cadets:
+            if cadet.id in att_by_user_id:
+                combined_records.append(att_by_user_id[cadet.id])
+            else:
+                combined_records.append(AbsentAttendance(cadet.id, cadet, date, default_expected_time))
+
+        # Sort department-wise (ANE first, AIML second, etc.), then by roll_number, then name
+        combined_records.sort(key=lambda r: (
+            get_department_rank(getattr(r.user, 'department', None)),
+            (getattr(r.user, 'roll_number', '') or '').upper(),
+            (getattr(r.user, 'name', '') or '').upper(),
+            (getattr(r.user, 'employee_id', '') or '').upper()
+        ))
+
+        return combined_records[skip:skip + limit]
+    else:
+        query = db.query(Attendance).join(User).filter(Attendance.tenant_id == current_admin.tenant_id)
+        if employee_id:
+            query = query.filter(User.employee_id == employee_id)
+        records = query.all()
+        populate_expected_fall_in_time(records, db)
+        records.sort(key=lambda r: (
+            get_department_rank(getattr(r.user, 'department', None)),
+            (getattr(r.user, 'roll_number', '') or '').upper(),
+            (getattr(r.user, 'name', '') or '').upper(),
+            (getattr(r.user, 'employee_id', '') or '').upper()
+        ))
+        return records[skip:skip + limit]
+
 
 @router.get("/export", dependencies=[Depends(get_current_admin)])
 def export_attendance_csv(
@@ -459,44 +642,104 @@ def export_attendance_csv(
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin)
 ):
-    query = db.query(Attendance).join(User).filter(Attendance.tenant_id == current_admin.tenant_id)
-    
-    if date:
-        query = query.filter(Attendance.date == date)
+    target_date = date or datetime.now(IST).strftime("%Y-%m-%d")
+
+    # Fetch all active cadets in this tenant
+    cadet_query = db.query(User).filter(
+        User.tenant_id == current_admin.tenant_id,
+        User.role == RoleEnum.STAFF,
+        User.status == UserStatus.ACTIVE
+    )
     if employee_id:
-        query = query.filter(User.employee_id == employee_id)
-        
-    records = query.order_by(Attendance.created_at.desc()).all()
+        cadet_query = cadet_query.filter(User.employee_id == employee_id)
+    active_cadets = cadet_query.all()
+
+    # Fetch marked attendance for target_date
+    att_query = db.query(Attendance).join(User).filter(
+        Attendance.tenant_id == current_admin.tenant_id,
+        Attendance.date == target_date
+    )
+    if employee_id:
+        att_query = att_query.filter(User.employee_id == employee_id)
+    records = att_query.all()
     populate_expected_fall_in_time(records, db)
+    att_by_user_id = {r.user_id: r for r in records}
+
+    # Expected fall-in time default from session
+    session = db.query(AttendanceSession).filter(
+        AttendanceSession.tenant_id == current_admin.tenant_id,
+        AttendanceSession.date == target_date
+    ).first()
+    default_expected_time = "09:30 AM"
+    if session and session.start_time:
+        try:
+            default_expected_time = session.start_time.strftime("%I:%M %p")
+        except Exception:
+            default_expected_time = str(session.start_time)
+
+    rows = []
+    for cadet in active_cadets:
+        r = att_by_user_id.get(cadet.id)
+        if r:
+            check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
+            status_str = r.status.value if hasattr(r.status, 'value') else str(r.status)
+            fall_in_str = r.check_in_time.strftime("%H:%M:%S") if r.check_in_time else "N/A"
+            expected_fall_in = getattr(r, 'expected_fall_in_time', default_expected_time) or default_expected_time
+            lat_str = str(r.latitude) if r.latitude is not None else ""
+            lng_str = str(r.longitude) if r.longitude is not None else ""
+            device_str = r.device_info or ""
+        else:
+            status_str = "ABSENT"
+            fall_in_str = "N/A"
+            check_out_str = "N/A"
+            expected_fall_in = default_expected_time
+            lat_str = ""
+            lng_str = ""
+            device_str = "N/A"
+
+        rows.append({
+            "cadet": cadet,
+            "data": [
+                cadet.name,
+                cadet.employee_id,
+                cadet.roll_number or '',
+                cadet.department or '',
+                target_date,
+                expected_fall_in,
+                fall_in_str,
+                check_out_str,
+                status_str,
+                lat_str,
+                lng_str,
+                device_str
+            ]
+        })
+
+    # Sort department-wise (ANE first, AIML second, etc.), then by roll_number, then name
+    rows.sort(key=lambda item: (
+        get_department_rank(item["cadet"].department),
+        (item["cadet"].roll_number or "").upper(),
+        (item["cadet"].name or "").upper(),
+        item["cadet"].employee_id.upper()
+    ))
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Cadet Name", "Cadet Regt ID", "Roll Number", "Department", "Date", "Expected Fall-In", "Fall-In Time", "Visarjan Time", "Status", "Latitude", "Longitude", "Device"])
+    writer.writerow([
+        "Cadet Name", "Cadet Regt ID", "Roll Number", "Department", "Date",
+        "Expected Fall-In", "Fall-In Time", "Visarjan Time", "Status",
+        "Latitude", "Longitude", "Device"
+    ])
 
-    for r in records:
-        check_out_str = r.check_out_time.strftime("%H:%M:%S") if getattr(r, 'check_out_time', None) else "N/A"
-        status_str = r.status.value if hasattr(r.status, 'value') else str(r.status)
-        writer.writerow([
-            r.user.name,
-            r.user.employee_id,
-            getattr(r.user, 'roll_number', '') or '',
-            getattr(r.user, 'department', '') or '',
-            r.date,
-            getattr(r, 'expected_fall_in_time', '07:00 AM'),
-            r.check_in_time.strftime("%H:%M:%S"),
-            check_out_str,
-            status_str,
-            r.latitude,
-            r.longitude,
-            r.device_info
-        ])
+    for row in rows:
+        writer.writerow(row["data"])
 
     output.seek(0)
-    filename_part = f"{employee_id}_{date}" if (employee_id and date) else (employee_id or date or "all")
+    filename_part = f"{employee_id}_{target_date}" if (employee_id and date) else (employee_id or target_date)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=attendance_{filename_part}.csv"}
+        headers={"Content-Disposition": f"attachment; filename=attendance_daily_{filename_part}.csv"}
     )
 
 def get_tenant_session_dates(db: Session, tenant_id: int, month_prefix: Optional[str] = None) -> Set[str]:
@@ -532,6 +775,7 @@ def get_tenant_session_dates(db: Session, tenant_id: int, month_prefix: Optional
 
     # 3. Check today: Count today if session is active OR if attendance was marked today
     if not month_prefix or today_str.startswith(month_prefix):
+        get_or_create_auto_session(db, tenant_id, today_str)
         today_active_session = db.query(AttendanceSession).filter(
             AttendanceSession.tenant_id == tenant_id,
             AttendanceSession.date == today_str,
@@ -561,12 +805,19 @@ def export_monthly_summary_csv(
         
     user_query = db.query(User).filter(
         User.tenant_id == current_admin.tenant_id,
-        User.role == RoleEnum.STAFF
+        User.role == RoleEnum.STAFF,
+        User.status == UserStatus.ACTIVE
     )
     if employee_id:
         user_query = user_query.filter(User.employee_id == employee_id)
         
-    cadets = user_query.order_by(User.name.asc()).all()
+    cadets = user_query.all()
+    cadets.sort(key=lambda c: (
+        get_department_rank(c.department),
+        (c.roll_number or "").upper(),
+        (c.name or "").upper(),
+        c.employee_id.upper()
+    ))
 
     # Unique session dates in this month for the tenant (including today if active)
     month_session_dates = get_tenant_session_dates(db, current_admin.tenant_id, month)
@@ -632,12 +883,19 @@ def export_total_summary_csv(
 ):
     user_query = db.query(User).filter(
         User.tenant_id == current_admin.tenant_id,
-        User.role == RoleEnum.STAFF
+        User.role == RoleEnum.STAFF,
+        User.status == UserStatus.ACTIVE
     )
     if employee_id:
         user_query = user_query.filter(User.employee_id == employee_id)
         
-    cadets = user_query.order_by(User.name.asc()).all()
+    cadets = user_query.all()
+    cadets.sort(key=lambda c: (
+        get_department_rank(c.department),
+        (c.roll_number or "").upper(),
+        (c.name or "").upper(),
+        c.employee_id.upper()
+    ))
 
     # Unique session dates across all time for tenant (including today if active)
     overall_session_dates = get_tenant_session_dates(db, current_admin.tenant_id)
@@ -776,6 +1034,9 @@ def get_staff_attendance_summary(
             "check_out_time": None,
             "expected_fall_in_time": None
         }
+
+    if current_user.tenant_id:
+        get_or_create_auto_session(db, current_user.tenant_id, today_str)
 
     today_session = db.query(AttendanceSession).filter(
         AttendanceSession.tenant_id == current_user.tenant_id,
@@ -970,7 +1231,7 @@ def export_staff_attendance_csv(
             target_user.roll_number or '',
             target_user.department or '',
             r.date,
-            getattr(r, 'expected_fall_in_time', '07:00 AM'),
+            getattr(r, 'expected_fall_in_time', '09:30 AM'),
             fall_in_str,
             visarjan_str,
             status_str,

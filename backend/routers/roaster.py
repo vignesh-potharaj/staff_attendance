@@ -6,6 +6,7 @@ import logging
 
 from backend.database.database import get_db
 from backend.models.models import DailyRoaster, User, AttendanceSession, RoleEnum, IST, Attendance
+from backend.services.session_service import get_or_create_auto_session
 from backend.schemas.schemas import (
     DailyRoasterCreate,
     DailyRoasterResponse,
@@ -29,6 +30,9 @@ def get_daily_roaster(date: str, db: Session = Depends(get_db), current_user: Us
     Returns empty list if no records found for that date.
     """
     try:
+        if current_user.tenant_id:
+            get_or_create_auto_session(db, current_user.tenant_id, date)
+
         records = db.query(DailyRoaster).filter(
             DailyRoaster.date == date,
             DailyRoaster.tenant_id == current_user.tenant_id,
@@ -279,6 +283,10 @@ def get_session_status(
     if not date:
         date = datetime.now(IST).strftime("%Y-%m-%d")
 
+    # Ensure auto-session is created if today is Wednesday/Saturday
+    if current_user.tenant_id:
+        get_or_create_auto_session(db, current_user.tenant_id, date)
+
     session = db.query(AttendanceSession).filter(
         AttendanceSession.tenant_id == current_user.tenant_id,
         AttendanceSession.date == date
@@ -338,9 +346,9 @@ def activate_session(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
 
-        # Parse timings (default 07:00 to 09:30 for NCC parades if omitted)
-        start_time_parsed = _parse_time_str(payload.start_time) or time_obj(7, 0, 0)
-        end_time_parsed = _parse_time_str(payload.end_time) or time_obj(9, 30, 0)
+        # Parse timings (default 09:30 to 12:30 for NCC parades if omitted)
+        start_time_parsed = _parse_time_str(payload.start_time) or time_obj(9, 30, 0)
+        end_time_parsed = _parse_time_str(payload.end_time) or time_obj(12, 30, 0)
         require_location_val = 1 if payload.require_location else 0
 
         # Check existing session
